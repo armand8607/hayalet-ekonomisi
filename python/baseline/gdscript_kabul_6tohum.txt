@@ -1,0 +1,9 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+# kabul tohum=101..106 tur=1259
+tohum 101 ltrpf -0.9070 iss 0.3883 res_yil 10.84 minsky_yil 80.94 gecis 174 devrim 10 oto 0.5060 canli 0.3722 ileri 85 geri 89 liberal 0
+tohum 102 ltrpf -0.9329 iss 0.3960 res_yil 12.34 minsky_yil 73.10 gecis 170 devrim 11 oto 0.5145 canli 0.3138 ileri 82 geri 88 liberal 0
+tohum 103 ltrpf -0.9339 iss 0.3877 res_yil 11.91 minsky_yil 71.56 gecis 172 devrim 9 oto 0.5131 canli 0.2780 ileri 84 geri 88 liberal 0
+tohum 104 ltrpf -0.9052 iss 0.4288 res_yil 10.33 minsky_yil 70.09 gecis 168 devrim 4 oto 0.5171 canli 0.3222 ileri 82 geri 86 liberal 0
+tohum 105 ltrpf -0.9303 iss 0.4251 res_yil 11.64 minsky_yil 70.09 gecis 170 devrim 7 oto 0.5094 canli 0.2955 ileri 82 geri 88 liberal 0
+tohum 106 ltrpf -0.9263 iss 0.4076 res_yil 11.52 minsky_yil 80.94 gecis 172 devrim 8 oto 0.5132 canli 0.2794 ileri 81 geri 91 liberal 0

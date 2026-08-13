@@ -27,7 +27,13 @@ if ($Python -eq "") {
 $cikti = Join-Path $kok "python\baseline\parity"
 New-Item -ItemType Directory -Force -Path $cikti | Out-Null
 
-$katmanlar = if ($Katman -eq "hepsi") { @("rng","crc32","params","formulas","init") } else { @($Katman) }
+# "turn400" bilerek en son DOGRULANMIS-KESIN kontrol noktasidir. Tur 408'den
+# sonra CPython ile Godot'un exp() fonksiyonu son bitte ayrisiyor ve motor
+# kaotik oldugu icin fark yayiliyor; bu bir port hatasi DEGILDIR (bkz.
+# CLAUDE.md, --dump-libm olcumu). Daha uzun ufuklarin olcutu kabul bantlaridir.
+$katmanlar = if ($Katman -eq "hepsi") {
+    @("rng", "crc32", "params", "formulas", "init", "turn400")
+} else { @($Katman) }
 
 Write-Host "godot  : $Godot"
 Write-Host "python : $Python"
@@ -44,12 +50,22 @@ foreach ($k in $katmanlar) {
     $gdHam = Join-Path $cikti "gd_${k}_ham.txt"
     $gdErr = Join-Path $cikti "gd_${k}_err.txt"
 
-    & $Python (Join-Path $kok "python\tools\dump_trace.py") "--$k" |
+    # "turnN" katmani ayri arguman bicimi kullanir.
+    if ($k -match '^turn(\d+)$') {
+        $n = $Matches[1]
+        $pyArg = @("--turn", $n)
+        $gdArg = "--dump-turn=$n"
+    } else {
+        $pyArg = @("--$k")
+        $gdArg = "--dump-$k"
+    }
+
+    & $Python (Join-Path $kok "python\tools\dump_trace.py") @pyArg |
         Out-File -FilePath $pyOut -Encoding utf8
 
     # Godot'un surum banner'i cikti degil gurultudur; ayiklanir.
     Start-Process -FilePath $Godot -NoNewWindow -Wait `
-        -ArgumentList @("--headless", "--path", $proj, "res://scenes/Main.tscn", "--", "--dump-$k") `
+        -ArgumentList @("--headless", "--path", $proj, "res://scenes/Main.tscn", "--", $gdArg) `
         -RedirectStandardOutput $gdHam -RedirectStandardError $gdErr | Out-Null
 
     Get-Content $gdHam -Encoding utf8 |

@@ -324,6 +324,103 @@ static func dump_agg(tohum: int = 42) -> void:
 
 
 # ---------------------------------------------------------------------------
+# KATMAN 5 -- KABUL BANTLARI. Portun ASIL sinavi.
+#
+# Bit-birebir parite libm yuzunden tam kampanyada ulasilamaz (bkz. CLAUDE.md),
+# dolayisiyla kabul olcutu budur: motor belgenin 9.19 bolumundeki bantlari
+# uretiyor mu? Bu olcutler 1 ulp'lik gurultuye duyarsizdir -- zaten belgenin
+# kendi savundugu sey de bu (bolum 9.14: bantlar kalibrasyonun kaydidir,
+# bagimsiz olcut yon testleridir).
+#
+# NOT: Python `statistics.mean` kesirli aritmetik kullanir, buradaki duz
+# ortalama kullanmiyor. Bant genisliklerinin yaninda bu fark olculemez.
+# ---------------------------------------------------------------------------
+static func _ort(dizi: Array) -> float:
+	if dizi.is_empty():
+		return NAN
+	return Formulas.py_sum(dizi) / float(dizi.size())
+
+
+static func kabul(tohum_sayisi: int = 5, turlar: int = 1259, ilk_tohum: int = 101) -> void:
+	yaz("# kabul tohum=%d..%d tur=%d" % [ilk_tohum, ilk_tohum + tohum_sayisi - 1, turlar])
+	var basla := int(turlar * 0.875)
+	var yil := float(turlar) * Formulas.TUR_YIL
+
+	for tohum in range(ilk_tohum, ilk_tohum + tohum_sayisi):
+		var e := GhostEngine.new(tohum)
+		e.run_simulation(turlar)
+		var n := e.D.size()
+
+		var oto_d := []
+		var canli_d := []
+		var e_kap := []
+		var e_hep := []
+		for c in e.D:
+			var s_oto := c.tarih.seri("oto")
+			var s_canli := c.tarih.seri("canli_pay")
+			var s_e := c.tarih.seri("e")
+			for i in range(basla, c.tarih.tur_sayisi()):
+				oto_d.append(s_oto[i])
+				canli_d.append(s_canli[i])
+				e_hep.append(s_e[i])
+				if c.tarih.metin("rej", i) == "kapitalist":
+					e_kap.append(s_e[i])
+		if e_kap.is_empty():
+			e_kap = e_hep
+
+		# LTRPF: kar_orani_trendi(turlar/4) ilk ve son dilim.
+		var dilim := maxi(turlar / 4, 1)
+		var ilk_r := NAN
+		var son_r := NAN
+		for lo in range(0, turlar, dilim):
+			var hi := lo + dilim
+			var rs := []
+			for c in e.D:
+				var s_r := c.tarih.seri("r")
+				var pen := []
+				for i in range(lo, mini(hi, s_r.size())):
+					pen.append(s_r[i])
+				if not pen.is_empty():
+					rs.append(_ort(pen))
+			if not rs.is_empty():
+				if is_nan(ilk_r):
+					ilk_r = _ort(rs)
+				son_r = _ort(rs)
+
+		var res := 0
+		var gecis := 0
+		var devrim := 0
+		var ileri := 0
+		var geri := 0
+		var lib_endojen := 0
+		for c in e.D:
+			res += c.resesyonlar.size()
+			gecis += c.kurum_gecmis.size()
+			if c.devrim_t != null:
+				devrim += 1
+			for g in c.kurum_gecmis:
+				if String(g[1]) == "duzenli" and String(g[2]) == "neoliberal":
+					ileri += 1
+				if String(g[1]) == "neoliberal" and String(g[2]) == "duzenli":
+					geri += 1
+				if String(g[2]) == "liberal":
+					lib_endojen += 1
+
+		var minsky := 0
+		for kayit in e.log:
+			if String(kayit[1]) == "COKME" and String(kayit[2]).to_upper().contains("MINSKY"):
+				minsky += 1
+
+		var ltrpf := (son_r / ilk_r - 1.0) if ilk_r != 0.0 else NAN
+		var res_yil := (yil / (float(res) / float(n))) if res > 0 else INF
+		var minsky_yil := (yil / (float(minsky) / float(n))) if minsky > 0 else INF
+
+		yaz("tohum %d ltrpf %.4f iss %.4f res_yil %.2f minsky_yil %.2f gecis %d devrim %d oto %.4f canli %.4f ileri %d geri %d liberal %d"
+				% [tohum, ltrpf, 1.0 - _ort(e_kap), res_yil, minsky_yil, gecis, devrim,
+					_ort(oto_d), _ort(canli_d), ileri, geri, lib_endojen])
+
+
+# ---------------------------------------------------------------------------
 # Veri katmani ic tutarliligi (Python gerektirmez).
 # ---------------------------------------------------------------------------
 static func self_test() -> int:

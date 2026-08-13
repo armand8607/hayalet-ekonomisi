@@ -78,10 +78,29 @@ kalibrasyonun kaydıdır, bağımsız kriter değil; bağımsız olan yön testl
 | 3a | Dünya kurulumu (`--dump-init`) | **GEÇTİ** — 2765 satır birebir |
 | 3b | Tur-tur iz (`--dump-turn=N`) | **tur 1–407 birebir** (tohum 42); 408'den sonra libm sapması — aşağıya bak |
 | 4 | 9 mekanizma yön testi (**birincil**) | Python'da 9/9; GDScript koşusu bekliyor |
-| 5 | 10 kabul bandı | Python'da 10/10; GDScript koşusu bekliyor |
+| 5 | 10 kabul bandı (`--kabul=N`) | **GEÇTİ** — aşağıya bak |
 
 Katman 3b'nin 407 tur boyunca (5000+ alan × 407 tur) birebir tutması,
 aktarımın doğru olduğunun asıl kanıtıdır.
+
+**Katman 5, tohum 101–106, 1259 tur** — iki motor yan yana
+(`python/baseline/*_kabul_6tohum.txt`):
+
+| tohum | Python ↔ GDScript |
+|---|---|
+| 104, 105 | **tam kampanya boyunca BİREBİR AYNI** — libm sapması bu tohumlarda hiç tetiklenmiyor |
+| 102 | pratikte aynı (LTRPF −0.9327/−0.9329, devrim 11/11) |
+| 101, 103, 106 | aynı aralıkta; tek ulp'lik libm farkı kaotik olarak büyümüş |
+
+Bantlar: LTRPF −%92.8, işsizlik 0.402, resesyon 11.6 yıl, Minsky 72.3 yıl,
+kurumsal geçiş ~171, otomasyon 0.513, canlı emek 0.305, Polanyi her iki yönde
+(81–85 ileri / 86–91 geri), liberale endojen dönüş 0. Hepsi bantta.
+
+**Devrim ölçütü uyarısı:** 6 tohumda medyan 8.5 ile [0,8] bandının hemen
+üstünde çıkıyor — ama **Python aynı 6 tohumda 9.0 veriyor**, yani bu bandın
+dışına çıkmak portun değil örneklem büyüklüğünün sonucu. Belge de bunu söylüyor
+(§10: "devrim sayısı tohuma duyarlı, en az üç tohum gerekir"). 20 tohumla
+Python 7.0 veriyor ve bant tutuyor. **Bu ölçütü 6 tohumla değerlendirme.**
 
 ## Bit-birebir paritenin sınırı — ölçüldü
 

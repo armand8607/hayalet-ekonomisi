@@ -1,0 +1,7 @@
+﻿# kabul tohum=101..106 tur=1259
+tohum 101 ltrpf -0.9135 iss 0.4229 res_yil 10.91 minsky_yil 78.14 gecis 173 devrim 8 oto 0.5092 canli 0.3568 ileri 83 geri 90 liberal 0
+tohum 102 ltrpf -0.9327 iss 0.3961 res_yil 12.34 minsky_yil 73.10 gecis 169 devrim 11 oto 0.5145 canli 0.3137 ileri 81 geri 88 liberal 0
+tohum 103 ltrpf -0.9303 iss 0.3959 res_yil 11.80 minsky_yil 73.90 gecis 173 devrim 10 oto 0.5120 canli 0.2913 ileri 84 geri 89 liberal 0
+tohum 104 ltrpf -0.9052 iss 0.4288 res_yil 10.33 minsky_yil 70.09 gecis 168 devrim 4 oto 0.5171 canli 0.3222 ileri 82 geri 86 liberal 0
+tohum 105 ltrpf -0.9303 iss 0.4251 res_yil 11.64 minsky_yil 70.09 gecis 170 devrim 7 oto 0.5094 canli 0.2955 ileri 82 geri 88 liberal 0
+tohum 106 ltrpf -0.9240 iss 0.3870 res_yil 11.56 minsky_yil 81.91 gecis 169 devrim 10 oto 0.4995 canli 0.3158 ileri 81 geri 88 liberal 0

@@ -46,6 +46,8 @@ func _ready() -> void:
 				Parity.dump_init(42)
 			_ when a.begins_with("--dump-turn="):
 				Parity.dump_turn(int(a.get_slice("=", 1)), 42)
+			_ when a.begins_with("--kabul="):
+				Parity.kabul(int(a.get_slice("=", 1)))
 			_:
 				push_warning("Bilinmeyen arguman: " + a)
 	get_tree().quit(cikis)
