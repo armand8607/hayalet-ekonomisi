@@ -125,6 +125,63 @@ static func dump_formulas() -> void:
 
 
 # ---------------------------------------------------------------------------
+# KATMAN 3a -- DUNYA KURULUMU. Motor portunun ilk kontrol noktasi.
+#
+# Burasi gectiginde su dordu birden kanitlanmis olur: Country'nin 138 alani,
+# dunya tohum tablosu, cag_ata'nin goreli-konum aritmetigi ve init_simulation'in
+# olcekleme zinciri. step() yazilmadan once bunlarin dogru olmasi sart --
+# yanlis bir baslangic durumu her turu bozar ve hatayi step() icinde aratir.
+# ---------------------------------------------------------------------------
+
+## Sayisal degerler DAIMA f64 olarak basilir, int/float ayrimi yapilmadan.
+## Neden: Python'da `L_max` kurulusta int 110, birkac tur sonra float 110.37.
+## Tipe gore bicimlendirmek, deger ayni olsa bile sahte fark uretirdi.
+static func _deger(v) -> String:
+	match typeof(v):
+		TYPE_NIL:
+			return "null"
+		TYPE_BOOL:
+			return "bool " + ("1" if v else "0")
+		TYPE_INT, TYPE_FLOAT:
+			return "num " + f64(float(v))
+		TYPE_STRING, TYPE_STRING_NAME:
+			return "str " + String(v)
+		TYPE_DICTIONARY:
+			var anahtarlar := (v as Dictionary).keys()
+			anahtarlar.sort()
+			var parcalar := PackedStringArray()
+			for k in anahtarlar:
+				parcalar.append("%s=%s" % [k, f64(float(v[k]))])
+			return "dict " + " ".join(parcalar)
+		TYPE_ARRAY:
+			var ogeler := PackedStringArray()
+			for x in v:
+				ogeler.append(f64(float(x)) if (x is float or x is int) else String(x))
+			return "array " + " ".join(ogeler)
+	return "??? " + str(v)
+
+
+static func dump_init(tohum: int = 42) -> void:
+	var e := GhostEngine.new(tohum)
+	yaz("# init tohum=%d ulke=%d" % [tohum, e.D.size()])
+	yaz("motor K_olcek num %s" % f64(e.K_olcek))
+	yaz("motor K_carpani num %s" % f64(e.K_carpani))
+	yaz("motor hedef_istihdam num %s" % f64(e.hedef_istihdam))
+	yaz("motor t num %s" % f64(float(e.t)))
+
+	for c in e.D:
+		var adlar := PackedStringArray()
+		for p in c.get_property_list():
+			if p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+				adlar.append(p.name)
+		adlar.sort()
+		for ad in adlar:
+			if ad == "tarih":
+				continue   # History nesnesi; kurulusta bos
+			yaz("ulke %s %s %s" % [c.ad, ad, _deger(c.get(ad))])
+
+
+# ---------------------------------------------------------------------------
 # Veri katmani ic tutarliligi (Python gerektirmez).
 # ---------------------------------------------------------------------------
 static func self_test() -> int:

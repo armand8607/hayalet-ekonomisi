@@ -38,6 +38,8 @@ func _ready() -> void:
 				Parity.dump_params()
 			"--dump-formulas":
 				Parity.dump_formulas()
+			"--dump-init":
+				Parity.dump_init(42)
 			_:
 				push_warning("Bilinmeyen arguman: " + a)
 	get_tree().quit(cikis)

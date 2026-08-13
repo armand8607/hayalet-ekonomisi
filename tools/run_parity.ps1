@@ -27,7 +27,7 @@ if ($Python -eq "") {
 $cikti = Join-Path $kok "python\baseline\parity"
 New-Item -ItemType Directory -Force -Path $cikti | Out-Null
 
-$katmanlar = if ($Katman -eq "hepsi") { @("rng","crc32","params","formulas") } else { @($Katman) }
+$katmanlar = if ($Katman -eq "hepsi") { @("rng","crc32","params","formulas","init") } else { @($Katman) }
 
 Write-Host "godot  : $Godot"
 Write-Host "python : $Python"

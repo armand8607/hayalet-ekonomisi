@@ -129,11 +129,54 @@ def dump_formulas():
         print(f"cv_capa {f64(a)} {f64(b)}")
 
 
+# ---------------------------------------------------------------------------
+# KATMAN 3a -- DUNYA KURULUMU. Motor portunun ilk kontrol noktasi.
+# ---------------------------------------------------------------------------
+def _deger(v):
+    """Sayisal degerler DAIMA f64; int/float ayrimi yapilmaz.
+
+    Neden: `L_max` kurulusta int 110, birkac tur sonra float 110.37. Tipe gore
+    bicimlendirmek, deger ayni olsa bile sahte fark uretirdi.
+    """
+    if v is None:
+        return "null"
+    if isinstance(v, bool):          # bool, int'in altsinifi -- once bakilmali
+        return "bool " + ("1" if v else "0")
+    if isinstance(v, (int, float)):
+        return "num " + f64(v)
+    if isinstance(v, str):
+        return "str " + v
+    if isinstance(v, dict):
+        return "dict " + " ".join(f"{k}={f64(v[k])}" for k in sorted(v))
+    if isinstance(v, (list, tuple, set)):
+        gerekli = sorted(v) if isinstance(v, set) else list(v)
+        return "array " + " ".join(
+            f64(x) if isinstance(x, (int, float)) and not isinstance(x, bool) else str(x)
+            for x in gerekli)
+    return "??? " + str(v)
+
+
+def dump_init(tohum=42):
+    e = M.GhostEconomyEngine(tohum)
+    print(f"# init tohum={tohum} ulke={len(e.D)}")
+    print(f"motor K_olcek num {f64(e.K_olcek)}")
+    print(f"motor K_carpani num {f64(e.K_carpani)}")
+    print(f"motor hedef_istihdam num {f64(e.hedef_istihdam)}")
+    print(f"motor t num {f64(e.t)}")
+
+    for c in e.D:
+        for ad in sorted(vars(c)):
+            if ad == "tarih":
+                continue
+            print(f"ulke {c.ad} {ad} {_deger(getattr(c, ad))}")
+
+
 KOMUTLAR = {
     "--rng": dump_rng,
     "--crc32": dump_crc32,
     "--params": dump_params,
     "--formulas": dump_formulas,
+    "--init": dump_init,
 }
 
 if __name__ == "__main__":
