@@ -75,9 +75,37 @@ kalibrasyonun kaydıdır, bağımsız kriter değil; bağımsız olan yön testl
 |---|---|---|
 | 1 | RNG akışı (`random`/`randint`/`choice`/`getrandbits`) | **GEÇTİ** — 12 451 satır birebir |
 | 2 | crc32, 355 parametre, saf fonksiyonlar | **GEÇTİ** — 427 satır birebir |
-| 3 | Tur-tur iz karşılaştırması | motor portunu bekliyor |
+| 3a | Dünya kurulumu (`--dump-init`) | **GEÇTİ** — 2765 satır birebir |
+| 3b | Tur-tur iz karşılaştırması | `step()` portunu bekliyor |
 | 4 | 9 mekanizma yön testi (**birincil**) | Python'da 9/9; GDScript portu bekliyor |
 | 5 | 10 kabul bandı | Python'da 10/10; GDScript portu bekliyor |
+
+Katman 3a geçtiğinde şu dördü birden kanıtlanmış olur: `Country`'nin 138 alanı,
+dünya tohum tablosu, `cag_ata`'nın göreli-konum aritmetiği ve
+`init_simulation`'ın ölçekleme zinciri.
+
+## Portun kalan kısmı
+
+`GhostEngine.step()` **bölünemez bir artıştır**: 915 satırlık gövde ilk turda
+13 yardımcı metodu birden çağırıyor, dolayısıyla hiçbiri tek başına
+koşturulamaz. Bir sonraki yeşil ışığa kadar yazılması gereken:
+
+| parça | kaynak satır | boyut |
+|---|---|---|
+| `step()` gövdesi (A–T blokları) | `motor.py:1685–2601` | 915 |
+| `ittifak_isle`, `abluka_ambargo_isle`, `dunya_devrimi_isle`, `savas_karari`, `savas_yikim_isle` | 2936–3070 | ~135 |
+| `politika_*` (kuyruk, hız, ilan, AI, kurumsal inşa) | 2636–2891 | ~180 |
+| `izolasyon_sapmasi_isle`, `can_simidi_isle`, `kurumsal_gecis_isle` | 2602–2816 | ~90 |
+| `kriz_siniflandir`, `degismez_denetle` | 3225–3276 | ~50 |
+
+Sonra ayrı ve bağımsız olarak taşınabilecekler (oynanış için gerekli ama
+`step()` paritesi için değil): `load_scenario`, `set_*` politika API'si,
+`get_summary`, `tarihsel_rapor`, `kodey_trendi`, `kar_orani_trendi`.
+
+**Port sırası önerisi:** önce 13 yardımcı, sonra `step()` gövdesi bloklar
+hâlinde (A→T, kaynak sırasıyla), sonra `--dump-turn N` ile tur-tur iz
+karşılaştırması. İlk turda sapma çıkarsa hata A–T içinde; `compare_dump.py`
+sapan ilk alanı ve göreli farkı doğrudan söyler.
 
 Taban ölçümler `python/baseline/` altında. Belgenin §9.19'daki yayımlanmış
 tablosuyla karşılaştırıldı ve tutuyor (LTRPF −93.0% / −93.0%, kurumsal geçiş
