@@ -228,11 +228,13 @@ static func dump_init(tohum: int = 42) -> void:
 # N tur kosturur ve butun dunya durumunu doker. Ilk sapan alan hatanin hangi
 # blokta oldugunu dogrudan soyler; compare_dump.py goreli farki da basar.
 # ---------------------------------------------------------------------------
-static func dump_turn(tur: int, tohum: int = 42) -> void:
+static func dump_turn(tur: int, tohum: int = 42, senaryo: String = "") -> void:
 	var e := GhostEngine.new(tohum)
+	if senaryo != "":
+		e.load_scenario(senaryo)
 	for _i in range(tur):
 		e.step()
-	yaz("# turn tur=%d tohum=%d" % [tur, tohum])
+	yaz("# turn tur=%d tohum=%d senaryo=%s" % [tur, tohum, senaryo])
 	_dump_dunya(e)
 
 	# Son turun tarih kaydi: step()'in butun ara degiskenlerini gorunur kilar.
@@ -269,6 +271,92 @@ static func dump_libm() -> void:
 		var b := r.random() * 20.0 + 0.01
 		var e2 := (r.random() - 0.5) * 6.0
 		yaz("pow %d %s %s %s" % [i, f64(b), f64(e2), f64(pow(b, e2))])
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 3c -- SENARYO ODALARI. Yukleme SIRASI yuk tasidigi icin ayri kapi:
+# oransal ayarlar init_simulation'dan once yapilirsa FX/borc/Omega sessizce
+# eziliyor ve senaryonun ana oncülü kayboluyor.
+# ---------------------------------------------------------------------------
+static func dump_scenario(isim: String, tohum: int = 42) -> void:
+	var e := GhostEngine.new(tohum)
+	e.load_scenario(isim)
+	yaz("# scenario %s tohum=%d" % [isim, tohum])
+	_dump_dunya(e)
+	for kayit in e.log:
+		yaz("log %d %s %s" % [int(kayit[0]), String(kayit[1]), String(kayit[2])])
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 3d -- RAPORLAMA. Burada olcut BIT-BIREBIR DEGIL, SIKI TOLERANSTIR:
+# kaynak `statistics.mean` kullaniyor (Fraction tabanli tam rasyonel toplama).
+# Bkz. engine.gd'deki raporlama basligi.
+# ---------------------------------------------------------------------------
+static func dump_report(tur: int, tohum: int = 42, senaryo: String = "") -> void:
+	var e := GhostEngine.new(tohum)
+	if senaryo != "":
+		e.load_scenario(senaryo)
+	for _i in range(tur):
+		e.step()
+	yaz("# report tur=%d tohum=%d senaryo=%s" % [tur, tohum, senaryo])
+
+	var oz := e.get_summary()
+	var anahtarlar := oz.keys()
+	anahtarlar.sort()
+	for k in anahtarlar:
+		yaz("ozet %s %s" % [k, _deger(oz[k])])
+
+	var dilim: int = maxi(tur / 4, 1)
+	for d in e.kar_orani_trendi(dilim):
+		yaz("ltrpf %d %d r=%s ry=%s cv=%s ky=%s u=%s" % [
+			int(d["t0"]), int(d["t1"]), f64(d["r"]), f64(d["r_yillik"]),
+			f64(d["cv"]), f64(d["K/Y"]), f64(d["u"])])
+
+	for d in e.kodey_trendi(dilim):
+		var alanlar: Array = (d as Dictionary).keys()
+		alanlar.sort()
+		var p := PackedStringArray()
+		for k in alanlar:
+			p.append("%s=%s" % [k, _skaler(d[k])])
+		yaz("kodey " + " ".join(p))
+
+	var oranlar := e.kriz_oranlari()
+	var ok := oranlar.keys()
+	ok.sort()
+	for k in ok:
+		yaz("kriz %s toplam=%d uyb=%s" % [k, int(oranlar[k]["toplam"]),
+				_skaler(oranlar[k]["ulke_yil_basina"])])
+
+	var rapor := e.tarihsel_rapor(e.D[0].ad)
+	yaz("rapor ulke=%s rejim=%s kurum=%s devrim=%s" % [
+			rapor["ulke"], rapor["son_rejim"], rapor["son_kurum"], _skaler(rapor["devrim_turu"])])
+	for bolum in ["baslangic", "bitis"]:
+		var b: Dictionary = rapor[bolum]
+		var bk := b.keys()
+		bk.sort()
+		var p2 := PackedStringArray()
+		for k in bk:
+			p2.append("%s=%s" % [k, _skaler(b[k])])
+		yaz("rapor_%s %s" % [bolum, " ".join(p2)])
+	for d in rapor["donemler"]:
+		var dk: Array = (d as Dictionary).keys()
+		dk.sort()
+		var p3 := PackedStringArray()
+		for k in dk:
+			p3.append("%s=%s" % [k, _skaler(d[k])])
+		yaz("rapor_donem " + " ".join(p3))
+	var ks: Dictionary = rapor["kriz_sayilari"]
+	var kk := ks.keys()
+	kk.sort()
+	for k in kk:
+		yaz("rapor_kriz %s=%d" % [k, int(ks[k])])
+	yaz("rapor_olay_sayisi %d" % rapor["olaylar"].size())
+
+	var kimlik := e.deney_kimligi(senaryo if senaryo != "" else null)
+	yaz("kimlik model=%s karma=%s tohum=%d tur=%d ulke=%d yil=%d" % [
+			kimlik["model"], kimlik["parametre_karmasi"], int(kimlik["tohum"]),
+			int(kimlik["tur"]), int(kimlik["ulke_sayisi"]), int(kimlik["baslangic_yili"])])
+	yaz("degismez_ihlal %d" % e.degismez_denetle().size())
 
 
 # ---------------------------------------------------------------------------

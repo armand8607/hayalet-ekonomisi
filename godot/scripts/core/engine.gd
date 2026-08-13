@@ -153,6 +153,120 @@ const KRIZ_ONCELIK := ["DEVRIM", "RESTORASYON", "BUYUK_BUNALIM", "DEVLET_COKUSU"
 		"PLAN_KITLIGI", "ASIRI_URETIM", "RESESYON"]
 
 
+# ===========================================================================
+# SENARYO ODALARI
+# ===========================================================================
+
+## Tarihsel/kurgusal bir baslangic durumunu yukler.
+##
+## YUKLEME SIRASI YUK TASIR ve kaynakta bir kez yanlisti:
+##   1) YAPISAL ayarlar   -> cag, kurum, rejim, hegemonya, ittifak
+##   2) init_simulation() -> K olcegi, Y, FX, norm YENIDEN kurulur
+##   3) ORANSAL ayarlar   -> FX/Y, borc/Y, Omega, org, pay, kemer ...
+## Oransal ayarlar 2. adimdan once yapilirsa `init_simulation` icindeki
+## `c.FX = fx_baslangic*c.Y` satiri onlari sessizce eziyor: turkey_2001'in ana
+## oncülü olan "rezerv tukenmis" (FX = 0.02*Y) hic yuklenmiyordu.
+##
+## `K_carpani` senaryonun BASLANGIC ISSIZLIGINI kuran degiskendir. Issizlik bu
+## modelde yavas biriken bir stoktur ve 120 turluk oyun ufkunda kurumsal
+## farklardan turetilemez; senaryo odalarinin isi zaten budur -- baslangic
+## durumu turetilmez, KURULUR.
+func load_scenario(isim: String, p_K_carpani = null) -> void:
+	_log("SENARYO", "SENARYO ODASI YÜKLENDİ: %s" % isim.to_upper())
+	# Kaynakta burada ayrica `random.seed(self.tohum)` var; o MODUL DUZEYI
+	# jeneratoru tohumluyor ve motorda hicbir yerde okunmuyor (tarandi).
+	# Islevsel olan tek satir bu:
+	rng = PyRandom.new(tohum)
+	_K_carpani_override = p_K_carpani
+
+	match isim:
+		"turkey_2001":
+			# Türkiye 2001 krizi ve neoliberal gecis
+			hedef_istihdam = 0.885      # kriz oncesi yuksek issizlik
+			K_carpani = 0.50
+			cag_ata(4)
+			for c in D:
+				c.kurum = "neoliberal"
+				if c.ad == "ABD":
+					c.hegemon = true
+			init_simulation()
+			for c in D:
+				if c.ad == "Turkiye":
+					c.dis_borc = 1.35       # limit sinirinda
+					c.kamu_borc = 1.15      # kemer sikma sinirinda
+					c.FX = 0.02 * c.Y       # rezerv tukenmis
+					c.kemer = 40            # agir IMF butce kisiti aktif
+					c.Omega = 0.45          # yuksek halk ofkesi
+					c.org = 0.12            # orgutluluk zayif
+					c.pay = 0.339           # ucret payi ezik
+					c.baski_egilimi = 0.70  # polis gucu baskisi yuksek
+				elif c.ad == "ABD":
+					c.FX = 0.80 * c.Y
+
+		"golden_age_1950":
+			# Altin cag refah devleti (1945-1975)
+			hedef_istihdam = 0.975      # tam istihdam taahhudu
+			K_carpani = 1.70
+			cag_ata(2)
+			for c in D:
+				c.kurum = "duzenli"
+			init_simulation()
+			for c in D:
+				c.org = 0.72                # guclu isci sendikalari
+				c.pay = 0.58                # emegin yuksek payi
+				c.e = 0.97                  # tam istihdam
+				c.e_norm = 0.96
+				c.borc = 0.05 * c.Y         # dusuk hanehalki borcu
+				c.varlik = 0.02 * c.Y       # sifira yakin spekulatif finans
+				c.kamu_borc = 0.25
+				c.PC = 1.0                  # yuksek demokratik mesruiyet
+
+		"neoliberal_1995":
+			# Neoliberal kuresellesme ve finansallasma (1995-2020)
+			hedef_istihdam = 0.905      # yedek sanayi ordusu disiplin araci
+			K_carpani = 0.45
+			cag_ata(4)
+			for c in D:
+				c.kurum = "neoliberal"
+			init_simulation()
+			for c in D:
+				c.org = 0.15                # sendikalar ezilmis
+				c.pay = 0.38                # dusuk ucret payi
+				c.borc = 0.60 * c.Y         # borcla gudumlenen tuketim
+				c.varlik = 0.80 * c.Y       # spekulatif balonlar birikiyor
+				c.PC = 0.85
+
+		"socialist_siege":
+			# Kusatilmis planli ekonomi (alternatif gelecek)
+			hedef_istihdam = 0.935
+			K_carpani = 1.30
+			cag_ata(5)
+			for c in D:
+				c.kurum = "duzenli"
+				if c.ad == "Rusya" or c.ad == "Cin" or c.ad == "Turkiye":
+					c.rejim = "sosyalist"
+					# Senaryo baslangici bir DEVRIM DEGILDIR. Onceden `devrim_t = 0`
+					# atanip hem devrim sayisi sisiyor hem de ulke askeri mudahale
+					# penceresine (0 < t-devrim_t <= 40) giriyordu.
+					c.baslangic_rejimi_t = 0
+				elif c.ad == "ABD" or c.ad == "Ingiltere" or c.ad == "Almanya":
+					c.saldirganlik = 0.95   # emperyalist mudahale zirvede
+					if not c.muttefik.has("ABD"):
+						c.muttefik.append("ABD")
+					if not c.muttefik.has("Ingiltere"):
+						c.muttefik.append("Ingiltere")
+			init_simulation()
+			for c in D:
+				if c.rejim == "sosyalist":
+					c.pay = 0.65
+					c.borc = 0.0
+					c.varlik = 0.0
+					c.PKE = 0.75
+
+		_:
+			push_error("Bilinmeyen senaryo: " + isim)
+
+
 func _kur(c: Country, alan: String) -> float:
 	return float(Tables.KURUMLAR[c.kurum][alan])
 
@@ -1702,3 +1816,419 @@ func step() -> void:
 	# Minsky, FX, temerrut, devrim) tamami olustuktan sonra.
 	kriz_siniflandir()
 	t += 1
+
+
+# ===========================================================================
+# RAPORLAMA
+# ---------------------------------------------------------------------------
+# Bu katmanda parite BIT-BIREBIR DEGIL, SIKI TOLERANSLIDIR ve bu bilincli.
+# Kaynak `statistics.mean` kullaniyor; CPython onu Fraction tabanli TAM
+# rasyonel toplamayla hesaplayip tek seferde yuvarliyor, yani `sum(x)/n`'den
+# farkli. Bunu GDScript'te birebir uretmek buyuk tamsayi aritmetigi gerektirir.
+# Karsiliginda kazanilacak sey yok: bu degerler yalnizca RAPORLANIYOR, hicbiri
+# motora geri beslenmiyor ve kabul bantlari ([-0.95,-0.55] gibi) 1e-16'lik bir
+# farka duyarli degil. Neumaier toplamasiyla hesaplanan ortalama tam ortalamadan
+# en fazla 1-2 ulp sapar.
+#
+# TEK ISTISNA `kar_orani_trendi`: LTRPF olcutunu besliyor. Orada da olcut
+# r_son/r_ilk oraninin YONU ve buyuklugu; ulp duyarli degil.
+# ===========================================================================
+
+## Ortalama -- `statistics.mean` yerine Neumaier toplama / n (yukaridaki nota bak).
+static func _ort(degerler: Array) -> float:
+	if degerler.is_empty():
+		return NAN
+	return Formulas.py_sum(degerler) / float(degerler.size())
+
+
+func _log_sayaci(anahtar: String) -> int:
+	var n := 0
+	for kayit in log:
+		if String(kayit[1]) == "COKME" and String(kayit[2]).contains(anahtar):
+			n += 1
+	return n
+
+
+## Genel istatistikler ve KODEY metrik seti.
+func get_summary() -> Dictionary:
+	var devrimler := 0
+	var baslangic_sos := 0
+	var cokmeler := 0
+	var savaslar := 0
+	for c in D:
+		if c.devrim_t != null:
+			devrimler += 1
+		if c.baslangic_rejimi_t != null:
+			baslangic_sos += 1
+		savaslar += c.savas_sayisi
+	for kayit in log:
+		if String(kayit[1]) == "COKME":
+			cokmeler += 1
+
+	var kap: Array[Country] = []
+	for c in D:
+		if c.rejim == "kapitalist":
+			kap.append(c)
+	if kap.is_empty():
+		kap = D
+
+	var sv := []
+	var tol := []
+	for c in kap:
+		sv.append(c.s_v)
+		tol.append(c.mafya_tolerans)
+	var lump := []
+	var cez := []
+	var atil := []
+	var eps_pi := []
+	var L_top := []
+	var kat := []
+	var etg_l := []
+	var ito_l := []
+	var deger_l := []
+	for c in D:
+		lump.append(c.lumpen_pay)
+		cez.append(c.cezaevi_orani)
+		atil.append(c.atil_endeks())
+		eps_pi.append(c.eps / maxf(c.pi_m, 1e-6))
+		L_top.append(c.L_max)
+		kat.append(c.katilim)
+		etg_l.append(c.etg)
+		ito_l.append(c.ito)
+		deger_l.append(c.deger_carpani)
+
+	var res := 0
+	var bun := 0
+	var tem := 0
+	var kg := 0
+	var piyasa := 0
+	var restorasyon := 0
+	var pakt_rekabet := 0
+	var gecis_dn := 0
+	var gecis_nd := 0
+	var ideo := []
+	for c in D:
+		res += c.resesyonlar.size()
+		bun += c.bunalimlar.size()
+		tem += c.temerrutler.size()
+		kg += c.kurum_gecmis.size()
+		if c.parti_iktidari:
+			piyasa += 1
+		if c.restorasyon_t != null and not c.parti_iktidari:
+			restorasyon += 1
+		if c.rejim == "sosyalist":
+			if c.pakt_durusu == "rekabet":
+				pakt_rekabet += 1
+			ideo.append(c.ideolojik_mesafe)
+		for g in c.kurum_gecmis:
+			if String(g[1]) == "duzenli" and String(g[2]) == "neoliberal":
+				gecis_dn += 1
+			elif String(g[1]) == "neoliberal" and String(g[2]) == "duzenli":
+				gecis_nd += 1
+
+	return {
+		"toplam_tur": t,
+		"sosyalist_devrimler": devrimler,
+		"baslangicta_sosyalist": baslangic_sos,
+		"ekonomik_cokmeler": cokmeler,
+		"toplam_savaslar": savaslar / 2,
+		"kucuk_resesyonlar": res,
+		"buyuk_bunalimlar": bun,
+		"cokme_BORC": _log_sayaci("BORC"),
+		"cokme_BALON": _log_sayaci("BALON"),
+		"cokme_MINSKY": _log_sayaci("MINSKY"),
+		"kurumsal_gecisler": kg,
+		"temerrutler": tem,
+		# --- KODEY metrik seti ---
+		"ort_somuru_orani_sv": Formulas.py_round(_ort(sv), 3),
+		"ort_lumpen_payi": Formulas.py_round(_ort(lump), 4),
+		"ort_mafya_toleransi": Formulas.py_round(_ort(tol), 3),
+		"ort_cezaevi_orani": Formulas.py_round(_ort(cez), 4),
+		"ort_atil_endeks": Formulas.py_round(_ort(atil), 4),
+		"ort_thirlwall_eps_pi": Formulas.py_round(_ort(eps_pi), 3),
+		"toplam_nufus": Formulas.py_round(Formulas.py_sum(L_top), 1),
+		"ort_katilim_orani": Formulas.py_round(_ort(kat), 3),
+		"piyasa_sosyalizmi": piyasa,
+		"restorasyon": restorasyon,
+		"dunya_devrimi": dunya_devrimi,
+		"pakt_uyumu": Formulas.py_round(pakt_uyumu, 3),
+		"pakt_rekabet": pakt_rekabet,
+		"ort_ideolojik_mesafe": Formulas.py_round(_ort(ideo), 4) if not ideo.is_empty() else 0.0,
+		"kap_kriz_payi": Formulas.py_round(kap_kriz_payi, 3),
+		"ort_etg": Formulas.py_round(_ort(etg_l), 4),
+		"kurum_gecis_duzenli_neoliberal": gecis_dn,
+		"kurum_gecis_neoliberal_duzenli": gecis_nd,
+		"ort_mekanizasyon_durtusu": Formulas.py_round(_ort(ito_l), 3),
+		"ort_deger_carpani": Formulas.py_round(_ort(deger_l), 3),
+	}
+
+
+## LTRPF tarihsel dogrulamasi: kar oraninin dilim dilim seyri.
+## Kabul olcutu `r_son/r_ilk` oranidir; belgenin birincil iddiasini bu tablo tasir.
+func kar_orani_trendi(dilim: int = 150) -> Array:
+	var out := []
+	var lo := 0
+	while lo < t:
+		var hi: int = lo + dilim
+		var rs := []
+		var cvs := []
+		var kys := []
+		var us := []
+		for c in D:
+			var n := c.tarih.tur_sayisi()
+			var a: int = mini(lo, n)
+			var b: int = mini(hi, n)
+			if b > a:
+				var s_r := c.tarih.seri("r")
+				var s_cv := c.tarih.seri("cv")
+				var s_K := c.tarih.seri("K")
+				var s_Y := c.tarih.seri("Y")
+				var s_u := c.tarih.seri("u")
+				var vr := []
+				var vcv := []
+				var vky := []
+				var vu := []
+				for i in range(a, b):
+					vr.append(s_r[i])
+					vcv.append(s_cv[i])
+					vky.append(s_K[i] / maxf(s_Y[i], 1e-6))
+					vu.append(s_u[i])
+				rs.append(_ort(vr))
+				cvs.append(_ort(vcv))
+				kys.append(_ort(vky))
+				us.append(_ort(vu))
+		if not rs.is_empty():
+			out.append({
+				"t0": lo, "t1": hi - 1,
+				"r": _ort(rs),
+				"r_yillik": Formulas.yillik(_ort(rs)),
+				"cv": _ort(cvs),
+				"K/Y": _ort(kys),
+				"u": _ort(us),
+			})
+		lo += dilim
+	return out
+
+
+## KODEY metrik setinin zaman icindeki seyri (el kitabi Bolum 6).
+func kodey_trendi(dilim: int = 150) -> Array:
+	var out := []
+	var lo := 0
+	while lo < t:
+		var hi: int = lo + dilim
+		var kova := {}
+		for ad in ["mafya_tolerans", "uyusturucu", "cezaevi", "lumpen_pay",
+				"gasp_orani", "s_v", "dogum"]:
+			kova[ad] = []
+		var eps_pi := []
+		for c in D:
+			var n := c.tarih.tur_sayisi()
+			var a: int = mini(lo, n)
+			var b: int = mini(hi, n)
+			if b <= a:
+				continue
+			for ad in kova.keys():
+				var s := c.tarih.seri(ad)
+				for i in range(a, b):
+					kova[ad].append(s[i])
+			var s_eps := c.tarih.seri("eps")
+			var s_pim := c.tarih.seri("pi_m")
+			for i in range(a, b):
+				eps_pi.append(s_eps[i] / maxf(s_pim[i], 1e-6))
+		if not eps_pi.is_empty():
+			out.append({
+				"t0": lo, "t1": hi - 1,
+				"tolerans": Formulas.py_round(_ort(kova["mafya_tolerans"]), 4),
+				"uyusturucu": Formulas.py_round(_ort(kova["uyusturucu"]), 4),
+				"cezaevi": Formulas.py_round(_ort(kova["cezaevi"]), 4),
+				"lumpen_pay": Formulas.py_round(_ort(kova["lumpen_pay"]), 4),
+				"gasp_orani": Formulas.py_round(_ort(kova["gasp_orani"]), 4),
+				"s_v": Formulas.py_round(_ort(kova["s_v"]), 3),
+				"eps/pi": Formulas.py_round(_ort(eps_pi), 3),
+				"dogum": Formulas.py_round(_ort(kova["dogum"]), 5),
+			})
+		lo += dilim
+	return out
+
+
+## Kriz sikliklari ULKE-YIL basina. Birincil neden uzerinden sayilir, yani ayni
+## turda coklu kriz frekanslari sismez.
+func kriz_oranlari() -> Dictionary:
+	var ulke_yil := float(D.size()) * float(t) * Formulas.TUR_YIL
+	var say := {}
+	for c in D:
+		for kayit in c.kriz_gunlugu:
+			var bir := String(kayit[1])
+			say[bir] = int(say.get(bir, 0)) + 1
+	var anahtarlar := say.keys()
+	anahtarlar.sort_custom(func(a, b): return int(say[a]) > int(say[b]))
+	var out := {}
+	for k in anahtarlar:
+		var v: int = say[k]
+		out[k] = {
+			"toplam": v,
+			"ulke_yil_basina": Formulas.py_round(float(v) / maxf(ulke_yil, 1e-9), 6),
+			"aralik_yil": Formulas.py_round(ulke_yil / float(v), 1) if v > 0 else null,
+		}
+	return out
+
+
+## Bir kosunun TARIHSEL SONUC RAPORU.
+##
+## Bu oyunda zafer/yenilgi YOKTUR. Devrim bir kayip degil, oyuncunun elindeki
+## politika setinin degismesidir: bolusum ve kurum kollarinin yerini plan
+## paylari alir. Rapor kazanip kazanmadigini soylemez -- NE OLDUGUNU anlatir.
+func tarihsel_rapor(ulke = null, dilim: int = 150) -> Dictionary:
+	var c: Country = D[0]
+	if ulke != null:
+		for x in D:
+			if x.ad == ulke:
+				c = x
+				break
+	var n := c.tarih.tur_sayisi()
+	if n == 0:
+		return {}
+
+	var ilk_son: int = mini(dilim, n)
+	var son_bas: int = maxi(0, n - dilim)
+
+	var donemler := []
+	var lo := 0
+	while lo < n:
+		var hi: int = mini(lo + dilim, n)
+		donemler.append({
+			"t0": lo, "t1": hi - 1,
+			"kurum": _en_sik_metin(c, "kurum", lo, hi),
+			"rejim": _en_sik_metin(c, "rej", lo, hi),
+			"issizlik": Formulas.py_round(1.0 - _dilim_ort(c, "e", lo, hi), 3),
+			"ucret_payi": Formulas.py_round(_dilim_ort(c, "pay", lo, hi), 3),
+			"kar_orani": Formulas.py_round(_dilim_ort(c, "r", lo, hi), 5),
+			"orgutluluk": Formulas.py_round(_dilim_ort(c, "org", lo, hi), 3),
+			"huzursuzluk": Formulas.py_round(_dilim_ort(c, "Om", lo, hi), 3),
+			"otomasyon": Formulas.py_round(_dilim_ort(c, "oto", lo, hi), 3),
+			"canli_emek_payi": Formulas.py_round(_dilim_ort(c, "canli_pay", lo, hi), 3),
+			"etg": Formulas.py_round(_dilim_ort(c, "etg", lo, hi), 4),
+			"kitlik": Formulas.py_round(_dilim_ort(c, "kitlik", lo, hi), 3),
+		})
+		lo += dilim
+
+	var olaylar := []
+	for kayit in log:
+		var tip := String(kayit[1])
+		var mesaj := String(kayit[2])
+		if mesaj.contains(c.ad) or tip == "SENARYO":
+			olaylar.append({
+				"tur": int(kayit[0]),
+				"yil_kabaca": Formulas.py_round(float(kayit[0]) * Formulas.TUR_YIL, 1),
+				"tip": tip, "mesaj": mesaj,
+			})
+
+	return {
+		"ulke": c.ad,
+		"tip": c.tip,
+		"son_rejim": c.rejim,
+		"son_kurum": c.kurum,
+		"devrim_turu": c.devrim_t,
+		"kurum_gecisleri": c.kurum_gecmis.duplicate(true),
+		"baslangic": {
+			"issizlik": Formulas.py_round(1.0 - _dilim_ort(c, "e", 0, ilk_son), 3),
+			"ucret_payi": Formulas.py_round(_dilim_ort(c, "pay", 0, ilk_son), 3),
+			"kar_orani": Formulas.py_round(_dilim_ort(c, "r", 0, ilk_son), 5),
+			"cag": Formulas.py_round(_dilim_ort(c, "era", 0, ilk_son), 1),
+		},
+		"bitis": {
+			"issizlik": Formulas.py_round(1.0 - _dilim_ort(c, "e", son_bas, n), 3),
+			"ucret_payi": Formulas.py_round(_dilim_ort(c, "pay", son_bas, n), 3),
+			"kar_orani": Formulas.py_round(_dilim_ort(c, "r", son_bas, n), 5),
+			"cag": Formulas.py_round(_dilim_ort(c, "era", son_bas, n), 1),
+		},
+		"kriz_sayilari": {
+			"resesyon": c.resesyonlar.size(),
+			"buyuk_bunalim": c.bunalimlar.size(),
+			"doviz_krizi": c.fx_krizleri.size(),
+			"temerrut": c.temerrutler.size(),
+			"moratoryum": c.moratoryumlar.size(),
+			"savas": c.savas_sayisi,
+		},
+		"donemler": donemler,
+		"olaylar": olaylar,
+	}
+
+
+func _dilim_ort(c: Country, alan: String, lo: int, hi: int) -> float:
+	var s := c.tarih.seri(alan)
+	var a: int = maxi(0, mini(lo, s.size()))
+	var b: int = maxi(a, mini(hi, s.size()))
+	if b <= a:
+		return NAN
+	var v := []
+	for i in range(a, b):
+		v.append(s[i])
+	return _ort(v)
+
+
+## Bir dilimde en sik gorulen metin degeri. Kaynakta `max(set(...), key=count)`
+## kullaniliyor; beraberlikte Python'un set sirasi belirleyici oluyor ve o sira
+## surece ozgu. Burada beraberligi ILK GORULEN kazanir -- daha kararli bir kural.
+func _en_sik_metin(c: Country, alan: String, lo: int, hi: int) -> String:
+	var say := {}
+	var sira := []
+	for i in range(lo, mini(hi, c.tarih.tur_sayisi())):
+		var m := c.tarih.metin(alan, i)
+		if not say.has(m):
+			say[m] = 0
+			sira.append(m)
+		say[m] = int(say[m]) + 1
+	var en := ""
+	var en_say := -1
+	for m in sira:
+		if int(say[m]) > en_say:
+			en_say = say[m]
+			en = m
+	return en
+
+
+## Kosunun yeniden uretilebilir kimligi: hangi kodla, hangi parametreyle.
+##
+## Parametre karmasi Python tarafinda uretim aninda olculup `param_set.gd`'ye
+## gomuluyor. Burada YENIDEN HESAPLANMIYOR: karma, parametrelerin Python
+## `str()` bicimlendirmesi uzerinden aliniyor ve o bicimlendirme (en kisa
+## gidis-donus temsili) GDScript'te birebir uretilemiyor. Gomulu deger her
+## uretimde dogrulaniyor, dolayisiyla ayni seyi soyler.
+func deney_kimligi(senaryo = null) -> Dictionary:
+	return {
+		"model": Formulas.SURUM,
+		"parametre_karmasi": ParamSet.BEKLENEN_KARMA,
+		"tohum": tohum,
+		"senaryo": senaryo if senaryo != null else "varsayilan",
+		"tur": t,
+		"ulke_sayisi": D.size(),
+		"baslangic_yili": baslangic_yili,
+	}
+
+
+## Iktisadi muhasebe degismezlerini denetler.
+## NaN/Inf ya da imkansiz deger sessizce DEVAM ETMEZ: olay olarak kaydedilir,
+## boylece "bu ulke neden coktu" sorusu sonradan cevaplanabilir.
+func degismez_denetle() -> Array:
+	var hata := []
+	for c in D:
+		for alan in [["pay", c.pay, 0.0, 1.0], ["e", c.e, 0.0, 1.0],
+				["u", c.u, 0.0, 5.0], ["org", c.org, 0.0, 1.0],
+				["Omega", c.Omega, 0.0, 1.0], ["canli_pay", c.canli_pay, 0.0, 1.0],
+				["oto", c.oto, 0.0, 1.0], ["etg", c.etg, 0.0, 1.0]]:
+			var v: float = alan[1]
+			var alt: float = alan[2]
+			var ust: float = alan[3]
+			if is_nan(v) or is_inf(v) or not (alt - 1e-9 <= v and v <= ust + 1e-9):
+				hata.append("%s.%s=%s" % [c.ad, alan[0], v])
+		for alan2 in [["q", c.q], ["K", c.K], ["Y", c.Y]]:
+			var v2: float = alan2[1]
+			if is_nan(v2) or v2 <= 0.0:
+				hata.append("%s.%s=%s" % [c.ad, alan2[0], v2])
+	if not hata.is_empty():
+		var ilk := []
+		for i in range(mini(6, hata.size())):
+			ilk.append(hata[i])
+		_log("DEGISMEZ IHLALI", "; ".join(ilk))
+	return hata

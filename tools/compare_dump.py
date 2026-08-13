@@ -16,7 +16,14 @@ import sys
 
 
 def coz(h):
-    """16 haneli hex bit desenini float'a cevirir; degilse None."""
+    """16 haneli hex bit desenini float'a cevirir; degilse None.
+
+    Jetonlar `cv=6c4240f25e06f53f` gibi anahtarli da olabiliyor; bas kisim
+    ayiklanir, yoksa 1 ulp'lik fark "metin farki" gibi gorunup tolerans
+    disinda kalir.
+    """
+    if "=" in h:
+        h = h.rsplit("=", 1)[1]
     if len(h) == 16:
         try:
             return struct.unpack("<d", bytes.fromhex(h))[0]
@@ -44,13 +51,39 @@ def oku(yol):
         return [s.rstrip("\r\n") for s in f if s.strip() != ""]
 
 
+def tolere_edilir(a, b, tol):
+    """Satirlar yalnizca float jetonlarinda ve `tol` goreli farkin altinda mi
+    ayrisiyor? Raporlama katmani icin kullanilir: orada kaynak
+    `statistics.mean` (tam rasyonel toplama) kullaniyor ve GDScript'te birebir
+    uretmenin karsiligi yok -- ama sapmanin BUYUKLUGU sinirlanmali."""
+    ja, jb = a.split(), b.split()
+    if len(ja) != len(jb):
+        return False
+    for x, y in zip(ja, jb):
+        if x == y:
+            continue
+        fa, fb = coz(x), coz(y)
+        if fa is None or fb is None:
+            return False
+        olcek = max(abs(fa), abs(fb))
+        if (abs(fa - fb) / olcek if olcek else abs(fa - fb)) > tol:
+            return False
+    return True
+
+
 def main():
     if len(sys.argv) < 3:
-        raise SystemExit("kullanim: compare_dump.py <python> <godot> [--max N]")
+        raise SystemExit("kullanim: compare_dump.py <python> <godot> "
+                         "[--max N] [--tol X]")
     py_yol, gd_yol = sys.argv[1], sys.argv[2]
     en_fazla = 20
     if "--max" in sys.argv:
         en_fazla = int(sys.argv[sys.argv.index("--max") + 1])
+    # Varsayilan 0.0: BIT-BIREBIR. Tolerans yalnizca acikca istenirse devreye
+    # girer, boylece motor katmaninda kazara gevseme olmaz.
+    tol = 0.0
+    if "--tol" in sys.argv:
+        tol = float(sys.argv[sys.argv.index("--tol") + 1])
 
     a, b = oku(py_yol), oku(gd_yol)
     print(f"python : {py_yol}  ({len(a)} satir)")
@@ -61,8 +94,12 @@ def main():
               "Ortak on ek karsilastiriliyor.")
 
     fark = 0
+    tolere = 0
     for i in range(min(len(a), len(b))):
         if a[i] == b[i]:
+            continue
+        if tol > 0.0 and tolere_edilir(a[i], b[i], tol):
+            tolere += 1
             continue
         fark += 1
         if fark <= en_fazla:
@@ -79,8 +116,14 @@ def main():
 
     ortak = min(len(a), len(b))
     print(f"\n{'='*60}")
+    if tolere:
+        print(f"NOT: {tolere} satir yalnizca <= {tol:.0e} goreli farkla ayristi "
+              f"(tolere edildi).")
     if fark == 0 and len(a) == len(b):
-        print(f"SONUC: BIREBIR AYNI ({ortak} satir)")
+        if tolere:
+            print(f"SONUC: TOLERANS ICINDE ({ortak} satir, {tolere} yakin)")
+        else:
+            print(f"SONUC: BIREBIR AYNI ({ortak} satir)")
         return 0
     print(f"SONUC: {fark} satir farkli ({ortak} satirda)")
     if fark > en_fazla:

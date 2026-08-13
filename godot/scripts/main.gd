@@ -45,7 +45,17 @@ func _ready() -> void:
 			"--dump-init":
 				Parity.dump_init(42)
 			_ when a.begins_with("--dump-turn="):
-				Parity.dump_turn(int(a.get_slice("=", 1)), 42)
+				# --dump-turn=TUR[:senaryo]
+				var targ := a.get_slice("=", 1)
+				Parity.dump_turn(int(targ.get_slice(":", 0)), 42,
+						targ.get_slice(":", 1) if targ.contains(":") else "")
+			_ when a.begins_with("--dump-scenario="):
+				Parity.dump_scenario(a.get_slice("=", 1), 42)
+			_ when a.begins_with("--dump-report="):
+				# --dump-report=TUR[:senaryo]
+				var arg := a.get_slice("=", 1)
+				Parity.dump_report(int(arg.get_slice(":", 0)), 42,
+						arg.get_slice(":", 1) if arg.contains(":") else "")
 			_ when a.begins_with("--kabul="):
 				Parity.kabul(int(a.get_slice("=", 1)))
 			_:

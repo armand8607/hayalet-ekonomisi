@@ -56,7 +56,46 @@ Godot tarafı (doğrulama koşuları). `--` sonrası her şey
 ```
 
 Argüman kapıları: `--self-test`, `--dump-rng`, `--dump-crc32`, `--dump-params`,
-`--dump-formulas`.
+`--dump-formulas`, `--dump-agg`, `--dump-init`, `--dump-turn=N[:senaryo]`,
+`--dump-scenario=AD`, `--dump-report=N[:senaryo]`.
+
+## MOTORUN KENDİ KUSURU: `socialist_siege` yeniden üretilebilir DEĞİL
+
+Bu bir port hatası değildir, **v4.4-Frozen'ın kendi kusurudur** ve belgenin
+"Determinizm (aynı tohum, 3 süreç) GEÇTİ" iddiası bunu kaçırıyor.
+
+`ittifak_isle` şu satırı içeriyor (`motor.py:3051`):
+
+```python
+a.muttefik.discard(self.rng.choice(list(a.muttefik)))
+```
+
+`muttefik` bir Python `set`'idir; `list(set)` sırası string hash'lerine, o da
+`PYTHONHASHSEED` ile **sürece özgü** rastgeleliğe bağlıdır. Hangi müttefiğin
+atıldığı bu yüzden koşudan koşuya değişebilir.
+
+Ölçüldü (tohum 42, 200 tur, `socialist_siege`):
+
+| PYTHONHASHSEED | 0 | 1 | 42 | 999 | 31337 |
+|---|---|---|---|---|---|
+| ekonomik çökme | 45 | 45 | **44** | **44** | 45 |
+
+Beş tohumun **beşi de farklı** sonuç veriyor. Buna karşılık **varsayılan dünya
+tutarlıdır** (4 hash tohumu × 1259 tur, birebir aynı) — çünkü orada sosyalist
+`muttefik` her tur `sos` listesinden yeniden kuruluyor ve kapitalist ittifaklar
+`choice` anına kadar nadiren birden çok üye taşıyor. `socialist_siege` ise
+kümeyi **önceden dolduruyor** (`{"ABD", "Ingiltere"}`), tuzağı açan bu.
+
+Sonuçları:
+
+- Bu senaryoda **bit-birebir parite imkânsızdır**. İlk sapma tur 10,
+  `Ingiltere.muttefik` (ikiye bölerek bulundu). Port doğru; kâhin kararsız.
+- `mekanizma_testleri.py::test_sos_bolluk` — 9 yön testinden biri, yani
+  belgenin **birincil** ölçütü — bu senaryoda koşuyor. Aşama 2'de o test
+  bit-parite ile değil, tohum bazında yön/işaret ile değerlendirilmeli.
+- Motor **DONDURULMUŞ** olduğu için düzeltilmedi. Düzeltmesi tek satırdır
+  (`choice(sorted(a.muttefik))`) ama davranışı değiştirir, yani kalibrasyonu
+  geçersiz kılar — bu kararı vermek bize düşmez.
 
 ## Doğrulama — bu projenin omurgası
 
@@ -77,6 +116,8 @@ kalibrasyonun kaydıdır, bağımsız kriter değil; bağımsız olan yön testl
 | 2 | crc32, 355 parametre, saf fonksiyonlar | **GEÇTİ** — 427 satır birebir |
 | 3a | Dünya kurulumu (`--dump-init`) | **GEÇTİ** — 2765 satır birebir |
 | 3b | Tur-tur iz (`--dump-turn=N`) | **tur 1–407 birebir** (tohum 42); 408'den sonra libm sapması — aşağıya bak |
+| 3c | Senaryo odaları (`--dump-scenario=AD`) | **GEÇTİ** — 4 oda × 2771 satır birebir |
+| 3d | Raporlama (`--dump-report=N`) | **GEÇTİ** — ≤1e-9 tolerans içinde (`statistics.mean` farkı) |
 | 4 | 9 mekanizma yön testi (**birincil**) | Python'da 9/9; GDScript koşusu bekliyor |
 | 5 | 10 kabul bandı (`--kabul=N`) | **GEÇTİ** — aşağıya bak |
 

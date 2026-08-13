@@ -204,11 +204,13 @@ def dump_init(tohum=42):
 TARIH_METIN = {"rej", "kurum"}
 
 
-def dump_turn(tur, tohum=42):
+def dump_turn(tur, tohum=42, senaryo=""):
     e = M.GhostEconomyEngine(tohum)
+    if senaryo:
+        e.load_scenario(senaryo)
     for _ in range(tur):
         e.step()
-    print(f"# turn tur={tur} tohum={tohum}")
+    print(f"# turn tur={tur} tohum={tohum} senaryo={senaryo}")
     _dump_dunya(e)
 
     for c in e.D:
@@ -267,6 +269,66 @@ KOMUTLAR["--agg"] = dump_agg
 
 
 # ---------------------------------------------------------------------------
+# KATMAN 3c -- SENARYO ODALARI.
+# ---------------------------------------------------------------------------
+def dump_scenario(isim, tohum=42):
+    e = M.GhostEconomyEngine(tohum)
+    e.load_scenario(isim)
+    print(f"# scenario {isim} tohum={tohum}")
+    _dump_dunya(e)
+    for _t, tip, mesaj in e.log:
+        print(f"log {_t} {tip} {mesaj}")
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 3d -- RAPORLAMA (siki toleransli, bit-birebir degil).
+# ---------------------------------------------------------------------------
+def dump_report(tur, tohum=42, senaryo=""):
+    e = M.GhostEconomyEngine(tohum)
+    if senaryo:
+        e.load_scenario(senaryo)
+    for _ in range(tur):
+        e.step()
+    print(f"# report tur={tur} tohum={tohum} senaryo={senaryo}")
+
+    oz = e.get_summary()
+    for k in sorted(oz):
+        print(f"ozet {k} {_deger(oz[k])}")
+
+    dilim = max(tur // 4, 1)
+    for d in e.kar_orani_trendi(dilim):
+        print(f"ltrpf {d['t0']} {d['t1']} r={f64(d['r'])} ry={f64(d['r_yillik'])} "
+              f"cv={f64(d['cv'])} ky={f64(d['K/Y'])} u={f64(d['u'])}")
+
+    for d in e.kodey_trendi(dilim):
+        print("kodey " + " ".join(f"{k}={_skaler(d[k])}" for k in sorted(d)))
+
+    oranlar = e.kriz_oranlari()
+    for k in sorted(oranlar):
+        print(f"kriz {k} toplam={oranlar[k]['toplam']} "
+              f"uyb={_skaler(oranlar[k]['ulke_yil_basina'])}")
+
+    rapor = e.tarihsel_rapor(e.D[0].ad)
+    print(f"rapor ulke={rapor['ulke']} rejim={rapor['son_rejim']} "
+          f"kurum={rapor['son_kurum']} devrim={_skaler(rapor['devrim_turu'])}")
+    for bolum in ("baslangic", "bitis"):
+        b = rapor[bolum]
+        print(f"rapor_{bolum} " + " ".join(f"{k}={_skaler(b[k])}" for k in sorted(b)))
+    for d in rapor["donemler"]:
+        print("rapor_donem " + " ".join(f"{k}={_skaler(d[k])}" for k in sorted(d)))
+    ks = rapor["kriz_sayilari"]
+    for k in sorted(ks):
+        print(f"rapor_kriz {k}={ks[k]}")
+    print(f"rapor_olay_sayisi {len(rapor['olaylar'])}")
+
+    kimlik = e.deney_kimligi(senaryo or None)
+    print(f"kimlik model={kimlik['model']} karma={kimlik['parametre_karmasi']} "
+          f"tohum={kimlik['tohum']} tur={kimlik['tur']} "
+          f"ulke={kimlik['ulke_sayisi']} yil={kimlik['baslangic_yili']}")
+    print(f"degismez_ihlal {len(e.degismez_denetle())}")
+
+
+# ---------------------------------------------------------------------------
 # TANI -- libm mutabakati (exp/log/pow son bitte ayrisiyor mu?).
 # ---------------------------------------------------------------------------
 def dump_libm():
@@ -291,7 +353,13 @@ if __name__ == "__main__":
         raise SystemExit("kullanim: dump_trace.py [" + " | ".join(KOMUTLAR)
                          + " | --turn N ]")
     if sys.argv[1] == "--turn":
-        dump_turn(int(sys.argv[2]) if len(sys.argv) > 2 else 1)
+        dump_turn(int(sys.argv[2]) if len(sys.argv) > 2 else 1,
+                  42, sys.argv[3] if len(sys.argv) > 3 else "")
+    elif sys.argv[1] == "--scenario":
+        dump_scenario(sys.argv[2])
+    elif sys.argv[1] == "--report":
+        dump_report(int(sys.argv[2]) if len(sys.argv) > 2 else 100,
+                    42, sys.argv[3] if len(sys.argv) > 3 else "")
     elif sys.argv[1] in KOMUTLAR:
         KOMUTLAR[sys.argv[1]]()
     else:
