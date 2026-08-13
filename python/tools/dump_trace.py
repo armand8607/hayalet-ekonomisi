@@ -147,28 +147,80 @@ def _deger(v):
     if isinstance(v, str):
         return "str " + v
     if isinstance(v, dict):
-        return "dict " + " ".join(f"{k}={f64(v[k])}" for k in sorted(v))
+        return "dict " + " ".join(f"{k}={_skaler(v[k])}" for k in sorted(v, key=str))
     if isinstance(v, (list, tuple, set)):
-        gerekli = sorted(v) if isinstance(v, set) else list(v)
-        return "array " + " ".join(
-            f64(x) if isinstance(x, (int, float)) and not isinstance(x, bool) else str(x)
-            for x in gerekli)
+        gerekli = sorted(v, key=str) if isinstance(v, set) else list(v)
+        return "array " + " ".join(_skaler(x) for x in gerekli)
     return "??? " + str(v)
 
 
-def dump_init(tohum=42):
-    e = M.GhostEconomyEngine(tohum)
-    print(f"# init tohum={tohum} ulke={len(e.D)}")
+def _skaler(x):
+    """Ic ice yapilarin ogeleri. `pol_kuyruk` gibi alanlar sozluk icinde tuple
+    tasiyor (deger, etkinlesme_turu); sayisal olmayan ogeler metin olarak
+    basilir ki dokum patlamasin."""
+    if x is None:
+        return "null"
+    if isinstance(x, bool):
+        return "1" if x else "0"
+    if isinstance(x, (int, float)):
+        return f64(x)
+    if isinstance(x, (list, tuple)):
+        return "(" + ",".join(_skaler(y) for y in x) + ")"
+    if isinstance(x, dict):
+        return "{" + ",".join(f"{k}:{_skaler(x[k])}" for k in sorted(x, key=str)) + "}"
+    return str(x)
+
+
+def _dump_dunya(e):
     print(f"motor K_olcek num {f64(e.K_olcek)}")
     print(f"motor K_carpani num {f64(e.K_carpani)}")
     print(f"motor hedef_istihdam num {f64(e.hedef_istihdam)}")
     print(f"motor t num {f64(e.t)}")
+    print(f"motor dunya_devrimi bool {'1' if e.dunya_devrimi else '0'}")
+    print(f"motor dd_sayac num {f64(e.dd_sayac)}")
+    print(f"motor pakt_uyumu num {f64(e.pakt_uyumu)}")
+    print(f"motor kap_kriz_payi num {f64(e.kap_kriz_payi)}")
+    print(f"motor log_sayisi num {f64(len(e.log))}")
 
     for c in e.D:
         for ad in sorted(vars(c)):
             if ad == "tarih":
                 continue
             print(f"ulke {c.ad} {ad} {_deger(getattr(c, ad))}")
+
+
+def dump_init(tohum=42):
+    e = M.GhostEconomyEngine(tohum)
+    print(f"# init tohum={tohum} ulke={len(e.D)}")
+    _dump_dunya(e)
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 3b -- TUR-TUR IZ. Portun asil sinavi.
+# ---------------------------------------------------------------------------
+# GDScript tarafinda `tarih` bir SUTUN DEPOSUDUR ve yalnizca sayisal alanlari
+# float sutununda tutar; rej/kurum metin sutunundadir. Ayni ayrimi burada da
+# yapmak gerekiyor, yoksa satirlar hizalanmaz.
+TARIH_METIN = {"rej", "kurum"}
+
+
+def dump_turn(tur, tohum=42):
+    e = M.GhostEconomyEngine(tohum)
+    for _ in range(tur):
+        e.step()
+    print(f"# turn tur={tur} tohum={tohum}")
+    _dump_dunya(e)
+
+    for c in e.D:
+        son = c.tarih[-1] if c.tarih else {}
+        for ad in sorted(k for k in son if k not in TARIH_METIN):
+            v = son[ad]
+            print(f"tarih {c.ad} {ad} num {f64(float(v))}")
+        print(f"tarih {c.ad} rej str {son.get('rej', '')}")
+        print(f"tarih {c.ad} kurum str {son.get('kurum', '')}")
+
+    for _t, tip, mesaj in e.log:
+        print(f"log {_t} {tip} {mesaj}")
 
 
 KOMUTLAR = {
@@ -179,7 +231,68 @@ KOMUTLAR = {
     "--init": dump_init,
 }
 
+
+# ---------------------------------------------------------------------------
+# TANI -- step() icindeki dunya toplamlari (float toplama sirasi).
+# ---------------------------------------------------------------------------
+def dump_agg(tohum=42):
+    e = M.GhostEconomyEngine(tohum)
+    print(f"# agg tohum={tohum}")
+
+    Yv = {c.ad: min(c.K / e.kappa_v(M.organik_bilesim(c.q) * c.deger_carpani, c.q),
+                    c.q * c.L_etkin) for c in e.D}
+    for c in e.D:
+        print(f"Yv {c.ad} {f64(Yv[c.ad])}")
+
+    top = sum(Yv.values()) or 1e-6
+    print(f"top {f64(top)}")
+
+    ort_cv_ham = sum(M.organik_bilesim(c.q) * c.deger_carpani * Yv[c.ad] for c in e.D)
+    ort_sv_ham = sum((1 / max(c.pay, .05) - 1) * Yv[c.ad] for c in e.D)
+    ort_q_ham = sum(c.q * Yv[c.ad] for c in e.D)
+    print(f"ort_cv_ham {f64(ort_cv_ham)}")
+    print(f"ort_sv_ham {f64(ort_sv_ham)}")
+    print(f"ort_q_ham {f64(ort_q_ham)}")
+    print(f"ort_cv {f64(ort_cv_ham / top)}")
+    print(f"ort_sv {f64(ort_sv_ham / top)}")
+    print(f"ort_q {f64(ort_q_ham / top)}")
+
+    cek = {c.ad: c.pay * c.q * c.e for c in e.D}
+    print(f"cek_toplam {f64(sum(cek.values()))}")
+    print(f"ort_cek {f64(sum(cek.values()) / len(cek))}")
+    print(f"tot_L {f64(sum(c.L_max for c in e.D))}")
+
+
+KOMUTLAR["--agg"] = dump_agg
+
+
+# ---------------------------------------------------------------------------
+# TANI -- libm mutabakati (exp/log/pow son bitte ayrisiyor mu?).
+# ---------------------------------------------------------------------------
+def dump_libm():
+    print("# libm")
+    r = random.Random(12345)
+    for i in range(4000):
+        x = (r.random() - 0.5) * 40.0
+        print(f"exp {i} {f64(x)} {f64(math.exp(x))}")
+    for i in range(2000):
+        x = r.random() * 200.0 + 1e-9
+        print(f"log {i} {f64(x)} {f64(math.log(x))}")
+    for i in range(2000):
+        b = r.random() * 20.0 + 0.01
+        e2 = (r.random() - 0.5) * 6.0
+        print(f"pow {i} {f64(b)} {f64(e2)} {f64(b ** e2)}")
+
+
+KOMUTLAR["--libm"] = dump_libm
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] not in KOMUTLAR:
-        raise SystemExit("kullanim: dump_trace.py [" + " | ".join(KOMUTLAR) + "]")
-    KOMUTLAR[sys.argv[1]]()
+    if len(sys.argv) < 2:
+        raise SystemExit("kullanim: dump_trace.py [" + " | ".join(KOMUTLAR)
+                         + " | --turn N ]")
+    if sys.argv[1] == "--turn":
+        dump_turn(int(sys.argv[2]) if len(sys.argv) > 2 else 1)
+    elif sys.argv[1] in KOMUTLAR:
+        KOMUTLAR[sys.argv[1]]()
+    else:
+        raise SystemExit(f"bilinmeyen komut: {sys.argv[1]}")

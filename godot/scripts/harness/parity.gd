@@ -151,23 +151,51 @@ static func _deger(v) -> String:
 			anahtarlar.sort()
 			var parcalar := PackedStringArray()
 			for k in anahtarlar:
-				parcalar.append("%s=%s" % [k, f64(float(v[k]))])
+				parcalar.append("%s=%s" % [k, _skaler(v[k])])
 			return "dict " + " ".join(parcalar)
 		TYPE_ARRAY:
 			var ogeler := PackedStringArray()
 			for x in v:
-				ogeler.append(f64(float(x)) if (x is float or x is int) else String(x))
+				ogeler.append(_skaler(x))
 			return "array " + " ".join(ogeler)
 	return "??? " + str(v)
 
 
-static func dump_init(tohum: int = 42) -> void:
-	var e := GhostEngine.new(tohum)
-	yaz("# init tohum=%d ulke=%d" % [tohum, e.D.size()])
+## Ic ice yapilarin ogeleri. `pol_kuyruk` gibi alanlar sozluk icinde dizi
+## tasiyor [deger, etkinlesme_turu]; sayisal olmayan ogeler metin basilir.
+static func _skaler(x) -> String:
+	match typeof(x):
+		TYPE_NIL:
+			return "null"
+		TYPE_BOOL:
+			return "1" if x else "0"
+		TYPE_INT, TYPE_FLOAT:
+			return f64(float(x))
+		TYPE_ARRAY:
+			var p := PackedStringArray()
+			for y in x:
+				p.append(_skaler(y))
+			return "(" + ",".join(p) + ")"
+		TYPE_DICTIONARY:
+			var anahtarlar := (x as Dictionary).keys()
+			anahtarlar.sort()
+			var p2 := PackedStringArray()
+			for k in anahtarlar:
+				p2.append("%s:%s" % [k, _skaler(x[k])])
+			return "{" + ",".join(p2) + "}"
+	return String(x)
+
+
+static func _dump_dunya(e: GhostEngine) -> void:
 	yaz("motor K_olcek num %s" % f64(e.K_olcek))
 	yaz("motor K_carpani num %s" % f64(e.K_carpani))
 	yaz("motor hedef_istihdam num %s" % f64(e.hedef_istihdam))
 	yaz("motor t num %s" % f64(float(e.t)))
+	yaz("motor dunya_devrimi bool %s" % ("1" if e.dunya_devrimi else "0"))
+	yaz("motor dd_sayac num %s" % f64(float(e.dd_sayac)))
+	yaz("motor pakt_uyumu num %s" % f64(e.pakt_uyumu))
+	yaz("motor kap_kriz_payi num %s" % f64(e.kap_kriz_payi))
+	yaz("motor log_sayisi num %s" % f64(float(e.log.size())))
 
 	for c in e.D:
 		var adlar := PackedStringArray()
@@ -177,8 +205,122 @@ static func dump_init(tohum: int = 42) -> void:
 		adlar.sort()
 		for ad in adlar:
 			if ad == "tarih":
-				continue   # History nesnesi; kurulusta bos
-			yaz("ulke %s %s %s" % [c.ad, ad, _deger(c.get(ad))])
+				continue   # History nesnesi; ayri dokumleniyor
+			var v = c.get(ad)
+			if ad == "muttefik":
+				# Python'da bu bir `set`; GDScript'te Set yok. Uyeligi
+				# karsilastirmak icin siralanir -- SIRA parite olcutu degildir,
+				# olamaz da: Python set yinelemesi dizgi hash'ine baglidir.
+				v = (v as Array).duplicate()
+				v.sort()
+			yaz("ulke %s %s %s" % [c.ad, ad, _deger(v)])
+
+
+static func dump_init(tohum: int = 42) -> void:
+	var e := GhostEngine.new(tohum)
+	yaz("# init tohum=%d ulke=%d" % [tohum, e.D.size()])
+	_dump_dunya(e)
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 3b -- TUR-TUR IZ. Portun asil sinavi.
+#
+# N tur kosturur ve butun dunya durumunu doker. Ilk sapan alan hatanin hangi
+# blokta oldugunu dogrudan soyler; compare_dump.py goreli farki da basar.
+# ---------------------------------------------------------------------------
+static func dump_turn(tur: int, tohum: int = 42) -> void:
+	var e := GhostEngine.new(tohum)
+	for _i in range(tur):
+		e.step()
+	yaz("# turn tur=%d tohum=%d" % [tur, tohum])
+	_dump_dunya(e)
+
+	# Son turun tarih kaydi: step()'in butun ara degiskenlerini gorunur kilar.
+	for c in e.D:
+		var alanlar := c.tarih.alanlar()
+		for ad in alanlar:
+			var s := c.tarih.seri(ad)
+			if s.size() > 0:
+				yaz("tarih %s %s num %s" % [c.ad, ad, f64(s[s.size() - 1])])
+		yaz("tarih %s rej str %s" % [c.ad, c.tarih.metin("rej", c.tarih.tur_sayisi() - 1)])
+		yaz("tarih %s kurum str %s" % [c.ad, c.tarih.metin("kurum", c.tarih.tur_sayisi() - 1)])
+
+	# Olay gunlugu: tip ve mesaj birebir esitse kriz siniflandirmasi da dogrudur.
+	for kayit in e.log:
+		yaz("log %d %s %s" % [int(kayit[0]), String(kayit[1]), String(kayit[2])])
+
+
+# ---------------------------------------------------------------------------
+# TANI -- libm mutabakati. exp/log/pow CPython ile Godot arasinda son bitte
+# ayrisiyor mu? 36 noktalik formul izgarasi uyusmasi bunu KANITLAMAZ; burada
+# genis ve deterministik bir izgara taranir.
+# ---------------------------------------------------------------------------
+static func dump_libm() -> void:
+	yaz("# libm")
+	# Deterministik izgara: MT19937'den cekilir, iki tarafta da ayni sayilar.
+	var r := PyRandom.new(12345)
+	for i in range(4000):
+		var x := (r.random() - 0.5) * 40.0
+		yaz("exp %d %s %s" % [i, f64(x), f64(exp(x))])
+	for i in range(2000):
+		var x := r.random() * 200.0 + 1e-9
+		yaz("log %d %s %s" % [i, f64(x), f64(log(x))])
+	for i in range(2000):
+		var b := r.random() * 20.0 + 0.01
+		var e2 := (r.random() - 0.5) * 6.0
+		yaz("pow %d %s %s %s" % [i, f64(b), f64(e2), f64(pow(b, e2))])
+
+
+# ---------------------------------------------------------------------------
+# TANI -- step() icindeki dunya toplamlari.
+#
+# Float toplamasi BIRLESMELI DEGILDIR: ayni sayilari baska sirada toplamak
+# son bitte farkli sonuc verir. VT_net ve goc_net bu toplamlara bolundugu icin
+# bir ulp'lik sapma dogrudan oraya yansiyor. Bu dokum, sapmanin toplamda mi
+# yoksa formulde mi oldugunu ayirir.
+# ---------------------------------------------------------------------------
+static func dump_agg(tohum: int = 42) -> void:
+	var e := GhostEngine.new(tohum)
+	yaz("# agg tohum=%d" % tohum)
+
+	var Yv := {}
+	for c in e.D:
+		Yv[c.ad] = minf(c.K / e.kappa_v(Formulas.organik_bilesim(c.q) * c.deger_carpani, c.q),
+				c.q * c.l_etkin())
+	for c in e.D:
+		yaz("Yv %s %s" % [c.ad, f64(float(Yv[c.ad]))])
+
+	var top := 0.0
+	for c in e.D:
+		top += float(Yv[c.ad])
+	yaz("top %s" % f64(top))
+
+	var ort_cv := 0.0
+	var ort_sv := 0.0
+	var ort_q := 0.0
+	for c in e.D:
+		ort_cv += Formulas.organik_bilesim(c.q) * c.deger_carpani * float(Yv[c.ad])
+		ort_sv += (1.0 / maxf(c.pay, 0.05) - 1.0) * float(Yv[c.ad])
+		ort_q += c.q * float(Yv[c.ad])
+	yaz("ort_cv_ham %s" % f64(ort_cv))
+	yaz("ort_sv_ham %s" % f64(ort_sv))
+	yaz("ort_q_ham %s" % f64(ort_q))
+	yaz("ort_cv %s" % f64(ort_cv / top))
+	yaz("ort_sv %s" % f64(ort_sv / top))
+	yaz("ort_q %s" % f64(ort_q / top))
+
+	var cek := {}
+	for c in e.D:
+		cek[c.ad] = c.pay * c.q * c.e
+	var sc := 0.0
+	for c in e.D:
+		sc += float(cek[c.ad])
+	yaz("cek_toplam %s" % f64(sc))
+	yaz("ort_cek %s" % f64(sc / float(e.D.size())))
+	var tot_L := 0.0
+	for c in e.D:
+		tot_L += c.L_max
+	yaz("tot_L %s" % f64(tot_L))
 
 
 # ---------------------------------------------------------------------------

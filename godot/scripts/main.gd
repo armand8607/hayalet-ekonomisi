@@ -38,8 +38,14 @@ func _ready() -> void:
 				Parity.dump_params()
 			"--dump-formulas":
 				Parity.dump_formulas()
+			"--dump-libm":
+				Parity.dump_libm()
+			"--dump-agg":
+				Parity.dump_agg(42)
 			"--dump-init":
 				Parity.dump_init(42)
+			_ when a.begins_with("--dump-turn="):
+				Parity.dump_turn(int(a.get_slice("=", 1)), 42)
 			_:
 				push_warning("Bilinmeyen arguman: " + a)
 	get_tree().quit(cikis)

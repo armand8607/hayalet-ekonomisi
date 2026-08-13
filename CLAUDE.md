@@ -76,36 +76,79 @@ kalibrasyonun kaydıdır, bağımsız kriter değil; bağımsız olan yön testl
 | 1 | RNG akışı (`random`/`randint`/`choice`/`getrandbits`) | **GEÇTİ** — 12 451 satır birebir |
 | 2 | crc32, 355 parametre, saf fonksiyonlar | **GEÇTİ** — 427 satır birebir |
 | 3a | Dünya kurulumu (`--dump-init`) | **GEÇTİ** — 2765 satır birebir |
-| 3b | Tur-tur iz karşılaştırması | `step()` portunu bekliyor |
-| 4 | 9 mekanizma yön testi (**birincil**) | Python'da 9/9; GDScript portu bekliyor |
-| 5 | 10 kabul bandı | Python'da 10/10; GDScript portu bekliyor |
+| 3b | Tur-tur iz (`--dump-turn=N`) | **tur 1–407 birebir** (tohum 42); 408'den sonra libm sapması — aşağıya bak |
+| 4 | 9 mekanizma yön testi (**birincil**) | Python'da 9/9; GDScript koşusu bekliyor |
+| 5 | 10 kabul bandı | Python'da 10/10; GDScript koşusu bekliyor |
 
-Katman 3a geçtiğinde şu dördü birden kanıtlanmış olur: `Country`'nin 138 alanı,
-dünya tohum tablosu, `cag_ata`'nın göreli-konum aritmetiği ve
-`init_simulation`'ın ölçekleme zinciri.
+Katman 3b'nin 407 tur boyunca (5000+ alan × 407 tur) birebir tutması,
+aktarımın doğru olduğunun asıl kanıtıdır.
+
+## Bit-birebir paritenin sınırı — ölçüldü
+
+**Tam kampanya boyunca bit-birebir parite ULAŞILAMAZ**, ve bu bir port hatası
+değildir: CPython ile Godot'un `libm` çağrıları son bitte ayrışıyor.
+Deterministik bir ızgarada ölçüldü (`--dump-libm`):
+
+| fonksiyon | örnek | ayrışan | oran |
+|---|---|---|---|
+| `exp` | 4000 | 31 | %0.78 |
+| `log` | 2000 | 1 | %0.05 |
+| `pow` | 2000 | 2 | %0.10 |
+
+Hepsi **1 ulp**. Motor kaotik olduğu için tek bir ulp yüzlerce tur sonra
+yüzlerce alana yayılır: tohum 42'de ilk sapma `G.Kore.BoP_R`'de, **tur 408**'de,
+`sg()` içindeki `exp` çağrısından doğuyor.
+
+Sonuç: **kabul ölçütü katman 4 ve 5'tir** (belgenin kendi ölçütleri, §9.14),
+katman 3b değil. 3b bir *aktarım hatası dedektörüdür* ve işini yapmıştır —
+aşağıdaki iki hatayı yakaladı, ikisi de oynayarak asla fark edilmezdi.
+
+## Port sırasında yakalanan iki sessiz hata
+
+Bunlar bu projenin en pahalı tuzaklarıdır; tekrar keşfetme.
+
+- **`sum()` naif toplama DEĞİLDİR.** CPython 3.12 float dizileri için
+  **Neumaier telafili toplama** kullanır. Motorun bütün dünya ortalamaları
+  (`ort_cv`, `ort_sv`, `y_dunya`, `tot_L`, plan normalizasyonu…) `sum()` ile
+  kuruluyor ve `VT_net` bunlara bölünüyor. Naif toplamayla port 1–3 ulp sapıyordu.
+  `Formulas.py_sum()` kullan — **her yerde**. Ölçüldü: aynı 20 terim için
+  `sum()` ile naif toplama `ort_cv_ham`/`ort_sv_ham`'da farklı,
+  `top`/`ort_q_ham`/`tot_L`'de *tesadüfen* aynı çıkıyor; yani "çoğu yerde
+  tutuyor" aldatıcıdır. **Bu davranış Python sürümüne bağlıdır** — 3.11 ve
+  öncesi naif toplar, kâhin başka sürümle koşulursa parite kırılır.
+- **`round(x, n)` ≠ `snappedf(x, 10^-n)`.** CPython sayıyı doğru yuvarlanmış
+  ondalık metne çevirip geri okur (yarımda çifte yuvarlama); `snappedf` ise
+  `floor(x/s + 0.5)*s` yapar. `Formulas.py_round()` kullan. Önemsiz görünür ama
+  `bunalimlar` kaydındaki yuvarlanmış derinlik `kurumsal_gecis_isle` içinde
+  `derin >= P.kg_derin_bunalim` eşiğine giriyor — bir ulp kurumsal rejim
+  geçişini çevirebilir.
+
+## Kaçınılmaz tek yapısal fark: `muttefik`
+
+Python'da `muttefik` bir `set`, GDScript'te Set yok → `Array`. **Üyelik**
+birebir aynı, **sıra** değil. `ittifak_isle` içinde
+`rng.choice(list(a.muttefik))` sıraya bakar, yani hangi müttefiğin düşürüldüğü
+ayrışabilir (RNG akışı aynı kalır — bir `_randbelow` çağrısı). Ölçüldü: motor
+`PYTHONHASHSEED`'den bağımsız (4 hash tohumu × 1259 tur, birebir aynı), yani
+sıra sonucu belirlemiyor. Parite dökümü bu alanı **sıralayarak** karşılaştırır.
+Bir iz sapması savaş/ittifak olayında çıkarsa ilk şüpheli budur.
 
 ## Portun kalan kısmı
 
-`GhostEngine.step()` **bölünemez bir artıştır**: 915 satırlık gövde ilk turda
-13 yardımcı metodu birden çağırıyor, dolayısıyla hiçbiri tek başına
-koşturulamaz. Bir sonraki yeşil ışığa kadar yazılması gereken:
+`step()` ve 13 yardımcısı **taşındı ve doğrulandı**. Henüz taşınmayanlar
+(oynanış için gerekli, `step()` paritesi için değil):
 
-| parça | kaynak satır | boyut |
-|---|---|---|
-| `step()` gövdesi (A–T blokları) | `motor.py:1685–2601` | 915 |
-| `ittifak_isle`, `abluka_ambargo_isle`, `dunya_devrimi_isle`, `savas_karari`, `savas_yikim_isle` | 2936–3070 | ~135 |
-| `politika_*` (kuyruk, hız, ilan, AI, kurumsal inşa) | 2636–2891 | ~180 |
-| `izolasyon_sapmasi_isle`, `can_simidi_isle`, `kurumsal_gecis_isle` | 2602–2816 | ~90 |
-| `kriz_siniflandir`, `degismez_denetle` | 3225–3276 | ~50 |
+| parça | kaynak satır |
+|---|---|
+| `load_scenario` (4 senaryo odası) | `motor.py:1580–1684` |
+| `get_summary`, `tarihsel_rapor` | 3077–3224 |
+| `kodey_trendi`, `kar_orani_trendi`, `kriz_oranlari` | 3296–3353 |
+| `degismez_denetle`, `deney_kimligi` | 3254–3295 |
 
-Sonra ayrı ve bağımsız olarak taşınabilecekler (oynanış için gerekli ama
-`step()` paritesi için değil): `load_scenario`, `set_*` politika API'si,
-`get_summary`, `tarihsel_rapor`, `kodey_trendi`, `kar_orani_trendi`.
-
-**Port sırası önerisi:** önce 13 yardımcı, sonra `step()` gövdesi bloklar
-hâlinde (A→T, kaynak sırasıyla), sonra `--dump-turn N` ile tur-tur iz
-karşılaştırması. İlk turda sapma çıkarsa hata A–T içinde; `compare_dump.py`
-sapan ilk alanı ve göreli farkı doğrudan söyler.
+**Performans notu:** GDScript koşusu Python'dan ~9× yavaş (1259 tur: ~29 sn vs
+~3.4 sn). Oyun için sorun değil (~23 ms/tur) ama Monte Carlo için ağır. Sıcak
+yol `py_sum` için her tur ayrılan geçici dizilerdir; gerekirse orada
+optimize edilmeli.
 
 Taban ölçümler `python/baseline/` altında. Belgenin §9.19'daki yayımlanmış
 tablosuyla karşılaştırıldı ve tutuyor (LTRPF −93.0% / −93.0%, kurumsal geçiş

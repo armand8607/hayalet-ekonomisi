@@ -29,6 +29,58 @@ const KAMPANYA_TURU := 1259
 const P_BASLANGIC_CAGI := 1
 
 
+## CPython'un `sum()` fonksiyonunun float davranisi -- NEUMAIER TELAFILI TOPLAMA.
+##
+## BU BIR IYILESTIRME DEGIL, ZORUNLULUKTUR. Python 3.12 `sum()`'i float dizileri
+## icin gelistirilmis Kahan-Babuska (Neumaier) algoritmasina cevirdi; naif
+## soldan-saga toplamayla ayni sonucu VERMEZ. Motor dunya ortalamalarini
+## (`ort_cv`, `ort_sv`, `y_dunya`, `tot_L` ...) bu toplamlarla kuruyor ve
+## `VT_net` bunlara bolunuyor; naif toplamayla port 1-3 ulp sapiyor ve sapma
+## 1259 tur boyunca kaotik olarak buyur.
+##
+## Olculdu: ayni 20 terim icin `sum()` ile naif toplama `ort_cv_ham` ve
+## `ort_sv_ham`'da farkli, `top`/`ort_q_ham`/`tot_L`'de tesadufen ayni cikiyor.
+## Yani "cogu yerde tutuyor" aldaticidir; kural her yerde uygulanmalidir.
+##
+## DIKKAT: bu davranis PYTHON SURUMUNE BAGLIDIR. 3.11 ve oncesi naif toplar.
+## Kahin baska bir surumle kosulursa parite kirilir.
+##
+## CPython akisi birebir: baslangic int 0'dir, ilk float terim `0 + x0` ile
+## sonucu float'a cevirir ve telafi ANCAK ondan sonra baslar.
+static func py_sum(degerler) -> float:
+	var n: int = degerler.size()
+	if n == 0:
+		return 0.0
+	var f := float(degerler[0])
+	var c := 0.0
+	for i in range(1, n):
+		var x := float(degerler[i])
+		var tt := f + x
+		if absf(f) >= absf(x):
+			c += (f - tt) + x
+		else:
+			c += (x - tt) + f
+		f = tt
+	return f + c
+
+
+## CPython'un `round(x, n)` fonksiyonu -- `snappedf` DEGIL.
+##
+## `snappedf(x, 0.0001)` sonucu `floor(x/0.0001 + 0.5)*0.0001` ile hesaplar:
+## yarimda sifirdan UZAGA yuvarlar ve bolme/carpma iki ek yuvarlama hatasi
+## ekler. CPython ise sayiyi once DOGRU YUVARLANMIS ondalik metne cevirir
+## (yarimda CIFTE yuvarlama), sonra geri okur. Ikisi son bitte ayrisir.
+##
+## Onemsiz gorunur ama degil: `bunalimlar` kaydindaki yuvarlanmis derinlik
+## `kurumsal_gecis_isle` icinde `derin >= P.kg_derin_bunalim` esigine giriyor,
+## yani bir ulp kurumsal rejim gecisini cevirebilir.
+##
+## Ondalik metin uzerinden gitmek C kutuphanesinin dogru yuvarlamasini
+## kullanir ve CPython ile ayni sonucu verir.
+static func py_round(x: float, n: int) -> float:
+	return (("%%.%df" % n) % x).to_float()
+
+
 ## Tur basi bir oranin yillik bilesik karsiligi.
 static func yillik(x_tur: float) -> float:
 	return pow(1.0 + x_tur, 1.0 / TUR_YIL) - 1.0
