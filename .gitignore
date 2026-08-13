@@ -1,0 +1,20 @@
+# Godot
+godot/.godot/
+godot/android/
+godot/export_presets.cfg
+*.translation
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Parite dokumlari yeniden uretilebilir ve buyuktur (rng katmani ~12k satir).
+# Kosunun SONUCU CLAUDE.md'de ve baseline raporlarinda kayitli; ham dokumleri
+# depoda tutmanin degeri yok.
+python/baseline/parity/
+
+# Isletim sistemi
+Thumbs.db
+.DS_Store
+desktop.ini

@@ -1,0 +1,64 @@
+﻿[kume=dogrulama] tohumlar 101..120
+Motor kabul testi koşuluyor: 20 tohum × 1259 tur
+
+  1/20 tohum  (3 sn, tahmini kalan 61 sn)
+  2/20 tohum  (6 sn, tahmini kalan 57 sn)
+  3/20 tohum  (10 sn, tahmini kalan 54 sn)
+  4/20 tohum  (13 sn, tahmini kalan 51 sn)
+  5/20 tohum  (16 sn, tahmini kalan 47 sn)
+  6/20 tohum  (19 sn, tahmini kalan 44 sn)
+  7/20 tohum  (23 sn, tahmini kalan 42 sn)
+  8/20 tohum  (26 sn, tahmini kalan 39 sn)
+  9/20 tohum  (29 sn, tahmini kalan 36 sn)
+  10/20 tohum  (32 sn, tahmini kalan 32 sn)
+  11/20 tohum  (35 sn, tahmini kalan 29 sn)
+  12/20 tohum  (39 sn, tahmini kalan 26 sn)
+  13/20 tohum  (42 sn, tahmini kalan 23 sn)
+  14/20 tohum  (45 sn, tahmini kalan 19 sn)
+  15/20 tohum  (48 sn, tahmini kalan 16 sn)
+  16/20 tohum  (51 sn, tahmini kalan 13 sn)
+  17/20 tohum  (54 sn, tahmini kalan 10 sn)
+  18/20 tohum  (58 sn, tahmini kalan 6 sn)
+  19/20 tohum  (61 sn, tahmini kalan 3 sn)
+  20/20 tohum  (64 sn, tahmini kalan 0 sn)
+
+==============================================================================
+MONTE CARLO KABUL RAPORU — 20 tohum × 1259 tur (340 yıl)
+==============================================================================
+ölçüt                            medyan        p10        p90        bant  sonuç
+------------------------------------------------------------------------------
+LTRPF (r_son/r_ilk-1)            -93.0%     -95.6%     -90.1%[-0.95,-0.55]  GEÇTİ
+işsizlik                          0.399      0.356      0.436  [0.3,0.75]  GEÇTİ
+resesyon aralığı (yıl)             11.8       10.5       12.8      [6,15]  GEÇTİ
+Minsky aralığı (yıl)               66.0       54.4       77.3    [40,110]  GEÇTİ
+kurumsal geçiş sayısı               174        160        186         ≥40  GEÇTİ
+devrim sayısı                       7.0        3.0       10.0       [0,8]  GEÇTİ
+otomasyon payı                    0.517      0.500      0.534   [0.4,0.7]  GEÇTİ
+canlı emek payı                   0.275      0.190      0.355  [0.2,0.55]  GEÇTİ
+------------------------------------------------------------------------------
+çifte hareket (Polanyi)               düzenli→neoliberal 1675  neoliberal→düzenli 1801
+                                                           her iki yön de çalışıyor  GEÇTİ
+liberale endojen dönüş                                      0               (0 olmalı)  GEÇTİ
+------------------------------------------------------------------------------
+GENEL: TÜM ÖLÇÜTLER GEÇTİ
+==============================================================================
+
+Son kurum dağılımı (tüm tohumlar toplamı): {'neoliberal': 272, 'duzenli': 125, 'liberal': 3}
+Ortalama c/v (son dilim): 16.13
+Ortalama ücret payı     : 0.392
+
+==============================================================================
+SOSYALİST AYRIŞMA TESTİ — 10 tohum × 400 tur
+==============================================================================
+değişken         sanayileşmeci     tüketimci          fark
+------------------------------------------------------------------------------
+Y                  641325.1065    93664.0378       584.7%
+q                     158.3281      118.9929        33.1%
+ücret payı              0.3966        0.5942       -33.3%
+kıtlık                  0.4170        0.0000         inf%
+PKE                     0.9400        0.9400         0.0%
+birikim g               0.0205        0.0117        76.1%
+------------------------------------------------------------------------------
+Anlamlı fark gösteren değişken: 5/6  GEÇTİ
+
+SONUÇ: motor GEÇTİ, sosyalist ayrışma GEÇTİ

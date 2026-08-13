@@ -1,0 +1,142 @@
+"""PARITE DOKUMLERI -- Python (kahin) tarafi.
+
+`godot/scripts/harness/parity.gd` ile SATIR SATIR ayni ciktiyi uretir.
+Karsilastirma `tools/compare_dump.py` ile yapilir.
+
+FLOAT'LAR ONDALIK DEGIL IEEE754 BIT DESENI OLARAK BASILIR. Ondalik
+bicimlendirme iki dilde ayni yuvarlamayi garanti etmez ve "esit mi degil mi"
+sorusunu bicimlendirme sorusuna cevirir; bit deseni bu belirsizligi tamamen
+ortadan kaldirir.
+
+Kullanim:
+    python python/tools/dump_trace.py --rng
+    python python/tools/dump_trace.py --crc32
+    python python/tools/dump_trace.py --params
+    python python/tools/dump_trace.py --formulas
+"""
+
+import dataclasses
+import math
+import os
+import random
+import struct
+import sys
+import zlib
+
+KOK = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(KOK, "python"))
+
+import hayalet_ekonomi_motoru_v43 as M  # noqa: E402
+
+
+def f64(x):
+    """Little-endian IEEE754 bit deseni. GDScript karsiligi:
+    PackedByteArray.encode_double() + hex_encode()."""
+    return struct.pack("<d", float(x)).hex()
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 1 -- RNG akisi. SERT KAPI.
+# ---------------------------------------------------------------------------
+def dump_rng(tohum=42):
+    print(f"# rng tohum={tohum}")
+
+    r = random.Random(tohum)
+    for i in range(10000):
+        print(f"random {i} {f64(r.random())}")
+
+    # randint ve choice AYRI bir ornekten cekilir -- GDScript tarafinda da oyle.
+    r2 = random.Random(tohum)
+    for i in range(1000):
+        print(f"randint {i} {r2.randint(0, 99)}")
+
+    r3 = random.Random(tohum)
+    dizi = [i * 7 for i in range(20)]
+    for i in range(1000):
+        print(f"choice {i} {r3.choice(dizi)}")
+
+    r4 = random.Random(tohum)
+    for k in (1, 2, 3, 7, 8, 15, 16, 31, 32):
+        for i in range(50):
+            print(f"getrandbits {k} {i} {r4.getrandbits(k)}")
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 2 -- crc32 (politika AI zamanlamasi).
+# ---------------------------------------------------------------------------
+def dump_crc32():
+    p = M.Params()
+    print(f"# crc32 ai_periyot={p.ai_periyot}")
+    # Ulke adlari motorun kendi tohum tablosundan alinir.
+    e = M.GhostEconomyEngine.__new__(M.GhostEconomyEngine)
+    for c in M.GhostEconomyEngine.dunya_kur(e):
+        crc = zlib.crc32(c.ad.encode("utf-8"))
+        print(f"crc32 {c.ad} {crc} {crc % p.ai_periyot}")
+    for ad in ("", "a", "abc", "Türkiye", "Çin", "0123456789"):
+        print(f"crc32x {ad} {zlib.crc32(ad.encode('utf-8'))}")
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 2 -- 355 kalibrasyon sabiti.
+# ---------------------------------------------------------------------------
+def dump_params():
+    ornek = M.Params()
+    alanlar = sorted(f.name for f in dataclasses.fields(M.Params))
+    pars = sorted((k, getattr(ornek, k)) for k in alanlar)
+    imza = ";".join(f"{k}={v}" for k, v in pars)
+    karma = f"{zlib.crc32(imza.encode('utf-8')):08x}"
+    print(f"# params alan_sayisi={len(alanlar)} karma={karma}")
+    for ad in alanlar:
+        v = getattr(ornek, ad)
+        if isinstance(v, bool):
+            print(f"param {ad} bool {'1' if v else '0'}")
+        elif isinstance(v, int):
+            print(f"param {ad} int {v}")
+        elif isinstance(v, float):
+            print(f"param {ad} float {f64(v)}")
+        elif isinstance(v, str):
+            print(f"param {ad} str {v}")
+        elif isinstance(v, (tuple, list)):
+            print(f"param {ad} array " + " ".join(f64(x) for x in v))
+        else:
+            print(f"param {ad} ??? {v}")
+
+
+# ---------------------------------------------------------------------------
+# KATMAN 2 -- saf fonksiyonlar sabit girdi izgarasinda.
+# ---------------------------------------------------------------------------
+def dump_formulas():
+    print(f"# formulas TUR_YIL={f64(M.TUR_YIL)} KAMPANYA_TURU={M.KAMPANYA_TURU}")
+    dogru = M.KAMPANYA_TURU == int(round((M.BITIS_YILI - M.BASLANGIC_YILI) / M.TUR_YIL))
+    print(f"# kampanya_turu_dogru={'1' if dogru else '0'}")
+
+    qlar = [1e-6, 0.001, 0.1, 0.5, 0.9, 1.0, 2.6, 5.2, 10.5, 21.0, 42.0,
+            60.0, 100.0, 158.3281, 200.0, 500.0]
+    for q in qlar:
+        print(f"organik_bilesim {f64(q)} {f64(M.organik_bilesim(q))}")
+
+    for x in (-0.05, -0.001, 0.0, 0.0045, 0.008, 0.0205, 0.16, 0.42, 1.0):
+        print(f"yillik {f64(x)} {f64(M.yillik(x))}")
+
+    # `sg` motorda GhostEconomyEngine metodu; saf oldugu icin bagimsiz cagrilir.
+    def sg(x):
+        return 1.0 / (1.0 + math.exp(-max(-60, min(60, x))))
+
+    for x in (-100.0, -60.0, -10.0, -1.0, -0.5, 0.0, 0.5, 1.0, 10.0, 60.0, 100.0):
+        print(f"sg {f64(x)} {f64(sg(x))}")
+
+    for a, b in M.CV_CAPALARI:
+        print(f"cv_capa {f64(a)} {f64(b)}")
+
+
+KOMUTLAR = {
+    "--rng": dump_rng,
+    "--crc32": dump_crc32,
+    "--params": dump_params,
+    "--formulas": dump_formulas,
+}
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2 or sys.argv[1] not in KOMUTLAR:
+        raise SystemExit("kullanim: dump_trace.py [" + " | ".join(KOMUTLAR) + "]")
+    KOMUTLAR[sys.argv[1]]()

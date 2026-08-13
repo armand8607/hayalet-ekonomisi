@@ -1,0 +1,19 @@
+# Calisma kopyasinda da LF zorunlu.
+#
+# NEDEN: `tools/extract_sources.py` ve `tools/gen_gdscript.py` uretilen
+# dosyalari LF ile yazar, `--check` ise bayt bayt karsilastirir. Git satir
+# sonlarini CRLF'e cevirirse taze bir klon aninda "FARKLI" raporlar ve
+# uretimin bozuldugu sanilir. Bu, dogrulama hattinin tamamini yanlis alarma
+# bogar.
+* text=auto eol=lf
+
+# Frozen belge tek dogruluk kaynagidir; satir numaralari port sirasinda
+# referans olarak kullaniliyor (motor.py:N == frozen.md:N+1891).
+*.md text eol=lf
+*.py text eol=lf
+*.gd text eol=lf
+*.tscn text eol=lf
+*.godot text eol=lf
+
+# PowerShell betikleri Windows'ta CRLF ile daha guvenli calisir.
+*.ps1 text eol=crlf

@@ -1,0 +1,15 @@
+﻿MEKANIZMA YON TESTLERI — tohum 1..6 (6 tohum)
+==========================================================================
+test                      iddia                               gecen  sonuc
+--------------------------------------------------------------------------
+LTRPF                     q↑ c/v↑ r↓                        6/6      GECTI
+Otomasyon                 oto↑ canli_pay↓ r↓                6/6      GECTI
+Goodwin                   e↔pay pozitif, pay↔r negatif      6/6      GECTI
+Thirlwall                 yuksek q → yuksek eps/pi_m        6/6      GECTI
+Minsky                    finansallasma kapali → daha az Minsky6/6      GECTI
+Kriz devaluasyonu         devaluasyon kapali → r daha cok duser (medyan)6/6      GECTI
+Sosyalist bolluk/kitlik   bolluk → dusuk PR; kitlik → yuksek PR6/6      GECTI
+Karanlik devlet           tolerans kapali → daha az uyusturucu6/6      GECTI
+Politik ozne              parti acik → daha yuksek orgutlu guc6/6      GECTI
+--------------------------------------------------------------------------
+GENEL: TUM YON TESTLERI GECTI
