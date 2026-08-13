@@ -333,11 +333,11 @@ func kurumsal_gecis_isle(c: Country) -> void:
 	var bas := maxi(0, n - 60)
 	var rli := 0.0
 	if n > bas:
-		var rs := c.tarih.seri("r")
-		var isp := c.tarih.seri("i_spec")
+		# `seri()` DEGIL `deger()`: bu blok her tur her ulke icin calisiyor;
+		# tam seriyi kurmak turu O(n) yapip toplami O(n^2)'ye cikarirdi.
 		var say := 0
 		for i in range(bas, n):
-			if rs[i] < isp[i]:
+			if c.tarih.deger("r", i) < c.tarih.deger("i_spec", i):
 				say += 1
 		rli = float(say) / float(maxi(n - bas, 1))
 
@@ -1605,11 +1605,9 @@ func step() -> void:
 				var hi := mini(n, maxi(1, n - 15))
 				var rli_t := 0.0
 				if hi > lo:
-					var rs := c.tarih.seri("r")
-					var isp := c.tarih.seri("i_spec")
 					var say := 0
 					for i in range(lo, hi):
-						if rs[i] < isp[i]:
+						if c.tarih.deger("r", i) < c.tarih.deger("i_spec", i):
 							say += 1
 					rli_t = float(say) / float(maxi(hi - lo, 1))
 				var stagf := c.stagflasyon > 15

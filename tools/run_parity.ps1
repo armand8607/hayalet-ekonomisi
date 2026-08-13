@@ -32,8 +32,17 @@ New-Item -ItemType Directory -Force -Path $cikti | Out-Null
 # kaotik oldugu icin fark yayiliyor; bu bir port hatasi DEGILDIR (bkz.
 # CLAUDE.md, --dump-libm olcumu). Daha uzun ufuklarin olcutu kabul bantlaridir.
 $katmanlar = if ($Katman -eq "hepsi") {
-    @("rng", "crc32", "params", "formulas", "init", "turn400")
+    @("rng", "crc32", "params", "formulas", "init", "turn400",
+      "scenario:turkey_2001", "scenario:golden_age_1950",
+      "scenario:neoliberal_1995", "scenario:socialist_siege",
+      "report200")
 } else { @($Katman) }
+
+# Raporlama katmani BIT-BIREBIR DEGIL, siki toleranslidir: kaynak
+# `statistics.mean` kullaniyor (Fraction tabanli tam rasyonel toplama) ve
+# GDScript'te birebir uretmenin karsiligi yok -- bu degerler motora geri
+# beslenmiyor. Motor katmanlarinda tolerans DAIMA 0'dir.
+function Tolerans($k) { if ($k -like "report*") { "1e-9" } else { "0" } }
 
 Write-Host "godot  : $Godot"
 Write-Host "python : $Python"
@@ -45,16 +54,22 @@ foreach ($k in $katmanlar) {
     Write-Host "KATMAN: $k"
     Write-Host ("=" * 62)
 
-    $pyOut = Join-Path $cikti "py_$k.txt"
-    $gdOut = Join-Path $cikti "gd_$k.txt"
-    $gdHam = Join-Path $cikti "gd_${k}_ham.txt"
-    $gdErr = Join-Path $cikti "gd_${k}_err.txt"
+    $guvenliAd = $k -replace '[:]', '_'
+    $pyOut = Join-Path $cikti "py_$guvenliAd.txt"
+    $gdOut = Join-Path $cikti "gd_$guvenliAd.txt"
+    $gdHam = Join-Path $cikti "gd_${guvenliAd}_ham.txt"
+    $gdErr = Join-Path $cikti "gd_${guvenliAd}_err.txt"
 
-    # "turnN" katmani ayri arguman bicimi kullanir.
+    # Katmanlarin arguman bicimleri farkli.
     if ($k -match '^turn(\d+)$') {
-        $n = $Matches[1]
-        $pyArg = @("--turn", $n)
-        $gdArg = "--dump-turn=$n"
+        $pyArg = @("--turn", $Matches[1])
+        $gdArg = "--dump-turn=$($Matches[1])"
+    } elseif ($k -match '^report(\d+)$') {
+        $pyArg = @("--report", $Matches[1])
+        $gdArg = "--dump-report=$($Matches[1])"
+    } elseif ($k -match '^scenario:(.+)$') {
+        $pyArg = @("--scenario", $Matches[1])
+        $gdArg = "--dump-scenario=$($Matches[1])"
     } else {
         $pyArg = @("--$k")
         $gdArg = "--dump-$k"
@@ -72,7 +87,7 @@ foreach ($k in $katmanlar) {
         Where-Object { $_ -notmatch '^Godot Engine v' -and $_.Trim() -ne '' } |
         Out-File -FilePath $gdOut -Encoding utf8
 
-    & $Python (Join-Path $kok "tools\compare_dump.py") $pyOut $gdOut --max 8
+    & $Python (Join-Path $kok "tools\compare_dump.py") $pyOut $gdOut --max 8 --tol (Tolerans $k)
     if ($LASTEXITCODE -ne 0) { $basarisiz++ }
     Write-Host ""
 }

@@ -51,6 +51,13 @@ func _ready() -> void:
 						targ.get_slice(":", 1) if targ.contains(":") else "")
 			_ when a.begins_with("--dump-scenario="):
 				Parity.dump_scenario(a.get_slice("=", 1), 42)
+			_ when a.begins_with("--yon-testleri"):
+				# --yon-testleri[=N[:bas[:yalnizca]]]
+				var y := a.get_slice("=", 1) if a.contains("=") else ""
+				cikis = Mekanizma.kos(
+						int(y.get_slice(":", 0)) if y != "" else 6,
+						int(y.get_slice(":", 1)) if y.count(":") >= 1 else 1,
+						y.get_slice(":", 2) if y.count(":") >= 2 else "")
 			_ when a.begins_with("--dump-report="):
 				# --dump-report=TUR[:senaryo]
 				var arg := a.get_slice("=", 1)

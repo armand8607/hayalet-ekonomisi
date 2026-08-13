@@ -100,27 +100,38 @@ static func sg(x: float) -> float:
 ## edilir ve TAVANI YOKTUR -- kar oraninin dusme egiliminin yakiti budur.
 ## (Onceki surumde c/v cag basina sabit bir basamak fonksiyonuydu ve 15'te
 ## doyuyordu; egilim yakitsiz kaliyordu.)
+## Capa noktalari ve segment egimleri BIR KEZ hesaplanir. Bu fonksiyon tur
+## basina ~60 kez cagriliyor; her cagrida capalari yeniden kurup egimleri
+## `log()` ile yeniden hesaplamak kampanya suresinin buyuk kismini yiyordu.
+static var _q: PackedFloat64Array = PackedFloat64Array()
+static var _cv: PackedFloat64Array = PackedFloat64Array()
+static var _egimler: PackedFloat64Array = PackedFloat64Array()
+
+
+static func _capalari_kur() -> void:
+	if not _q.is_empty():
+		return
+	for c in Tables.cv_capalari():
+		_q.append(float(c[0]))
+		_cv.append(float(c[1]))
+	for i in range(_q.size() - 1):
+		_egimler.append(log(_cv[i + 1] / _cv[i]) / log(_q[i + 1] / _q[i]))
+
+
 static func organik_bilesim(q: float) -> float:
-	var capalar := Tables.cv_capalari()
+	_capalari_kur()
 	var qq := maxf(q, 1e-6)
+	var n := _q.size()
 
-	if qq <= float(capalar[0][0]):
-		var e0 := _egim(capalar[0], capalar[1])
-		return maxf(0.05, float(capalar[0][1]) * pow(qq / float(capalar[0][0]), e0))
+	if qq <= _q[0]:
+		return maxf(0.05, _cv[0] * pow(qq / _q[0], _egimler[0]))
 
-	for i in range(capalar.size() - 1):
-		var a: Array = capalar[i]
-		var b: Array = capalar[i + 1]
-		if qq <= float(b[0]):
-			return float(a[1]) * pow(qq / float(a[0]), _egim(a, b))
+	for i in range(n - 1):
+		if qq <= _q[i + 1]:
+			return _cv[i] * pow(qq / _q[i], _egimler[i])
 
-	var a2: Array = capalar[capalar.size() - 2]
-	var b2: Array = capalar[capalar.size() - 1]
-	return float(b2[1]) * pow(qq / float(b2[0]), _egim(a2, b2))
-
-
-static func _egim(a: Array, b: Array) -> float:
-	return log(float(b[1]) / float(a[1])) / log(float(b[0]) / float(a[0]))
+	# Cag 6'nin capasinin OTESI: son segmentin egimiyle ekstrapole, TAVAN YOK.
+	return _cv[n - 1] * pow(qq / _q[n - 1], _egimler[n - 2])
 
 
 ## Sabit yazilan KAMPANYA_TURU'nun turetimle uyustugunu dogrular.

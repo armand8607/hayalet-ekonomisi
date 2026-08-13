@@ -3,24 +3,35 @@ extends RefCounted
 
 ## Bir ulkenin tur-tur kaydi -- Python'daki `Country.tarih` listesinin karsiligi.
 ##
-## SUTUN DEPOSU, SATIR DEPOSU DEGIL. Python tarafinda her tur ~60 anahtarli bir
-## dict `tarih`e eklenir. Bir kampanyada bu 20 ulke x 1259 tur x ~60 alan
-## = ~1.5 milyon deger eder. GDScript'te `Array[Dictionary]` olarak tutmak her
-## degeri Variant kutusuna sokar ve hem bellegi hem de grafik cizimini
-## gereksiz yere agirlastirir; gosterge paneli zaten "tek alanin zaman serisi"
-## istiyor, "tek turun butun alanlari" degil.
+## DUZ (row-major) DEPO. Python tarafinda her tur ~66 anahtarli bir dict
+## `tarih`e ekleniyor; bir kampanyada bu 20 ulke x 1259 tur x 66 alan
+## ~= 1.7 milyon deger eder.
 ##
-## PackedFloat64Array secildi, Float32 DEGIL: parite karsilastirmasi Python'un
-## binary64 degerleriyle yapiliyor; float32'ye dusurmek karsilastirmayi
-## anlamsiz kilardi. Gosterge paneli isterse cizim aninda daraltabilir.
+## NEDEN SOZLUK ICINDE SUTUN TUTULMUYOR: GDScript'te paketli diziler
+## KOPYALA-YAZ'dir. `var s = sozluk[k]` referansi ikiye cikarir, `s.append(x)`
+## o anda TUM diziyi kopyalar, `sozluk[k] = s` kopyayi geri yazar. Yani her
+## ekleme O(n)'dir ve toplam maliyet O(n^2)'ye cikar -- olculdu: kampanya basina
+## ~29 sn'nin buyuk kismi buradan geliyordu.
 ##
-## Metin alanlari (rejim, kurum) id'ye cevrilip int sutununda tutulur --
-## `rejim_adi()` ile geri okunur.
+## Cozum: tek bir `PackedFloat64Array` DOGRUDAN uye olarak tutulur (referans
+## sayisi 1, ekleme yerinde ve amortize sabit) ve alanlar satir icinde sabit
+## ofsetlerle dizilir. Satir uzunlugu ilk kayitta belirlenir.
+##
+## Float64 secildi, Float32 DEGIL: parite karsilastirmasi Python'un binary64
+## degerleriyle yapiliyor.
 
-var _float_sutun: Dictionary = {}   ## alan adi -> PackedFloat64Array
-var _int_sutun: Dictionary = {}     ## alan adi -> PackedInt32Array
+var _alan_idx: Dictionary = {}          ## alan adi -> satir ici ofset
+var _alan_sirasi: PackedStringArray = PackedStringArray()
+var _genislik := 0                      ## satir basina float alan sayisi
+var _duz := PackedFloat64Array()        ## row-major: [tur * _genislik + ofset]
+
+var _int_idx: Dictionary = {}
+var _int_sirasi: PackedStringArray = PackedStringArray()
+var _int_genislik := 0
+var _int_duz := PackedInt32Array()
+
 var _metin_havuzu: PackedStringArray = PackedStringArray()
-var _metin_indeksi: Dictionary = {} ## metin -> id
+var _metin_indeksi: Dictionary = {}
 var _tur := 0
 
 
@@ -28,40 +39,73 @@ func tur_sayisi() -> int:
 	return _tur
 
 
-## Bir turu kaydeder. `float_alanlar` ve `int_alanlar` her cagrida ayni
-## anahtarlari tasimalidir; eksik alan sessizce NAN olarak doldurulur ki
-## sutunlar hizali kalsin (aksi halde zaman serisi kayar).
+## Bir turu kaydeder.
+##
+## Satir semasi ILK CAGRIDA sabitlenir. Sonraki cagrilarda yeni bir alan
+## gorulurse sema genisletilir ve gecmis satirlar NAN ile doldurulur; motor
+## her tur ayni sozluk sabitini yazdigi icin bu yol pratikte hic calismaz,
+## ama sessiz kayma yerine dogru davranis uretir.
 func kaydet(float_alanlar: Dictionary, int_alanlar: Dictionary = {}) -> void:
-	for anahtar in float_alanlar:
-		var sutun: PackedFloat64Array = _float_sutun.get(anahtar, PackedFloat64Array())
-		while sutun.size() < _tur:
-			sutun.append(NAN)
-		sutun.append(float(float_alanlar[anahtar]))
-		_float_sutun[anahtar] = sutun
+	if _genislik == 0:
+		for anahtar in float_alanlar:
+			_alan_idx[anahtar] = _alan_sirasi.size()
+			_alan_sirasi.append(anahtar)
+		_genislik = _alan_sirasi.size()
+	elif float_alanlar.size() != _genislik:
+		_semayi_genislet(float_alanlar)
+	else:
+		for anahtar in float_alanlar:
+			if not _alan_idx.has(anahtar):
+				_semayi_genislet(float_alanlar)
+				break
 
-	for anahtar in int_alanlar:
-		var sutun: PackedInt32Array = _int_sutun.get(anahtar, PackedInt32Array())
-		while sutun.size() < _tur:
-			sutun.append(-1)
-		var deger = int_alanlar[anahtar]
-		sutun.append(_metin_id(deger) if deger is String else int(deger))
-		_int_sutun[anahtar] = sutun
+	var taban := _tur * _genislik
+	_duz.resize(taban + _genislik)
+	for i in range(_genislik):
+		_duz[taban + i] = NAN
+	for anahtar in float_alanlar:
+		_duz[taban + int(_alan_idx[anahtar])] = float(float_alanlar[anahtar])
+
+	if not int_alanlar.is_empty():
+		if _int_genislik == 0:
+			for anahtar in int_alanlar:
+				_int_idx[anahtar] = _int_sirasi.size()
+				_int_sirasi.append(anahtar)
+			_int_genislik = _int_sirasi.size()
+		var itaban := _tur * _int_genislik
+		_int_duz.resize(itaban + _int_genislik)
+		for i in range(_int_genislik):
+			_int_duz[itaban + i] = -1
+		for anahtar in int_alanlar:
+			if not _int_idx.has(anahtar):
+				continue
+			var deger = int_alanlar[anahtar]
+			_int_duz[itaban + int(_int_idx[anahtar])] = (
+					_metin_id(deger) if deger is String else int(deger))
 
 	_tur += 1
-	_hizala()
 
 
-func _hizala() -> void:
-	for anahtar in _float_sutun:
-		var s: PackedFloat64Array = _float_sutun[anahtar]
-		while s.size() < _tur:
-			s.append(NAN)
-		_float_sutun[anahtar] = s
-	for anahtar in _int_sutun:
-		var s: PackedInt32Array = _int_sutun[anahtar]
-		while s.size() < _tur:
-			s.append(-1)
-		_int_sutun[anahtar] = s
+func _semayi_genislet(float_alanlar: Dictionary) -> void:
+	var yeni: PackedStringArray = _alan_sirasi.duplicate()
+	for anahtar in float_alanlar:
+		if not _alan_idx.has(anahtar):
+			yeni.append(anahtar)
+	if yeni.size() == _genislik:
+		return
+	var eski_genislik := _genislik
+	var eski := _duz
+	_alan_sirasi = yeni
+	_alan_idx.clear()
+	for i in range(yeni.size()):
+		_alan_idx[yeni[i]] = i
+	_genislik = yeni.size()
+	_duz = PackedFloat64Array()
+	_duz.resize(_tur * _genislik)
+	for t in range(_tur):
+		for i in range(_genislik):
+			_duz[t * _genislik + i] = (eski[t * eski_genislik + i]
+					if i < eski_genislik else NAN)
 
 
 func _metin_id(metin: String) -> int:
@@ -73,40 +117,50 @@ func _metin_id(metin: String) -> int:
 	return id
 
 
-## Bir alanin tam zaman serisi. Grafik katmani bunu dogrudan cizer.
+## Tek bir degerin O(1) okunmasi. SICAK YOL BUNU KULLANIR: `kurumsal_gecis_isle`
+## ve bunalim tipi siniflandirmasi her tur son 45-60 turluk pencereyi tariyor;
+## orada `seri()` cagirmak turu O(n) yapip toplami O(n^2)'ye cikarirdi.
+func deger(alan: String, t: int) -> float:
+	if t < 0 or t >= _tur or not _alan_idx.has(alan):
+		return NAN
+	return _duz[t * _genislik + int(_alan_idx[alan])]
+
+
+## Bir alanin tam zaman serisi. Grafik ve rapor katmani icindir (soguk yol):
+## duz depodan adimlayarak yeni bir dizi kurar.
 func seri(alan: String) -> PackedFloat64Array:
-	return _float_sutun.get(alan, PackedFloat64Array())
-
-
-func int_seri(alan: String) -> PackedInt32Array:
-	return _int_sutun.get(alan, PackedInt32Array())
+	var out := PackedFloat64Array()
+	if not _alan_idx.has(alan):
+		return out
+	var ofset := int(_alan_idx[alan])
+	out.resize(_tur)
+	for t in range(_tur):
+		out[t] = _duz[t * _genislik + ofset]
+	return out
 
 
 ## Bir int sutununda saklanan metni geri okur (rejim, kurum gibi).
 func metin(alan: String, t: int) -> String:
-	var s: PackedInt32Array = _int_sutun.get(alan, PackedInt32Array())
-	if t < 0 or t >= s.size():
+	if t < 0 or t >= _tur or not _int_idx.has(alan) or _int_genislik == 0:
 		return ""
-	var id := s[t]
+	var id := _int_duz[t * _int_genislik + int(_int_idx[alan])]
 	return _metin_havuzu[id] if id >= 0 and id < _metin_havuzu.size() else ""
 
 
 ## Tek bir turu dict olarak geri verir -- parite dokumu ve olay incelemesi icin.
-## Sicak yolda KULLANILMAZ; sutun deposunun butun amaci bunu gerektirmemektir.
+## Sicak yolda KULLANILMAZ.
 func tur_kaydi(t: int) -> Dictionary:
 	var out := {}
-	for anahtar in _float_sutun:
-		var s: PackedFloat64Array = _float_sutun[anahtar]
-		if t >= 0 and t < s.size():
-			out[anahtar] = s[t]
-	for anahtar in _int_sutun:
+	if t < 0 or t >= _tur:
+		return out
+	for anahtar in _alan_sirasi:
+		out[anahtar] = _duz[t * _genislik + int(_alan_idx[anahtar])]
+	for anahtar in _int_sirasi:
 		out[anahtar] = metin(anahtar, t)
 	return out
 
 
 func alanlar() -> PackedStringArray:
-	var out := PackedStringArray()
-	for anahtar in _float_sutun:
-		out.append(anahtar)
+	var out := _alan_sirasi.duplicate()
 	out.sort()
 	return out

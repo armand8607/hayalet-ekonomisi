@@ -57,7 +57,15 @@ Godot tarafı (doğrulama koşuları). `--` sonrası her şey
 
 Argüman kapıları: `--self-test`, `--dump-rng`, `--dump-crc32`, `--dump-params`,
 `--dump-formulas`, `--dump-agg`, `--dump-init`, `--dump-turn=N[:senaryo]`,
-`--dump-scenario=AD`, `--dump-report=N[:senaryo]`.
+`--dump-scenario=AD`, `--dump-report=N[:senaryo]`, `--kabul=N`,
+`--yon-testleri=N[:baş[:yalnızca]]`.
+
+**Döküm kapıları yavaştır, motor değil.** Ölçüldü: maliyetin neredeyse tamamı
+stdout'a satır basmaktan geliyor (~3 ms/satır), simülasyondan değil. Gerçek
+maliyet **tur başına ~6,6 ms**, yani tam kampanya ~6–8 sn (CPython'un 2,4
+katı). `--dump-turn=800` 24 sn sürerken `--yon-testleri` kampanya başına 6 sn
+harcıyor; fark tamamen çıktı hacmi. Performans ölçerken bunu ayırmazsanız
+olmayan bir darboğazı kovalarsınız.
 
 ## MOTORUN KENDİ KUSURU: `socialist_siege` yeniden üretilebilir DEĞİL
 
@@ -118,8 +126,25 @@ kalibrasyonun kaydıdır, bağımsız kriter değil; bağımsız olan yön testl
 | 3b | Tur-tur iz (`--dump-turn=N`) | **tur 1–407 birebir** (tohum 42); 408'den sonra libm sapması — aşağıya bak |
 | 3c | Senaryo odaları (`--dump-scenario=AD`) | **GEÇTİ** — 4 oda × 2771 satır birebir |
 | 3d | Raporlama (`--dump-report=N`) | **GEÇTİ** — ≤1e-9 tolerans içinde (`statistics.mean` farkı) |
-| 4 | 9 mekanizma yön testi (**birincil**) | Python'da 9/9; GDScript koşusu bekliyor |
+| 4 | 9 mekanizma yön testi (**birincil**) | **GEÇTİ** — 9/9, tohum 1–6, Python'la aynı |
 | 5 | 10 kabul bandı (`--kabul=N`) | **GEÇTİ** — aşağıya bak |
+
+**Katman 4 (`--yon-testleri=N[:baş[:yalnızca]]`)** — 6 tohum, ~7 dk. İki motor
+aynı tohumlarda dokuz testin dokuzunu da geçiyor
+(`python/baseline/yon_testleri_gdscript_6tohum.txt` ↔
+`mekanizma_testleri_6tohum.txt`). Bu, belgenin kendi birincil ölçütüdür:
+bantlar ayarlanabilir, yön ayarlanamaz.
+
+İki test bu katmanın neden asıl kanıt olduğunu gösteriyor:
+
+- **Minsky** parametreyi örnek bazında değiştiriyor (`P.fin_stok = 0`,
+  `P.fin_pay = 0`) ve iki motoru aynı tohumla karşılaştırıyor. `ParamSet`'in
+  `const` değil `var` olması bu yüzden zorunlu; tek paylaşılan sabit blok
+  olsaydı test kendi kendini bozardı.
+- **Sosyalist bolluk**, bit-paritesi *imkânsız* olan `socialist_siege`
+  senaryosunda koşuyor (aşağıdaki `PYTHONHASHSEED` notu) — ve yine de 6/6
+  geçiyor. Yön iddiası kâhinin kararsızlığına bağışık; ölçüt olarak bantlardan
+  üstün olmasının sebebi tam olarak bu.
 
 Katman 3b'nin 407 tur boyunca (5000+ alan × 407 tur) birebir tutması,
 aktarımın doğru olduğunun asıl kanıtıdır.

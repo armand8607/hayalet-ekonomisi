@@ -35,10 +35,19 @@ const ULKELER := [["ABD", "merkez", 320, 110, 1.0, 0.52, 0.35, 0.4, 0.85], ["Alm
 ## c/v capalari: her cagin c/v'si o caga giris esigindeki q ile eslesir.
 ## Python tarafinda ayni sekilde ERAS'tan TURETILIR, ayri yazilmaz --
 ## iki tablonun birbirinden kaymasi boylece imkansiz olur.
+##
+## BIR KEZ kurulup onbellege alinir. `organik_bilesim` bunu tur basina
+## ~60 kez cagiriyor; her cagrida yeniden kurmak (sozluk anahtarlarini
+## siralayip 6 dizi ayirmak) kampanya suresinin buyuk kismini yiyordu.
+static var _cv_capalari_onbellek: Array = []
+
 static func cv_capalari() -> Array:
+	if not _cv_capalari_onbellek.is_empty():
+		return _cv_capalari_onbellek
 	var out := []
 	var anahtarlar := ERAS.keys()
 	anahtarlar.sort()
 	for e in anahtarlar:
 		out.append([maxf(ERAS[e]["q_esik"], 0.5), float(ERAS[e]["cv"])])
+	_cv_capalari_onbellek = out
 	return out
