@@ -30,6 +30,8 @@ func _ready() -> void:
 		match a:
 			"--self-test":
 				cikis = Parity.self_test()
+			"--sim-test":
+				cikis = SimTest.kos()
 			"--dump-rng":
 				Parity.dump_rng(42)
 			"--dump-crc32":

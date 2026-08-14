@@ -1,61 +1,329 @@
 extends Node
 
-## Otoload 4 -- aktif kosunun sahibi ve arayuzun tek veri kapisi.
+## Otoload 4 -- aktif koşunun sahibi ve arayüzün motora tek kapısı.
 ##
-## Motorun kendisi (GhostEngine) otoload DEGILDIR; bu dugum yalnizca OYUNCUNUN
-## kosusuna ait ornegi tutar. Monte Carlo ve parite kosulari kendi bagimsiz
-## orneklerini dogrudan yaratir -- boylece test kosusu oyuncunun kosusunu
-## bozamaz.
+## Motorun kendisi (`GhostEngine`) otoload DEĞİLDİR; bu düğüm yalnızca
+## OYUNCUNUN koşusuna ait örneği tutar. Monte Carlo, parite ve yön testleri
+## kendi bağımsız örneklerini doğrudan yaratır, böylece bir test koşusu
+## oyuncunun koşusunu bozamaz.
 ##
-## Arayuz motora HIC dokunmaz, yalnizca bu sinyalleri dinler. Politika
-## degisiklikleri de ters yonde buradan gecer: `set_temel_gelir` gibi cagrilar
-## bir ILANDIR, anlik durum degisikligi degil -- motorda `pol_gecikme` (8 tur)
-## sonra etkisi baslar ve yerlesme hizi rejime gore degisir.
+## Arayüz motora HİÇ dokunmaz: veriyi buradan okur, sinyalleri dinler,
+## politikaları buradan ilan eder.
+##
+## POLİTİKALAR İLANDIR, ANLIK DEĞİŞİKLİK DEĞİL. `temel_gelir_ilan()` çağrısı
+## motorun kuyruğuna girer, `pol_gecikme` (8 tur) sonra yürürlüğe başlar ve
+## yerleşme hızı rejime göre değişir (neoliberal hızlı, düzenli yavaş).
+## Arayüz bunu gizlemek yerine göstermelidir; oyunun anlattığı şeyin bir
+## parçası budur.
 
-## DURUM: GhostEngine portu bu turun kapsaminda degil (bkz. plan). Bu otoload
-## simdilik yalnizca arayuzun bagli olacagi sozlesmeyi sabitler; `_motor`
-## baglandiginda govde doldurulacak.
-
+signal kosu_basladi(bilgi: Dictionary)
 signal tur_ilerledi(t: int)
-signal olay_eklendi(t: int, tip: String, mesaj: String)
+signal olay_eklendi(tur: int, tip: String, mesaj: String)
 signal kosu_bitti(rapor: Dictionary)
 
-## Gosterge panelinin ekseni: belgenin kendi 12 cekirdek metrigi
-## (`python/hassasiyet.py` icindeki `olc()` fonksiyonu). Panel bu listeyi
-## okur, kendi listesini tutmaz -- iki yerin birbirinden kaymasi boylece
-## imkansiz olur.
+## Gösterge panelinin ekseni: belgenin kendi 12 çekirdek metriği
+## (`python/hassasiyet.py` içindeki `olc()`). Panel bu listeyi okur, kendi
+## listesini tutmaz -- iki yerin birbirinden kayması böylece imkânsız olur.
+##
+## `ters: true` olan metrik kayıtta istihdam olarak duruyor ama ekranda
+## işsizlik gösterilir (1 - e).
 const CEKIRDEK_METRIKLER := [
-	{"anahtar": "r", "ad": "Kâr oranı", "biçim": "oran"},
-	{"anahtar": "cv", "ad": "Organik bileşim c/v", "biçim": "sayı"},
-	{"anahtar": "u", "ad": "Kapasite kullanımı", "biçim": "yüzde"},
-	{"anahtar": "e", "ad": "İşsizlik", "biçim": "yüzde", "ters": true},
-	{"anahtar": "pay", "ad": "Ücret payı", "biçim": "yüzde"},
-	{"anahtar": "borc", "ad": "Hanehalkı borcu / Y", "biçim": "oran"},
-	{"anahtar": "varlik", "ad": "Spekülatif varlık / Y", "biçim": "oran"},
-	{"anahtar": "Om", "ad": "Siyasi öfke (Omega)", "biçim": "yüzde"},
-	{"anahtar": "org", "ad": "Örgütlenme", "biçim": "yüzde"},
-	{"anahtar": "oto", "ad": "Otomasyon payı", "biçim": "yüzde"},
-	{"anahtar": "canli_pay", "ad": "Canlı emek payı", "biçim": "yüzde"},
-	{"anahtar": "PR", "ad": "Protesto riski", "biçim": "yüzde"},
+	{"anahtar": "r", "ad": "Kâr oranı", "bicim": "oran"},
+	{"anahtar": "cv", "ad": "Organik bileşim c/v", "bicim": "sayi"},
+	{"anahtar": "u", "ad": "Kapasite kullanımı", "bicim": "yuzde"},
+	{"anahtar": "e", "ad": "İşsizlik", "bicim": "yuzde", "ters": true},
+	{"anahtar": "pay", "ad": "Ücret payı", "bicim": "yuzde"},
+	{"anahtar": "borc", "ad": "Hanehalkı borcu / Y", "bicim": "oran"},
+	{"anahtar": "varlik", "ad": "Spekülatif varlık / Y", "bicim": "oran"},
+	{"anahtar": "Om", "ad": "Siyasi öfke (Omega)", "bicim": "yuzde"},
+	{"anahtar": "org", "ad": "Örgütlenme", "bicim": "yuzde"},
+	{"anahtar": "oto", "ad": "Otomasyon payı", "bicim": "yuzde"},
+	{"anahtar": "canli_pay", "ad": "Canlı emek payı", "bicim": "yuzde"},
+	{"anahtar": "PR", "ad": "Protesto riski", "bicim": "yuzde"},
 ]
 
-var _motor = null           ## GhostEngine (port tamamlanınca bağlanacak)
-var _oyuncu_ulkesi := ""
-var t: int = 0
+## Senaryo odalarının OYUN katmanı bilgisi. Motor `baslangic_yili`'nı senaryoya
+## göre DEĞİŞTİRMEZ (hep 1760'tır), dolayısıyla ekranda gösterilecek takvim
+## yılı buradan gelir -- konsol oyununun yaptığının aynısı.
+const SENARYOLAR := {
+	"": {
+		"ad": "Tam Kampanya", "yil": 1760, "ufuk": 1259,
+		"aciklama": "Sanayi Devrimi'nden 2100'e. Bütün çağlar, bütün geçişler.",
+	},
+	"golden_age_1950": {
+		"ad": "Altın Çağ Refah Devleti", "yil": 1950, "ufuk": 120,
+		"aciklama": "Güçlü sendikalar, yüksek ücret payı, sıfıra yakın finans.",
+	},
+	"neoliberal_1995": {
+		"ad": "Neoliberal Küreselleşme", "yil": 1995, "ufuk": 120,
+		"aciklama": "Ezilmiş sendikalar, borçla güdümlenen tüketim, balonlar.",
+	},
+	"turkey_2001": {
+		"ad": "Türkiye 2001 Krizi", "yil": 2001, "ufuk": 120,
+		"aciklama": "Dış borç limitte, rezerv tükenmiş, IMF kemer sıkması.",
+	},
+	"socialist_siege": {
+		"ad": "Kuşatılmış Planlı Ekonomi", "yil": 2030, "ufuk": 400,
+		"aciklama": "Rusya/Çin/Türkiye sosyalist, emperyalist müdahale zirvede.",
+	},
+}
+
+var motor: GhostEngine = null
+var oyuncu := ""                 ## oyuncunun ülkesi
+var senaryo := ""
+var ufuk := 1259
+var baslangic_yili := 1760
+
+var _log_islenen := 0            ## motor günlüğünde nereye kadar bildirildi
+var _bitti := false
 
 
-## Veri katmanini dogrular. Uretim adimi atlanmis bir agaci ILK ACILISTA
-## yakalar; motor kurulduktan sonra degil.
 func _ready() -> void:
+	# Veri katmanını İLK AÇILIŞTA doğrula: üretim adımı atlanmış ya da yarım
+	# kalmış bir ağacı motor kurulmadan önce yakalar.
 	var sonuc: Dictionary = Params.dogrula()
 	if not sonuc["gecti"]:
 		for h in sonuc["hatalar"]:
-			push_error("Veri katmani dogrulamasi: " + str(h))
+			push_error("Veri katmanı doğrulaması: " + str(h))
 
 
-func kosu_baslat(_senaryo: String, _tohum: int, _ulke: String) -> void:
-	push_warning("Sim.kosu_baslat: GhostEngine portu henüz tamamlanmadı.")
+# ===========================================================================
+# KOŞU YAŞAM DÖNGÜSÜ
+# ===========================================================================
+
+## Yeni bir koşu kurar. `p_senaryo` boş ise tam kampanya.
+func kosu_baslat(p_senaryo: String = "", tohum: int = 42,
+		ulke: String = "Turkiye", p_ufuk: int = -1) -> void:
+	assert(SENARYOLAR.has(p_senaryo), "Bilinmeyen senaryo: " + p_senaryo)
+	var meta: Dictionary = SENARYOLAR[p_senaryo]
+
+	motor = GhostEngine.new(tohum)
+	if p_senaryo != "":
+		motor.load_scenario(p_senaryo)
+	motor.oyuncu_ulkesi(ulke)
+
+	senaryo = p_senaryo
+	oyuncu = ulke
+	baslangic_yili = int(meta["yil"])
+	ufuk = int(meta["ufuk"]) if p_ufuk < 0 else p_ufuk
+	_log_islenen = 0
+	_bitti = false
+
+	# Senaryo yüklemesi günlüğe satır ekler; onları da arayüze bildir.
+	_olaylari_bildir()
+	kosu_basladi.emit({
+		"senaryo": senaryo, "ad": meta["ad"], "aciklama": meta["aciklama"],
+		"tohum": tohum, "ulke": ulke, "ufuk": ufuk, "yil": baslangic_yili,
+	})
 
 
-func ilerle(_tur_sayisi: int = 1) -> void:
-	push_warning("Sim.ilerle: GhostEngine portu henüz tamamlanmadı.")
+## Turu ilerletir. Ufka varılınca `kosu_bitti` yayılır ve daha fazla ilerlemez.
+func ilerle(tur_sayisi: int = 1) -> void:
+	if motor == null or _bitti:
+		return
+	for _i in range(tur_sayisi):
+		if motor.t >= ufuk:
+			break
+		motor.step()
+		_olaylari_bildir()
+		tur_ilerledi.emit(motor.t)
+		if motor.t >= ufuk:
+			_bitir()
+			return
+
+
+func _bitir() -> void:
+	if _bitti:
+		return
+	_bitti = true
+	var rapor := motor.tarihsel_rapor(oyuncu)
+	# Bu oyunda ZAFER YOKTUR: kayıt bir skor değil, ne olduğunun dökümüdür.
+	var gecmis: Array = Save.al("kosular", [])
+	gecmis.append({
+		"senaryo": senaryo, "ulke": oyuncu, "tur": motor.t,
+		"son_rejim": rapor.get("son_rejim", ""), "son_kurum": rapor.get("son_kurum", ""),
+		"devrim_turu": rapor.get("devrim_turu", null),
+	})
+	Save.ayarla("kosular", gecmis)
+	Save.kaydet()
+	kosu_bitti.emit(rapor)
+
+
+func bitti() -> bool:
+	return _bitti
+
+
+func tur() -> int:
+	return motor.t if motor != null else 0
+
+
+## Ekranda gösterilecek takvim yılı (senaryonun kendi başlangıcından).
+func yil() -> float:
+	return baslangic_yili + tur() * Formulas.TUR_YIL
+
+
+func ilerleme() -> float:
+	return clampf(float(tur()) / float(maxi(ufuk, 1)), 0.0, 1.0)
+
+
+# ===========================================================================
+# VERİ OKUMA
+# ===========================================================================
+
+func ulke(ad: String = "") -> Country:
+	if motor == null:
+		return null
+	var hedef := ad if ad != "" else oyuncu
+	for c in motor.D:
+		if c.ad == hedef:
+			return c
+	return null
+
+
+func ulke_adlari() -> PackedStringArray:
+	var out := PackedStringArray()
+	if motor != null:
+		for c in motor.D:
+			out.append(c.ad)
+	return out
+
+
+## Bir metriğin zaman serisi. `ters` işaretli metrikler (işsizlik) burada
+## çevrilir, arayüzde değil -- iki yerde çevirmek kolayca birini unutturur.
+func seri(anahtar: String, ulke_ad: String = "") -> PackedFloat64Array:
+	var c := ulke(ulke_ad)
+	if c == null:
+		return PackedFloat64Array()
+	var ham := c.tarih.seri(anahtar)
+	if not _ters_mi(anahtar):
+		return ham
+	var out := PackedFloat64Array()
+	out.resize(ham.size())
+	for i in range(ham.size()):
+		out[i] = 1.0 - ham[i]
+	return out
+
+
+func metrik(anahtar: String, ulke_ad: String = "") -> float:
+	var c := ulke(ulke_ad)
+	if c == null or c.tarih.tur_sayisi() == 0:
+		return NAN
+	var v := c.tarih.deger(anahtar, c.tarih.tur_sayisi() - 1)
+	return (1.0 - v) if _ters_mi(anahtar) else v
+
+
+func _ters_mi(anahtar: String) -> bool:
+	for m in CEKIRDEK_METRIKLER:
+		if m["anahtar"] == anahtar:
+			return m.get("ters", false)
+	return false
+
+
+## Bir değeri metriğin biçimine göre metne çevirir.
+static func bicimle(deger: float, bicim: String) -> String:
+	if is_nan(deger):
+		return "—"
+	match bicim:
+		"yuzde": return "%%%.1f" % (deger * 100.0)
+		"oran": return "%.4f" % deger
+		"sayi": return "%.2f" % deger
+	return "%.3f" % deger
+
+
+## Motor günlüğünün son N olayı (en yenisi sonda).
+func olaylar(son_n: int = 40) -> Array:
+	if motor == null:
+		return []
+	var bas: int = maxi(0, motor.log.size() - son_n)
+	var out := []
+	for i in range(bas, motor.log.size()):
+		var k: Array = motor.log[i]
+		out.append({"tur": int(k[0]), "tip": String(k[1]), "mesaj": String(k[2])})
+	return out
+
+
+func _olaylari_bildir() -> void:
+	while _log_islenen < motor.log.size():
+		var k: Array = motor.log[_log_islenen]
+		olay_eklendi.emit(int(k[0]), String(k[1]), String(k[2]))
+		_log_islenen += 1
+
+
+# ===========================================================================
+# POLİTİKA -- hepsi İLANDIR
+# ===========================================================================
+
+## Bekleyen ilanlar: arayüz "ne zaman yürürlüğe girecek" diye gösterebilsin.
+func bekleyen_politikalar(ulke_ad: String = "") -> Array:
+	var c := ulke(ulke_ad)
+	if c == null:
+		return []
+	var out := []
+	for ad in c.pol_kuyruk:
+		var g: Array = c.pol_kuyruk[ad]
+		out.append({"ad": ad, "deger": g[0], "etkin_t": int(g[1]),
+				"kalan": maxi(0, int(g[1]) - motor.t)})
+	return out
+
+
+## ETG hedefi (hasıla oranı). Siyaseten bedavadır, iktisaden bedel öder:
+## bütçe, kâr oranı, birikim.
+func temel_gelir_ilan(oran: float) -> void:
+	if motor != null:
+		motor.set_temel_gelir(oran, oyuncu)
+
+
+## ETG'nin ne kadarı sermaye vergisinden karşılanacak.
+## 0.0 = tamamen ücretten (tüketimi kısar, gerçekleşme krizini derinleştirir)
+## 1.0 = tamamen sermayeden (net kârlılığı düşürür, LTRPF'yi hızlandırır)
+func etg_finansman_ilan(sermaye_payi: float) -> void:
+	if motor != null:
+		motor.set_etg_finansman(sermaye_payi, oyuncu)
+
+
+## Sosyalist plan profili. Paylar RAKİP kullanımlardır.
+func plan_profili_ilan(profil: String) -> void:
+	if motor != null:
+		motor.set_plan_profili(profil, oyuncu)
+
+
+## Sosyalist pakt içindeki duruş: "ittifak" ya da "rekabet".
+func pakt_durusu_ayarla(durus: String) -> void:
+	if motor != null:
+		motor.set_pakt_durusu(durus, oyuncu)
+
+
+## Kasıtlı kurumsal inşa -- liberal rejime TEK erişim yolu.
+## Endojen geçişten farkı: bu bir SİYASİ PROJEDİR, siyasi sermaye harcar.
+func kurumsal_insa_ilan(kurum: String) -> void:
+	if motor != null:
+		motor.set_kurumsal_insa(kurum, oyuncu)
+
+
+## Kurumsal inşa şu an mümkün mü, değilse neden.
+##
+## §9.8: siyasi sermaye YALNIZCA yapısal değişiklikleri kısıtlar. ETG düzeyi,
+## ETG finansmanı ve plan payları siyaseten bedavadır -- onlar için bu kapı
+## sorulmaz.
+func kurumsal_insa_durumu() -> Dictionary:
+	var c := ulke()
+	if c == null:
+		return {"mumkun": false, "sebep": "koşu yok"}
+	var P := motor.P
+	if c.rejim != "kapitalist":
+		return {"mumkun": false, "sebep": "planlı ekonomide kurumsal rejim yok"}
+	if motor.t - c.kurum_insa_t < P.ki_min_sure:
+		return {"mumkun": false, "kalan": P.ki_min_sure - (motor.t - c.kurum_insa_t),
+				"sebep": "son inşadan bu yana yeterli süre geçmedi"}
+	if c.PC < P.ki_pc_esigi:
+		return {"mumkun": false, "pc": c.PC, "esik": P.ki_pc_esigi,
+				"sebep": "siyasi sermaye yetersiz"}
+	return {"mumkun": true, "maliyet": P.ki_pc_maliyet}
+
+
+## Karanlık devlet politikası. `null` bırakılırsa devlet kendi karar verir
+## (endojen); bir sayıya çekilirse oyuncu devralır.
+func mafya_kilidi_ayarla(deger) -> void:
+	var c := ulke()
+	if c != null:
+		c.mafya_kilit = deger

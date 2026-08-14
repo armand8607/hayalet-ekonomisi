@@ -218,22 +218,15 @@ ayrışabilir (RNG akışı aynı kalır — bir `_randbelow` çağrısı). Öl�
 sıra sonucu belirlemiyor. Parite dökümü bu alanı **sıralayarak** karşılaştırır.
 Bir iz sapması savaş/ittifak olayında çıkarsa ilk şüpheli budur.
 
-## Portun kalan kısmı
+## Portun durumu
 
-`step()` ve 13 yardımcısı **taşındı ve doğrulandı**. Henüz taşınmayanlar
-(oynanış için gerekli, `step()` paritesi için değil):
+**Motor portu bitti.** `step()`, 13 yardımcısı, `load_scenario`, politika
+API'si ve raporlama katmanı taşındı; doğrulama merdiveninin yedi basamağının
+hepsi geçiyor. Kalan iş oyun katmanıdır (gösterge paneli, kalıcılık, CI).
 
-| parça | kaynak satır |
-|---|---|
-| `load_scenario` (4 senaryo odası) | `motor.py:1580–1684` |
-| `get_summary`, `tarihsel_rapor` | 3077–3224 |
-| `kodey_trendi`, `kar_orani_trendi`, `kriz_oranlari` | 3296–3353 |
-| `degismez_denetle`, `deney_kimligi` | 3254–3295 |
-
-**Performans notu:** GDScript koşusu Python'dan ~9× yavaş (1259 tur: ~29 sn vs
-~3.4 sn). Oyun için sorun değil (~23 ms/tur) ama Monte Carlo için ağır. Sıcak
-yol `py_sum` için her tur ayrılan geçici dizilerdir; gerekirse orada
-optimize edilmeli.
+`Sim` otoload'u oyun katmanının motora **tek kapısıdır** ve kendi duman testi
+vardır (`--sim-test`, 31 denetim). Motorla karşılaştırılacak bir kâhini yok:
+`Sim` motorda olmayan bir kavram, oyun katmanının kendi sözleşmesi.
 
 Taban ölçümler `python/baseline/` altında. Belgenin §9.19'daki yayımlanmış
 tablosuyla karşılaştırıldı ve tutuyor (LTRPF −93.0% / −93.0%, kurumsal geçiş
@@ -268,6 +261,14 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
 - **Politika AI'sı test edilen politikayı ezer.** `set_plan_profili` ya da
   `set_temel_gelir` ile ölçüm yapılacaksa ya `oyuncu_ulkesi()` ile o ülke muaf
   tutulmalı ya da `P.ai_acik = false` yapılmalı (belge §10).
+- **Politika kuyruğu adımın BAŞINDA boşalır, `t` ise SONUNDA artar.** `t=0`'da
+  ilan edilen bir politika `etkin_t = 8` alır; `politika_kuyrugu_isle` her
+  adımın başında `t >= etkin_t` diye bakar ve k'ıncı adım `t = k-1` ile başlar.
+  Yani koşul ancak **9. adımda** sağlanır — 8 adım sonra hedef hâlâ eskidir.
+  Arayüzde "gecikme 8 tur" yazarken bu bir tur kayması akılda tutulmalı.
+- **GDScript lambda'ları DEĞERE göre yakalar.** `var x = {}; sinyal.connect(
+  func(r): x = r)` dıştaki `x`'i değiştirmez — sinyal testleri sessizce hep
+  "boş" görür. Sözlük/dizi gibi referans tiplerinin *içini* doldurmak gerekir.
 - **`exp`/`log`/`pow` şu an bit-birebir uyuşuyor** (CPython 3.12 x86-64 Windows
   ↔ Godot 4.7 aynı makinede, 36 noktalık ızgarada). Bu **garanti değildir**:
   ızgara küçük ve wasm/ARM hedeflerinde ayrışabilir. Katman 3'ün toleransları
