@@ -19,7 +19,25 @@ extends Node
 signal kosu_basladi(bilgi: Dictionary)
 signal tur_ilerledi(t: int)
 signal olay_eklendi(tur: int, tip: String, mesaj: String)
+signal rejim_degisti(kesinti: Dictionary)
 signal kosu_bitti(rapor: Dictionary)
+
+## OYUN BITTI DIYE BIR DURUM YOKTUR.
+##
+## Motorda bir ulke asla "olmez": temerrude duser, bunalima girer, savas
+## kaybeder, rejim degistirir -- ama elenmez. Oyunun hedefi ayakta kalmaktir
+## ve "dusmek" tek bir seydir: ELINDEKI REJIMIN EL DEGISTIRMESI (devrim ya da
+## karsi-devrim). Bu bir KOPUSTUR, kayip degil -- kosu altindan devam eder,
+## yalnizca elindeki politika seti degisir.
+##
+## Kopusun sebebi motorun o turdaki gunlugunden okunur; motor bu kavrami
+## bilmez, oyun katmani turetir.
+const KOPUS_TIPLERI := {
+	"DEVRIM": "Sosyalist devrim",
+	"KARSI-DEVRIM": "Karşı-devrim: kapitalizm zorla restore edildi",
+	"RESTORASYON": "Restorasyon: kuşatma ve kıtlık altında rejim çöktü",
+	"PIYASA SOS.": "Piyasa sosyalizmi: parti kaldı, birikim kapitalistleşti",
+}
 
 ## Gösterge panelinin ekseni: belgenin kendi 12 çekirdek metriği
 ## (`python/hassasiyet.py` içindeki `olc()`). Panel bu listeyi okur, kendi
@@ -77,6 +95,11 @@ var baslangic_yili := 1760
 var _log_islenen := 0            ## motor günlüğünde nereye kadar bildirildi
 var _bitti := false
 
+## Rejimin el değiştirdiği anlar. Koşuyu bitirmez; raporun omurgasıdır.
+var kopuslar: Array = []
+var _onceki_rejim := ""
+var _onceki_parti_iktidari := false
+
 
 func _ready() -> void:
 	# Veri katmanını İLK AÇILIŞTA doğrula: üretim adımı atlanmış ya da yarım
@@ -93,27 +116,31 @@ func _ready() -> void:
 
 ## Yeni bir koşu kurar. `p_senaryo` boş ise tam kampanya.
 func kosu_baslat(p_senaryo: String = "", tohum: int = 42,
-		ulke: String = "Turkiye", p_ufuk: int = -1) -> void:
+		p_ulke: String = "Turkiye", p_ufuk: int = -1) -> void:
 	assert(SENARYOLAR.has(p_senaryo), "Bilinmeyen senaryo: " + p_senaryo)
 	var meta: Dictionary = SENARYOLAR[p_senaryo]
 
 	motor = GhostEngine.new(tohum)
 	if p_senaryo != "":
 		motor.load_scenario(p_senaryo)
-	motor.oyuncu_ulkesi(ulke)
+	motor.oyuncu_ulkesi(p_ulke)
 
 	senaryo = p_senaryo
-	oyuncu = ulke
+	oyuncu = p_ulke
 	baslangic_yili = int(meta["yil"])
 	ufuk = int(meta["ufuk"]) if p_ufuk < 0 else p_ufuk
 	_log_islenen = 0
 	_bitti = false
+	kopuslar = []
+	var c0 := ulke()
+	_onceki_rejim = c0.rejim if c0 != null else ""
+	_onceki_parti_iktidari = c0.parti_iktidari if c0 != null else false
 
 	# Senaryo yüklemesi günlüğe satır ekler; onları da arayüze bildir.
 	_olaylari_bildir()
 	kosu_basladi.emit({
 		"senaryo": senaryo, "ad": meta["ad"], "aciklama": meta["aciklama"],
-		"tohum": tohum, "ulke": ulke, "ufuk": ufuk, "yil": baslangic_yili,
+		"tohum": tohum, "ulke": p_ulke, "ufuk": ufuk, "yil": baslangic_yili,
 	})
 
 
@@ -126,23 +153,72 @@ func ilerle(tur_sayisi: int = 1) -> void:
 			break
 		motor.step()
 		_olaylari_bildir()
+		_kopus_denetle()
 		tur_ilerledi.emit(motor.t)
 		if motor.t >= ufuk:
 			_bitir()
 			return
 
 
+## Elindeki rejim el degistirdi mi? Motor bu kavrami bilmez; oyun katmani
+## rejim alanini tur tur izleyip turetir. Sebep, ayni turun gunlugunden okunur.
+func _kopus_denetle() -> void:
+	var c := ulke()
+	if c == null:
+		return
+	if c.rejim == _onceki_rejim and c.parti_iktidari == _onceki_parti_iktidari:
+		return
+
+	var tip := ""
+	for i in range(_log_islenen - 1, -1, -1):
+		var k: Array = motor.log[i]
+		if int(k[0]) != motor.t - 1:
+			break
+		if KOPUS_TIPLERI.has(String(k[1])) and String(k[2]).contains(c.ad):
+			tip = String(k[1])
+			break
+	if tip == "":
+		tip = "DEVRIM" if c.rejim == "sosyalist" else "KARSI-DEVRIM"
+
+	var kesinti := {
+		"tur": motor.t - 1,
+		"yil": baslangic_yili + (motor.t - 1) * Formulas.TUR_YIL,
+		"tip": tip,
+		"aciklama": String(KOPUS_TIPLERI.get(tip, tip)),
+		"eski_rejim": _onceki_rejim,
+		"yeni_rejim": c.rejim,
+		"parti_iktidari": c.parti_iktidari,
+	}
+	kopuslar.append(kesinti)
+	_onceki_rejim = c.rejim
+	_onceki_parti_iktidari = c.parti_iktidari
+	rejim_degisti.emit(kesinti)
+
+
 func _bitir() -> void:
 	if _bitti:
 		return
 	_bitti = true
-	var rapor := motor.tarihsel_rapor(oyuncu)
-	# Bu oyunda ZAFER YOKTUR: kayıt bir skor değil, ne olduğunun dökümüdür.
+	# DILIM UFKA GORE SECILIR. Motorun varsayilani 150'dir; 120 turluk bir
+	# senaryoda `ilk = h[:150]` ile `son = h[-150:]` AYNI diziye duser ve rapor
+	# "baslangic 17.3 / bitis 17.3" gibi anlamsiz bir kesit gosterir. Dilim bir
+	# SUNUM parametresidir, motor davranisi degil.
+	var dilim: int = maxi(ufuk / 8, 5)
+	var rapor := motor.tarihsel_rapor(oyuncu, dilim)
+	# Ufka varmak AYAKTA KALMAKTIR. Kopuslar bunu gecersiz kilmaz; raporun ne
+	# anlattigini belirler: rejim bozulmadan mi gelindi, yoksa kac kez el
+	# degistirerek mi.
+	rapor["kopuslar"] = kopuslar.duplicate(true)
+	rapor["rejim_korundu"] = kopuslar.is_empty()
+	rapor["ufuk"] = ufuk
+	rapor["senaryo"] = senaryo
+	rapor["baslangic_yili"] = baslangic_yili
+
 	var gecmis: Array = Save.al("kosular", [])
 	gecmis.append({
 		"senaryo": senaryo, "ulke": oyuncu, "tur": motor.t,
 		"son_rejim": rapor.get("son_rejim", ""), "son_kurum": rapor.get("son_kurum", ""),
-		"devrim_turu": rapor.get("devrim_turu", null),
+		"kopus_sayisi": kopuslar.size(), "rejim_korundu": kopuslar.is_empty(),
 	})
 	Save.ayarla("kosular", gecmis)
 	Save.kaydet()
