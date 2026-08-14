@@ -1,0 +1,86 @@
+name: Deploy game to GitHub Pages
+
+# Godot proje kökü `godot/` alt klasörüdür, depo kökü değil. Bu, export'un
+# `python/` kâhinini kendiliğinden dışarıda bırakması demek: Godot yalnızca
+# `res://` altını paketler, o da `godot/`tir. Doğrulama katmanı oyuna sızmaz.
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Export Web build
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.7
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install export templates
+        run: |
+          # Actions HOME'u /github/home yapıyor; imajın şablonlarını Godot'un
+          # bakacağı yere taşımak gerekiyor.
+          mkdir -p ~/.local/share/godot/export_templates
+          mv /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/
+
+      - name: Reimport project
+        run: |
+          # `class_name` taşıyan scriptler `.godot/global_script_class_cache.cfg`
+          # üzerinden çözülür ve onu yalnızca tarama kurar. Depoda `.godot/`
+          # olmadığı için export'tan önce bir kez içe aktarmak ŞART; yoksa
+          # "Identifier not declared" ile düşer.
+          cd godot
+          godot --headless --import || true
+
+      - name: Verify the data layer before shipping
+        run: |
+          # Üretilmiş `param_set.gd`/`tables.gd` ile belge arasında kayma varsa
+          # burada dur. Bozuk bir kalibrasyonu yayımlamaktansa yapıyı düşürmek
+          # iyidir — oynayarak fark edilmez.
+          cd godot
+          godot --headless res://scenes/Main.tscn -- --self-test
+
+      - name: Export "Web" preset
+        run: |
+          mkdir -p build/web
+          cd godot
+          godot --headless --export-release "Web" "$GITHUB_WORKSPACE/build/web/index.html"
+          # Pages varsayılan olarak index.html sunar; tek iş parçacıklı
+          # (nothreads) export cross-origin isolation başlığı istemez.
+
+      - name: Add web extras
+        run: |
+          # Ön ayarın html/head_include'u orientation.js'i GÖRECELİ yolla
+          # çağırıyor, yani index.html'in yanında durmalı. Godot kaynağı
+          # olmadığı için export onu kendiliğinden kopyalamaz.
+          cp godot/web/orientation.js build/web/
+          test -s build/web/orientation.js
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

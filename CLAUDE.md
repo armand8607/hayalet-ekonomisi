@@ -105,6 +105,37 @@ Sonuçları:
   (`choice(sorted(a.muttefik))`) ama davranışı değiştirir, yani kalibrasyonu
   geçersiz kılar — bu kararı vermek bize düşmez.
 
+## Nasıl yayına çıkar
+
+İki iş akışı da `main`'e push'ta çalışır:
+
+| iş akışı | çıktı |
+|---|---|
+| `.github/workflows/deploy.yml` | Web export → GitHub Pages |
+| `.github/workflows/android.yml` | Debug APK → koşu **Artifacts**'ı, `v*` etiketinde **GitHub Release** |
+
+- İkisi de `barichello/godot-ci:4.7` kabında derlenir. Android'e dair hiçbir şey
+  yerel makinede kurulu değil; APK'yı yerelde derlemeye çalışma.
+- **`godot/export_presets.cfg` BİLEREK izleniyor.** Godot'un standart
+  `.gitignore`'u onu dışarıda bırakır (keystore parolası taşıyabilir diye) ama
+  bizimki taşımıyor. İzlenmezse iş akışı "Web adlı ön ayar bulunamadı" ile
+  düşer — bir kez böyle kuruldu, tekrar etme.
+- Her iki iş akışı da export'tan önce `--import` ve `--self-test` koşar.
+  `--import` şart çünkü depoda `.godot/` yok ve `class_name` çözümü taramaya
+  bağlı; `--self-test` üretilmiş veri katmanı belgeden kaymışsa **yayımlamadan
+  önce** durdurur.
+- **`python/` kâhini export'a sızmaz**: Godot yalnızca `res://` altını, yani
+  `godot/`u paketler. Alt klasör düzeninin bedava faydası.
+- APK **yalnızca arm64** (`armeabi-v7a=false`), 2017 öncesi 32-bit telefonlar
+  düşer.
+- Web export tek iş parçacıklı; COOP/COEP başlığı gerekmiyor.
+- `godot/web/orientation.js` ön ayarın `html/head_include`'u ile enjekte edilir
+  ve `deploy.yml` tarafından `index.html`'in yanına **elle kopyalanır** — Godot
+  kaynağı olmadığı için export onu taşımaz. Yeni web dosyası eklersen iş
+  akışına da eklemen gerekir.
+- **Depoda henüz git remote yok.** İş akışları ancak GitHub'a push edildikten
+  sonra çalışır.
+
 ## Doğrulama — bu projenin omurgası
 
 Motor, 100 doğrulama tohumuyla 10/10 kabul bandı ve 9/9 yön testi geçmiş

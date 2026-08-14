@@ -1,8 +1,13 @@
 # Godot
 godot/.godot/
 godot/android/
-godot/export_presets.cfg
 *.translation
+
+# NOT: `godot/export_presets.cfg` BILEREK izleniyor. Godot'un standart
+# .gitignore'u onu disarida birakir cunku keystore parolasi tasiyabilir --
+# ama bizimki tasimiyor: debug keystore CI'da uretilip
+# GODOT_ANDROID_KEYSTORE_DEBUG_* degiskenleriyle veriliyor. Dosya izlenmezse
+# is akislari "Web adli on ayar bulunamadi" diye duser.
 
 # Python
 __pycache__/

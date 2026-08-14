@@ -1,0 +1,118 @@
+name: Build Android APK
+
+# Sideload edilebilir bir debug .apk üretir. Web deploy'la aynı
+# barichello/godot-ci:4.7 kabında koşar — o imaj Android SDK'yı ve Godot export
+# şablonlarını zaten taşıyor. Debug keystore'u kendimiz üretip Godot'a
+# GODOT_ANDROID_KEYSTORE_DEBUG_* değişkenleriyle veriyoruz (imajın gömülü
+# olanına güvenmekten daha sağlam).
+#
+# APK'ya iki yoldan ulaşılır:
+#   * main'e push  -> koşunun artifact'ı (süresi dolar, GitHub girişi ister)
+#   * v* etiketi   -> aynı APK bir GitHub Release'e eklenir; kalıcı ve
+#                     girişsiz indirilebilir.
+# Sürüm çıkarmak için:  git tag v1.0 && git push origin v1.0
+#
+# NOT: bu oyun 1280x720 için tasarlanmış YOĞUN bir gösterge panelidir (12
+# grafik + ülke listesi + politika paneli aynı anda). Telefonda yatay ekranda
+# çalışır ama küçük kalır; APK öncelikle tablet ve sideload denemeleri için.
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Export Android (debug APK)
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.7
+    env:
+      GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/debug.keystore
+      GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+      GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up export templates + Android config
+        run: |
+          # Actions HOME'u /github/home yapıyor; hem şablonları hem imajın
+          # hazır Android SDK yolunu (/root/.config/godot) yerine taşı.
+          mkdir -p ~/.local/share/godot/export_templates
+          mv /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/
+          mkdir -p ~/.config
+          mv /root/.config/godot ~/.config/godot
+
+      - name: Generate debug keystore
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
+            -keypass android -keystore "$GITHUB_WORKSPACE/debug.keystore" \
+            -storepass android -dname "CN=Android Debug,O=Android,C=US" \
+            -validity 9999 -deststoretype pkcs12
+
+      - name: Reimport project
+        run: |
+          # `class_name` çözümü tarama gerektirir; depoda `.godot/` yok.
+          cd godot
+          godot --headless --import || true
+
+      - name: Verify the data layer before shipping
+        run: |
+          cd godot
+          godot --headless res://scenes/Main.tscn -- --self-test
+
+      - name: Stamp version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # Bu olmadan her yapı kendini 1.0 diye bildirir. versionCode da
+          # artmalı, yoksa Android yapıyı güncelleme saymaz; koşu numarası
+          # kullanılıyor.
+          VER="${GITHUB_REF_NAME#v}"
+          sed -i "s|^version/name=.*|version/name=\"$VER\"|" godot/export_presets.cfg
+          sed -i "s|^version/code=.*|version/code=${{ github.run_number }}|" godot/export_presets.cfg
+          grep -E '^version/' godot/export_presets.cfg
+
+      - name: Export "Android" preset (debug APK)
+        run: |
+          mkdir -p build/android
+          cd godot
+          godot --headless --verbose --export-debug "Android" "$GITHUB_WORKSPACE/build/android/hayalet-ekonomisi.apk"
+          ls -lh "$GITHUB_WORKSPACE/build/android/hayalet-ekonomisi.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayalet-ekonomisi-android-apk
+          path: build/android/hayalet-ekonomisi.apk
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build-android
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest        # kap yok: release adımları stok runner'da kalsın
+    permissions:
+      contents: write             # release oluşturmak için gerekli
+    steps:
+      - name: Download the built APK
+        uses: actions/download-artifact@v4
+        with:
+          name: hayalet-ekonomisi-android-apk
+          path: dist
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/hayalet-ekonomisi.apk
+          generate_release_notes: true
+          body: |
+            **Hayalet Ekonomisi** — Android yapısı (debug imzalı, yalnızca sideload).
+
+            `hayalet-ekonomisi.apk` dosyasını indir, telefonda aç ve bilinmeyen
+            kaynaklardan kuruluma izin ver. 64-bit cihaz gerekir (kabaca 2017
+            sonrası her telefon). Yatay ekranda oynanır.
+
+            Kurmak istemiyorsan tarayıcıda oyna:
+            https://acansahin.github.io/hayalet-ekonomisi/
