@@ -68,6 +68,44 @@ func kappa_v(cv: float, q: float) -> float:
 	return P.v44.kv0 * pow(cv, P.v44.kv_us) / (1.0 + ucuz)
 
 
+## BASLANGIC KALIBRASYONU -- cagrilmasi ZORUNLUDUR.
+##
+## Sermaye stoku keyfi verilemez: kapasite (K/kv) ile emek arzi (q*L) ayni
+## mertebede olmali ki ikisi de SIRAYLA baglayici kisit olabilsin. Aksi
+## halde biri surekli baglar, istihdam ya tavanda ya tabanda takilir ve
+## konjonktur dalgasi hic dogmaz.
+##
+## v4.4 bunu `init_simulation()` icinde dunya olceginde yapiyordu:
+##     hedef = kappa_v(cv,q) * q * L * hedef_istihdam / u_normal
+##     K    *= hedef / K
+## Burada tek ulke icin ayni sey yapilir.
+##
+## Ilk yazimda bu adim ATLANDI ve K elle 320 verildi. Sonucu: emek surekli
+## baglayici kisit oldu, istihdam %100'de takildi, talep hic baglamadi ve
+## 100 yilda sifir kriz tescil edildi -- tarihsel kayit ayni pencerede on
+## ikiden fazla kriz sayarken.
+func baslat(d: KrizDurumu, hedef_istihdam: float = 0.90) -> void:
+	P.cag_uygula(d.era)
+	_calisma_suresi(d)
+	d.cv = Formulas.organik_bilesim(d.q)
+	d.kv = kappa_v(d.cv, d.q)
+
+	var emek := d.l_etkin() * d.hafta_saati
+	# Kapasiteyi hedef istihdama oturt.
+	d.K = d.kv * d.q * emek * hedef_istihdam / P.v44.u_normal
+
+	d.Y_yil = minf(d.K / d.kv, d.q * emek) * P.v44.u_normal / Oran.V44_TUR_YIL
+	d.Y_pot_yil = d.Y_yil
+	d.Y_zirve = d.Y_yil
+	d.Y_ort = d.Y_yil
+	d.Y_trend = d.Y_yil
+	d.norm = P.v44.tuketim_normu
+	d.e = hedef_istihdam
+	d.e_norm = hedef_istihdam
+	d.u = P.v44.u_normal
+	d.V_yil = d.Y_yil * d.canli_pay
+
+
 ## Bir donem ilerletir.
 ##   `donem_yil` : 1/52 haftalik, 0.27 v4.4 turu, 1.0 yillik
 ##   `dis`       : dis dunyadan gelen buyuklukler (B2'de baglanir)
@@ -78,6 +116,7 @@ func adim(d: KrizDurumu, donem_yil: float, dis: Dictionary = {}) -> void:
 	var Y_onceki := d.Y_yil
 
 	_deger_bilesimi(d)
+	_calisma_suresi(d)
 	var Y_pot := _arz_kapasitesi(d, donem_yil)
 	_merkez_bankasi(d, donem_yil)
 	var talep := _efektif_talep(d, donem_yil, Y_pot, VT_net_yil)
@@ -141,6 +180,25 @@ func _deger_bilesimi(d: KrizDurumu) -> void:
 	# geri donmez.
 	d.cv = Formulas.organik_bilesim(d.q)
 	d.kv = kappa_v(d.cv, d.q)
+
+
+# ===========================================================================
+# N. HAFTALIK CALISMA SURESI
+# ===========================================================================
+
+## Cag ilerledikce haftalik emek-saati normu DUSER: [1.0, .86, .74, .64,
+## .55, .47]. Bu kozmetik degil, motorun en onemli kanallarindan biri:
+##
+##   sure duser -> canli emek girdisi duser -> Y_L duser -> emek yerine
+##   SERMAYE baglayici kisit olur -> istihdam tavandan iner -> yedek sanayi
+##   ordusu dogar -> Goodwin salinimi ve talep yetersizligi mumkun hale gelir.
+##
+## Ilk yazimda bu blok cekirdegin kapsaminda SAYILDI ama uygulanmadi
+## (`hafta_saati` 1.0'da sabit kaldi). Sonucu: istihdam surekli %100'de
+## takildi, talep hic baglamadi ve 100 yilda SIFIR kriz tescil edildi --
+## oysa tarihsel kayit ayni pencerede on ikiden fazla kriz sayiyor.
+func _calisma_suresi(d: KrizDurumu) -> void:
+	d.hafta_saati = float(P.v44.hafta_norm[clampi(d.era, 1, 6) - 1]) * d.saat
 
 
 # ===========================================================================
@@ -245,6 +303,10 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	var G := _kamu_maliyesi(d, donem_yil, Y_pot)
 
 	var D_talep := C + I + G + maxf(VT_net_yil, 0.0)
+	d.C_yil = C
+	d.I_yil = I
+	d.G_yil = G
+	d.D_yil = D_talep
 	# ASIRI URETIM: potansiyel hasila ile efektif talep arasindaki HAM acik.
 	d.talep_acigi = maxf(0.0, (Y_pot - D_talep) / maxf(Y_pot, 1e-9))
 	return D_talep

@@ -63,6 +63,7 @@ static func _kos(donem_yil: float, yil: float, param: KrizParam = null,
 	var d := _baslangic()
 	var cekirdek := KrizCekirdegi.new(param)
 	cekirdek.cag_sabit = cag_sabit
+	cekirdek.baslat(d)
 	var n := Oran.donem_sayisi(yil, donem_yil)
 	for _i in range(n):
 		cekirdek.adim(d, donem_yil)
@@ -86,18 +87,21 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	var d := _baslangic()
 	d.yil = bas_yil
 	var cekirdek := KrizCekirdegi.new()
+	cekirdek.baslat(d)
 	var n := Oran.donem_sayisi(yil, donem_yil)
 	var adim_basi := maxi(1, n / 10)
 	print("")
 	print("V2 CEKIRDEK IZI -- %d yil, %d donem" % [int(yil), n])
-	print("%6s %3s %9s %8s %8s %8s %8s %8s %8s %8s %8s"
-			% ["yil", "cag", "Y", "u", "e", "pay", "r", "oto", "canli", "Omega", "talep_ac"])
+	print("  (C/I/G/D sutunlari Y_pot'a ORANDIR -- D>1 ise talep baglamaz)")
+	print("%6s %3s %9s %7s %7s %7s %7s %7s %7s %7s %7s"
+			% ["yil", "cag", "Y_pot", "C/Yp", "I/Yp", "G/Yp", "D/Yp", "u", "r", "e", "pay"])
 	for i in range(n):
 		cekirdek.adim(d, donem_yil)
 		if i % adim_basi == 0 or i == n - 1:
-			print("%6.0f %3d %9.1f %8.4f %8.4f %8.4f %8.5f %8.4f %8.4f %8.4f %8.4f"
-					% [d.yil, d.era, d.Y_yil, d.u, d.e, d.pay, d.r_yil,
-						d.oto, d.canli_pay, d.Omega, d.talep_acigi])
+			var yp := maxf(d.Y_pot_yil, 1e-9)
+			print("%6.0f %3d %9.1f %7.3f %7.3f %7.3f %7.3f %7.3f %7.4f %7.3f %7.3f"
+					% [d.yil, d.era, d.Y_pot_yil, d.C_yil / yp, d.I_yil / yp,
+						d.G_yil / yp, d.D_yil / yp, d.u, d.r_yil, d.e, d.pay])
 	print("  krizler: asiri_uretim=%d resesyon=%d bunalim=%d delev=%d rejim=%s"
 			% [d.asiri_uretim_krizleri.size(), d.resesyonlar.size(),
 				d.bunalimlar.size(), d.delev, d.rejim])
@@ -202,6 +206,7 @@ static func kos() -> int:
 	print("--- 3. 14 katlik tuzak (kacinildigi olculuyor) ---")
 	var naif := _baslangic()
 	var cek := KrizCekirdegi.new()
+	cek.baslat(naif)
 	var naif_n := Oran.donem_sayisi(yil, HAFTA)     # 5200 donem
 	for _i in range(naif_n):
 		cek.adim(naif, V44_TUR)                     # ...ama TUR uzunluguyla
@@ -226,6 +231,7 @@ static func kos() -> int:
 	# "kaldi" diyordu.)
 	var bas := _baslangic()
 	var cek2 := KrizCekirdegi.new()
+	cek2.baslat(bas)
 	var isinma := Oran.donem_sayisi(10.0, HAFTA)
 	for _i in range(isinma):
 		cek2.adim(bas, HAFTA)

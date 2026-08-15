@@ -335,43 +335,23 @@ poligon tablosu, üretilmiş veri dosyası).
 > kısa**. Yeniden ölçeklenmezse motor 14 kat hızlı koşar ve bu oynayarak fark
 > edilmez.
 
-### 5.3 Zaman aralığı: 1836–1936 — **YENİDEN AÇILMASI GEREKEN KARAR**
+### 5.3 Zaman aralığı: **1836–2100** (karar verildi)
 
-~5200 haftalık tik. Bu karar B0'da koşturunca **ciddi bir sorun çıkardı** ve
-kapatılmadan B1'e geçilmemeli.
+Victoria 3'ün 1836–1936'sı **uzatıldı**. Sebep: çağ tablosu otomasyonu
+2000'e koyuyor, dolayısıyla 1936'da biten bir kampanya bütün geç dönem
+mekanizmalarını (otomasyon, canlı emek payının çöküşü, tam otomasyon doruğu)
+oyun dışında bırakıyordu.
 
-Çağ tablosu (`Tables.ERAS`) çağ geçişlerini takvim yılına bağlıyor:
+~13 700 haftalık tik. Victoria'nın dönem hissi bir ölçüde dağılır; buna
+karşılık **bütün mekanizmalar doğal yerinde** kalır ve takvim kurgusallaşmaz.
 
-| çağ | ad | en erken yıl |
-|---|---|---|
-| 2 | Elektrik | 1840 |
-| 3 | Otomasyon | 1925 |
-| 4 | Siber-fiziksel | 1980 |
-| **5** | **İnsan-YZ** | **2000** |
-| 6 | Tam otomasyon | 2072 |
-
-Otomasyon stoku **çağ 5'te** birikmeye başlıyor (`oto_esik_era = 5`). Yani:
-
-> **1836–1936 penceresinde otomasyon hiç başlamaz.** `oto` sıfır kalır,
-> `canli_pay` 1.0'da durur, dolayısıyla **otomasyon kaynaklı gerçekleşme
-> krizi o pencerede ateşlenemez.**
-
-Ölçüldü (`--v2-iz=340:1760`, tam yay): çekirdek otomasyon gelince
-**canlanıyor** — `oto` 0→0.49, `canli_pay` 1.0→0.56, istihdam 1.0→0.02,
-kâr oranı 0.028→0.0026, ve devrim gerçekleşiyor. Ama bunların hepsi
-**2000 sonrasında**.
-
-Üç seçenek var, ve bu tasarımcının kararıdır:
-
-| seçenek | sonucu |
-|---|---|
-| **(a)** 1836–1936'da kal | Otomasyon oyun dışı. Krizler kredi/Minsky/Goodwin ve dış şoklardan gelmeli. Tarihsel olarak savunulabilir (19. yy krizleri öyleydi) ama oyunun amiral mekanizması kaybolur |
-| **(b)** Çağ eşiklerini yeniden ölçekle | Buhar→tam otomasyon yayı 100 yıla sıkışır. Victoria penceresi korunur, mekanizmaların hepsi oynanır. Tarihsel takvim kurgusallaşır |
-| **(c)** Pencereyi uzat | Örn. 1836–2100. Bütün mekanizmalar doğal yerinde kalır, ama Victoria'nın dönem hissi dağılır |
-
-**Öneri: (b).** Oyunun tezi otomasyonun değeri yok etmesidir; onu oyun dışına
-atmak tezi oyun dışına atar. Çağ eşikleri kalibrasyonun değil **anlatının**
-parçasıdır; sıkıştırılabilirler.
+> **DÜZELTME — LTRPF otomasyonu beklemez.** Önceki taslakta kâr oranının
+> düşüşü otomasyona bağlanmıştı; bu yanlıştı. Düşüşü **organik bileşimin
+> tavansız yükselişi** sürükler ve **ilk günden itibaren kademe kademe**
+> işler. Ölçüldü: 1836–1936 arasında, otomasyon **sıfırken**,
+> `q` 1.32→17.25, `c/v` 1.59→8.34, `r` **0.150→0.065 (−%57)**.
+> Teknolojik ilerleme geçici iyileşme sağlar ama eğilimi tersine çevirmez.
+> **Tam otomasyon bu eğilimin doruk noktasıdır, koşulu değil.**
 
 ### 5.4 Ülke değiştirme: yok
 

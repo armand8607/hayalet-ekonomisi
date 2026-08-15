@@ -32,6 +32,9 @@ func _ready() -> void:
 				cikis = Parity.self_test()
 			"--sim-test":
 				cikis = SimTest.kos()
+			"--v2-tarih":
+				# v2 cekirdeginin 1825-2023 tarihsel kayda karsi sinanmasi.
+				cikis = TarihTesti.kos()
 			"--v2-olcek":
 				# v2 kriz cekirdeginin olcek degismezligi. v4.4'e DOKUNMAZ.
 				cikis = OlcekTesti.kos()

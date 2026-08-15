@@ -20,7 +20,12 @@ extends RefCounted
 # ---------------------------------------------------------------------------
 var K: float = 1.0                 ## sermaye stoku (STOK)
 var L_etkin: float = 1.0           ## etkin emek gucu (kisi)
-var hafta_saati: float = 1.0       ## kisi basi emek-saati normu
+## Kisi basi emek-saati normu. TUREVDIR: `hafta_norm[cag] * saat`.
+## Cekirdek her adimda yeniden hesaplar (blok N); elle yazilmaz.
+var hafta_saati: float = 1.0
+## Calisma suresi carpani. Kapitalist rejimde 1.0; planli ekonomide plan
+## istihdami tutturmak icin asagi cekilir.
+var saat: float = 1.0
 var yil: float = 1836.0            ## takvim yili -- cag gecisi buna bakar
 var era: int = 1                   ## cag
 var ito: float = 1.0               ## mekanizasyon durtusu
@@ -141,6 +146,11 @@ var s_yil: float = 0.0             ## arti deger (YILLIK)
 var r_yil: float = 0.0             ## KAR ORANI (YILLIK)
 var g_yil: float = 0.0             ## net birikim orani (YILLIK)
 var vergi_geliri_yil: float = 0.0
+## Talep bilesenleri -- teshis icin (hangi kalem hasilayi asiyor?).
+var C_yil: float = 0.0
+var I_yil: float = 0.0
+var G_yil: float = 0.0
+var D_yil: float = 0.0
 
 
 ## Etkin emek gucu -- hapsedilenler dusulmus.
