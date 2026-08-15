@@ -17,13 +17,6 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
-; SIRA YUK TASIR: her otoload yalnizca kendisinden ONCEKILERE bagimlidir.
-;   Params : donmus kalibrasyon sabitleri (344 alan). Hicbir seye bagli degil.
-;   Tables : ERAS / KURUMLAR / PLAN_PROFILLERI / dunya tohum tablosu. Params'i okur.
-;   Save   : user:// erisen TEK yer.
-;   Sim    : aktif GhostEngine ornegini tutar, arayuze sinyal yayar.
-; Motorun kendisi otoload DEGILDIR (RefCounted sinif): Monte Carlo ve parite
-; kosulari ayni anda birden cok bagimsiz ornek gerektiriyor.
 Params="*res://scripts/params.gd"
 Tables="*res://scripts/tables.gd"
 Save="*res://scripts/save_service.gd"
@@ -39,6 +32,4 @@ window/stretch/mode="canvas_items"
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-; Android disa aktarimi ETC2/ASTC ister; oyunda hic doku olmasa bile bu satir
-; olmadan export "configuration error" ile durur.
 textures/vram_compression/import_etc2_astc=true
