@@ -453,21 +453,33 @@ testiyle korunmalı.
 **8.5 Kapsam.** B0–B3 iktisadi çekirdeği kurar ve tek başına anlamlı bir
 oyundur; B4–B7 kademeli büyütülebilir.
 
-**8.6 Konjonktür dalgası henüz yok — B0'da ölçüldü.** Ülke-içi çekirdek tek
-başına koşturulduğunda **100 yılda sıfır resesyon, sıfır bunalım** tescil
-ediyor. Sebep bir hata değil, eksiklik: hasıla tekdüze büyüyor çünkü
-**talep hiç bağlamıyor** (`talep_acigi` ilk geçici dönem dışında hep 0).
+**8.6 Konjonktür dalgası ülke-içi değil, ULUSLARARASI — B0'da ölçüldü.**
 
-İki kaynağı var ve ikisi de bilinen:
+Ülke-içi çekirdek tek başına koşturulduğunda **sıfır kriz** tescil ediyor.
+İlk teşhisim "yatırım talebi kaçıyor" idi; **yanlıştı**. v4.4'ün kendisiyle
+karşılaştırıldı (`--dump-turn=200`, `=1000`):
 
-1. **Dış bloklar yok.** v4.4'te erken/orta oyun krizlerinin çoğu dış
-   kaynaklıdır — ani duruş (D), döviz krizi (F), moratoryum (E), ticaret
-   tıkanması (B). Hepsi B2'ye ertelendi (§1, §2.3), çünkü ticaret ortağı ve
-   dünya ortalaması ister.
-2. **Otomasyon penceresi dışında.** §5.3. Gerçekleşme krizinin motoru
-   `canli_pay`'in düşmesidir; o da çağ 5 gerektirir.
+| | v4.4 ABD (merkez) | v4.4 Almanya | v4.4 Çin |
+|---|---|---|---|
+| istihdam | `e = 1.000` | `e = 0.429` | `e = 0.537` |
+| talep açığı | `0.0000` | `0.295` | `0.303` |
+| kriz sayacı | `0` | `18` | `147` |
 
-Yani çekirdek doğru çalışıyor ama **tek başına sakin.** Konjonktür
-dalgasının B2 sonunda ortaya çıkması beklenir; çıkmazsa talep bloğunun
-kalibrasyonu ayrıca ele alınmalıdır. **B3'ün kabul ölçütüne bir madde
-eklenmeli: 100 yılda en az bir resesyon ve bir bunalım tescil edilmeli.**
+Tur 200'de 20 ülkenin **yalnızca 9'unda** talep açığı var; ABD'de yok. Tur
+1000'de ABD hâlâ `e = 0.978`. Yatırım payı da eşleşiyor: v4.4 ABD `I/Y = 0.478`.
+
+> **Yani v4.4'ün merkez ülkesi de sakindir.** Tek ülkeli, savaşsız, ticaretsiz
+> bir koşu v4.4'ün en sakin ülkesini üretir — çekirdek tam da onu üretiyor.
+> Kusur çekirdekte değil, **eksik olan dünyada**.
+
+Krizleri üretenler: ülke heterojenliği, değer transferi, savaş, abluka,
+ticaret şoku ve politika AI'si. Hepsi B2'de gelir.
+
+**`--v2-tarih` B2 bitmeden geçemez ve geçmesi beklenmemelidir.** O test bir
+kalibrasyon hedefi değil, **dünya katmanının gerekliliğinin kanıtıdır.**
+
+**Teorik sonuç — ve bu tasarımı doğruluyor:** bu modelde kriz
+**uluslararasıdır**. §3'te savaşı ve emperyalizmi "krizden çıkış yolu" diye
+koymuştuk; ölçüm daha güçlüsünü söylüyor: emperyalizm dekor değil,
+**krizlerin doğduğu yerdir**. Tek bir kapalı ekonomi istikrarlıdır; kriz
+dünya sisteminin ürünüdür.

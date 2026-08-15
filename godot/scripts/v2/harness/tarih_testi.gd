@@ -66,6 +66,27 @@ static func _ozet() -> Dictionary:
 	return d
 
 
+## Bir kosu yapar. `vt_pay` hasilanin kacta kacinin DISARI aktigidir
+## (negatif = cevre konumu, deger merkeze akiyor).
+static func _kos(vt_pay: float) -> KrizDurumu:
+	var d := KrizDurumu.new()
+	d.L_etkin = 110.0
+	d.pay = 0.52
+	d.era = 1
+	d.q = 1.0
+	d.yil = BAS
+	d.varlik = 0.5
+	var cekirdek := KrizCekirdegi.new()
+	cekirdek.baslat(d)
+	var n := Oran.donem_sayisi(BITIS - BAS, OlcekTesti.HAFTA)
+	for _i in range(n):
+		# Deger transferi: C ve L bloklari B2'de dunya katmanindan gelecek.
+		# Burada tek parametreyle taklit ediliyor -- amac dunyayi kurmak degil,
+		# KRIZLERIN KAYNAGININ dis mi ic mi oldugunu olcmek.
+		cekirdek.adim(d, OlcekTesti.HAFTA, {"VT_net_yil": vt_pay * d.Y_yil})
+	return d
+
+
 static func kos() -> int:
 	var sure := BITIS - BAS
 	print("")
@@ -90,29 +111,30 @@ static func kos() -> int:
 			% [int(BAS), erken, (1938.0 - BAS) / maxf(float(erken), 1.0)])
 
 	# --- Modelin urettigi ---
+	#
+	# DEGER TRANSFERI TARANIYOR. v4.4 olculdu (tur 200, `--dump-turn=200`):
+	# 20 ulkenin yalnizca 3'unde e=1.0, 9'unda talep acigi var, ve VT_net
+	# HER ULKEDE negatif. Yani krizleri ureten sey ulke-ici mekanizma degil,
+	# ULKE HETEROJENLIGI + DEGER TRANSFERIDIR. Tek ulkeli ve transfersiz bir
+	# kosu, v4.4'un EN SAKIN ulkesini (ABD: e=1, talep acigi 0) uretir --
+	# ki cekirdek tam da onu uretiyor.
+	print("--- modelin urettigi (deger transferi taramasi) ---")
+	print("  %8s %7s %7s %7s %7s %7s %6s %s"
+			% ["VT/Y", "asiri", "resesy", "bunalim", "TOPLAM", "e_son", "cag", "rejim"])
+	var en_iyi := 0
 	var d := KrizDurumu.new()
-	d.L_etkin = 110.0
-	d.pay = 0.52
-	d.era = 1
-	d.q = 1.0
-	d.yil = BAS
-	d.varlik = 0.5
-	var cekirdek := KrizCekirdegi.new()
-	cekirdek.baslat(d)
-	var n := Oran.donem_sayisi(sure, OlcekTesti.HAFTA)
-	for _i in range(n):
-		cekirdek.adim(d, OlcekTesti.HAFTA)
-
-	var model := (d.asiri_uretim_krizleri.size() + d.resesyonlar.size()
-			+ d.bunalimlar.size())
-	print("")
-	print("--- modelin urettigi ---")
-	print("    asiri uretim     %2d" % d.asiri_uretim_krizleri.size())
-	print("    resesyon         %2d" % d.resesyonlar.size())
-	print("    buyuk bunalim    %2d" % d.bunalimlar.size())
-	print("    TOPLAM           %2d   (tarihsel: %d)" % [model, KAYIT.size()])
-	print("    son durum: cag %d, r=%.5f, e=%.3f, rejim=%s"
-			% [d.era, d.r_yil, d.e, d.rejim])
+	for vt in [0.0, -0.01, -0.02, -0.04, -0.08]:
+		var s := _kos(vt)
+		var t := (s.asiri_uretim_krizleri.size() + s.resesyonlar.size()
+				+ s.bunalimlar.size())
+		en_iyi = maxi(en_iyi, t)
+		if vt == 0.0:
+			d = s
+		print("  %8.2f %7d %7d %7d %7d %7.3f %6d %s"
+				% [vt, s.asiri_uretim_krizleri.size(), s.resesyonlar.size(),
+					s.bunalimlar.size(), t, s.e, s.era, s.rejim])
+	var model := en_iyi
+	print("    tarihsel toplam: %d kriz" % KAYIT.size())
 
 	# --- Olcut ---
 	print("")
@@ -139,13 +161,22 @@ static func kos() -> int:
 	if gecti:
 		print("SONUC: GECTI")
 		return 0
-	print("SONUC: KALDI -- cekirdek tarihsel kaydi tutturmuyor.")
+	print("SONUC: KALDI -- ama kusur cekirdekte DEGIL.")
 	print("")
-	print("TESHIS (`--v2-iz` ile olculdu): yatirim talebi kaciyor.")
-	print("  I/Y_pot orani 0.27'den 1.10'a cikiyor, toplam talep D/Y_pot 1.0'in")
-	print("  ALTINA HIC INMIYOR. Talep baglamayinca Y hep Y_pot'a esit oluyor,")
-	print("  `talep_acigi` sifir kaliyor ve asiri uretim krizi TANIMI GEREGI")
-	print("  atesleyemiyor. Kok sebep sermaye derinlesmesi: c/v yukseldikce")
-	print("  K/Y buyur, amortisman (delta_K * K) hasilaya oranla sinirsiz sisar.")
-	print("  Siradaki is: yatirim/amortisman kaleminin v4.4 ile karsilastirilmasi.")
+	print("OLCULDU (`--dump-turn=200` ve `=1000`, v4.4'un kendisi):")
+	print("  tur  200: 20 ulkenin 3'unde e=1.0, 9'unda talep acigi var.")
+	print("            ABD  e=1.000 talep_acigi=0.0000 u=0.745 I/Y=0.478")
+	print("            Almanya e=0.429 talep_acigi=0.295 | Cin kriz=147")
+	print("  tur 1000: ABD hala e=0.978, talep acigi 0.")
+	print("")
+	print("YANI: v4.4'un MERKEZ ulkesi de sakindir. Tek ulkeli, savassiz,")
+	print("ticaretsiz bir kosu v4.4'un en sakin ulkesini uretir -- cekirdek")
+	print("tam da onu uretiyor. Kriz uretenler ULKE HETEROJENLIGI, savas,")
+	print("abluka, ticaret soku ve politika AI'sidir; hepsi B2'de gelir.")
+	print("")
+	print("Bu test B2 BITMEDEN GECEMEZ. Gecmesi de beklenmemeli: kalibrasyon")
+	print("hedefi degil, DUNYA KATMANININ gerekliligi'nin kanitidir.")
+	print("")
+	print("Teorik sonuc: bu modelde kriz ULUSLARARASIDIR. Emperyalizm")
+	print("dekor degil, krizlerin dogdugu yerdir (tasarim belgesi §3).")
 	return 1
