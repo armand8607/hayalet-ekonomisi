@@ -23,13 +23,23 @@ func goster(rapor: Dictionary) -> void:
 
 	var kaydir := ScrollContainer.new()
 	kaydir.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	kaydir.add_theme_constant_override("margin_left", 40)
 	add_child(kaydir)
+
+	# TUZAK: `margin_*` MarginContainer'in tema sabitidir, ScrollContainer'in
+	# DEGIL. Dogrudan ScrollContainer'a verilen override sessizce hicbir sey
+	# yapmaz ve rapor sol kenara YAPISIK cikar. Headless kapilarin hicbiri
+	# bunu yakalayamaz: `--headless` `_draw()` kosturmadigi icin bozuk
+	# yerlesim butun testleri gecer, yalnizca ekran goruntusunde gorunur.
+	var kenar := MarginContainer.new()
+	kenar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for yan in ["margin_left", "margin_right"]:
+		kenar.add_theme_constant_override(yan, 40)
+	kaydir.add_child(kenar)
 
 	var ic := VBoxContainer.new()
 	ic.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ic.add_theme_constant_override("separation", 10)
-	kaydir.add_child(ic)
+	kenar.add_child(ic)
 
 	var bosluk := Control.new()
 	bosluk.custom_minimum_size.y = 24
