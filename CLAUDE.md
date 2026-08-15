@@ -44,6 +44,13 @@ değiştirir ve oynayarak fark edilmez.
 
 ## Nasıl çalıştırılır
 
+Oyunu **oynamak** için (Windows): `tools\oyna.bat`. Godot'u `%GODOT%` →
+bilinen kurulum yolları → PATH sırasıyla arar, `.godot/` yoksa bir kez
+`--import` koşar ve oyunu açar. Masaüstüne kısayol:
+`powershell -ExecutionPolicy Bypass -File tools\masaustu_kisayolu.ps1`.
+
+Kâhin:
+
 ```bash
 python python/hayalet_ekonomisi_oyunu_v32.py turkey_2001 endojen 42 120
 ```
@@ -286,6 +293,11 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   kez: `Godot.exe.exe --headless --path godot --import`
 - **`--headless` hiçbir şey çizmez, `_draw()` koşmaz.** Bozuk bir çizim
   headless koşuyu sessizce geçer. Gösterge paneli testleri bayraksız koşulmalı.
+  Ekranı **görmenin** yolu `--ss=` kapısıdır; başsız bir makinede bile
+  `xvfb-run -a -s "-screen 0 1280x720x24" Godot --path godot
+  res://scenes/Main.tscn -- --oyna=:42:Turkiye:600 --ss=panel.png` ile çalışır
+  (Mesa llvmpipe yeter). Rapor ekranının sol boşluğunun hiç uygulanmadığı
+  böyle yakalandı — beş doğrulama kapısının hepsi o hatayı geçiyordu.
 - **Android export ETC2/ASTC ister**: `project.godot` içinde
   `textures/vram_compression/import_etc2_astc=true` — oyunda hiç doku olmasa
   bile. Yoksa export "configuration error" ile durur.
