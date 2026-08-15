@@ -1,369 +1,346 @@
-# Oyun Tasarımı v2 — Büyük Strateji Katmanı
+# Hayalet Ekonomisi v2 — Victoria biçiminde büyük strateji
 
-**Durum: TASLAK — karar kaydı, kod değil.** Bu belge oyun katmanının nereye
-gideceğini yazar. Hiçbir maddesi `godot/scripts/core/` altını değiştirmeyi
-gerektirmez; gerektiriyorsa §10'a taşınır.
+**Durum: TASLAK — karar kaydı, kod değil.**
+
+Hedef: **Victoria 3'e benzeyen ama ekonomi motoru bambaşka olan** bir büyük
+strateji oyunu. Victoria 3'ün kendisine dokunulmuyor, kodu değiştirilmiyor;
+biçimi örnek alınıyor. Altına konan şey arz/talep dengesi değil,
+**Marksist kriz teorisi**.
 
 | belge | neyi anlatır |
 |---|---|
-| [hayalet_ekonomisi_v44_frozen.md](hayalet_ekonomisi_v44_frozen.md) | **modeli** — iktisadi mekanizmalar, kalibrasyon, doğrulama |
-| **bu belge** | **oyunu** — ekranlar, oyuncunun kolları, aşamalar |
-
-İkisi birbirine karışmamalı. Model donmuştur; oyun değildir.
+| [hayalet_ekonomisi_v44_frozen.md](hayalet_ekonomisi_v44_frozen.md) | v4.4 motoru — **artık otorite değil**, denklem kaynağı |
+| **bu belge** | v2 oyunu — mimari, kuplaj, ekranlar, aşamalar |
 
 ---
 
-## 1. Hedef
+## 0. Çekirdek döngü: krizler yazılmaz, dayatılır
 
-Victoria 3 biçiminde bir büyük strateji oyunu kurmak — **ekonomik altyapısı
-v4.4-Frozen motoru** olacak şekilde. Yani harita, ülke panelleri, diplomasi ve
-güncе Victoria'nın kavradığı biçimde; ama arkada arz/talep dengesi değil
-**kâr oranlarının düşme eğilimi** çalışacak.
+Bu belgenin geri kalanı bu tek cümlenin sonuçlarıdır:
 
-### 1.1 Neden Victoria 3'ün kendisi değil
+> **Oyuncu, dünya ve ülke ekonomisinin altında yatan kriz teorisinin dayattığı
+> krizlere göre yol alır.**
 
-Victoria 3 kapalı kaynaktır. Mallar, üretim yöntemleri, kanunlar ve olaylar
-script'tir ve moddanabilir; ama **ekonomik çekirdek derlenmiş C++ içindedir**:
-pop davranışı, mal piyasası, fiyat oluşumu, birikim. Mod ile parametre
-değiştirilir, **denklem değiştirilemez**.
+Yani krizler **elle yazılmış olay zincirleri değildir.** Hiçbir yerde "1873'te
+bir bunalım tetikle" satırı olmayacak. Bunalım, aşırı üretim, balon patlaması,
+döviz krizi, devrim — hepsi **denklemlerin sonucu** olarak ortaya çıkar:
+üretkenlik yükselir, organik bileşim yükselir, kâr oranı düşer, birikim
+yavaşlar, gerçekleşme makası açılır, borç şişer, balon patlar.
 
-Dolayısıyla "LTRPF'yi Victoria 3'e koymak" teknik olarak mümkün değildir. Bu
-belgenin hedefi tersidir: **Victoria biçimini bu motorun etrafına kurmak.**
+Sonuçları tasarımı boydan boya bağlar:
 
-### 1.2 Ölçek dürüstlüğü
+- **Olay sistemi yoktur, kriz tescili vardır.** Günceye düşen her satır bir
+  ölçümün eşiği geçmesidir (`R` bloğu: resesyon / bunalım tescili), bir olay
+  tablosundan çekiliş değil.
+- **Zorluk ayarı yoktur.** Oyunun zorluğu seçtiğin ülkenin dünya sistemindeki
+  konumudur — çevre ülke olmak zaten zordur, çünkü değer transferi (`C`, `L`)
+  onu sürekli boşaltır.
+- **Rastgelelik ikincildir.** Tohum krizlerin *zamanlamasını* ve
+  *ayrıntısını* değiştirir, *kaçınılmazlığını* değil. Kâr oranı her koşuda
+  düşer; ne zaman ve neye mal olarak düşeceği oyuncunun kararlarına bağlıdır.
+- **Oyuncunun işi krizi önlemek değil, karşılamaktır.** Kolları (§2.3 geri
+  besleme sütunu) krizin *biçimini* ve *bedelinin kime yükleneceğini*
+  değiştirir. Kimin ödeyeceği — ücret mi kâr mı — oyunun asıl kararıdır.
 
-Victoria 3 yüzlerce insan-yılıdır. Bu belge onu hedeflemez. §8'deki Aşama A
-tek başına oyunu tanınmayacak kadar zenginleştirir ve haftalar işidir. §10'daki
-maddeler (pop, mal piyasası, bina, eyalet) **bilinçli olarak kapsam dışıdır**
-ve neden olduğu orada yazılıdır.
-
----
-
-## 2. Değişmez kısıt: motor donmuş
-
-Motorun değeri kodunda değil, arkasındaki kanıttadır:
-
-- Python kâhini ↔ GDScript portu, **407 tur bit-birebir**
-- RNG akışı **12 451 satır** birebir
-- **9/9** mekanizma yön testi (belgenin birincil ölçütü, §9.14)
-- **10/10** kabul bandı, 100 doğrulama tohumu
-- 355 kalibrasyon sabiti, belgeden **üretilmiş**
-
-> **KURAL.** Aşama A ve B boyunca `engine.gd`, `country.gd`, `param_set.gd`,
-> `tables.gd`, `formulas.gd` **değişmez.**
-
-### 2.1 Bunun bedava verdiği regresyon testi
-
-Motora dokunulmadığı sürece **yön testleri ve kabul bantları bit düzeyinde
-aynı kalmalıdır.** Değiştiler mi, oyun katmanı yanlışlıkla motora sızmış
-demektir.
-
-Bu, oyun katmanı için bedava ve çok güçlü bir denetimdir; her aşamanın kabul
-ölçütüne konuyor (§8):
-
-```bash
-Godot --headless --path godot res://scenes/Main.tscn -- --yon-testleri=6
-# cikti python/baseline/yon_testleri_gdscript_6tohum.txt ile AYNI olmali
-```
+**Tek oyunculu.** Victoria 3'ün çok oyunculu kipi örnek alınmaz. Sebep
+mekaniktir, teknik değil: bu oyunun konusu bir ülkenin dünya sistemindeki
+konumuyla ve kendi birikim çelişkisiyle hesaplaşmasıdır; ikinci bir insan
+oyuncu o hesaplaşmayı bir müzakereye çevirir.
 
 ---
 
-## 3. Ters çevrilen karar: harita
+## 1. v4.4 ile ilişki: yalnızca denklemler
 
-`CLAUDE.md` şu kararı taşıyor:
+v4.4-Frozen bundan sonra **bir kütüphanedir, bir çerçeve değil.** Ondan
+alınacak tek şey **kriz teorisi denklemleridir.** Başka hiçbir kısıtı
+bağlayıcı değildir.
 
-> **Bilgi katmanları bilinçli olarak düşürülmüştür** — sis yok, her şey
-> görünür. Arayüz bu yüzden **gösterge paneli + grafik**, harita değil.
+### 1.1 Taşınan — kriz çekirdeği
 
-v2 bunun **yarısını** tersine çevirir, yarısını korur — ve ayrım kritik:
+`step()` içindeki A–T blokları ve dört adlandırılmış mekanizma. Bunlar oyunun
+iktisadi tezidir:
 
-| eski karar | v2'de |
+| blok | mekanizma |
 |---|---|
-| Sis yok, bilgi kıtlığı yok | **AYNEN KORUNUR** |
-| Harita yok | **kaldırılır** — harita gelir |
+| **c/v** | Organik bileşim, `q`'nun sürekli fonksiyonu — **tavanı yok**, LTRPF'nin yakıtı |
+| **G** | Arz kapasitesi + **otomasyon**; canlı emeğin fiziksel hasıladaki payı |
+| **H** | Efektif talep & borçlanma sınırı (Clarke & Fisher) — **aşırı üretim / gerçekleşme krizi** |
+| **J** | Spekülatif varlık balonu — finansallaşma + **Minsky** |
+| **K** | Fisher & Clarke borç/balon patlaması (Tip B) |
+| **P** | Phillips eğrisi & enflasyon |
+| **Q** | **Goodwin** sınıfsal nominal ücret pazarlığı |
+| **R** | İki kademeli kriz tescili (resesyon / bunalım) |
+| **A** | Merkez bankası: Taylor kuralı + balon/kriz duyarlılığı |
+| **B** | Dış ticaret & **Thirlwall** ödemeler dengesi kısıtı |
+| **C** | Cari açık sızıntısı & uluslararası **değer transferi** |
+| **D** | Ani duruş & dış borçlanma tıkacı |
+| **E** | Borç yapılandırma & moratoryum |
+| **F** | Rezerv erimesi & döviz krizi (Tip C) |
+| **L** | Bölgeler arası değer transferi — **eşitsiz mübadele** |
+| **I / M** | Kamu maliyesi, vergi, kemer sıkma; kamu sermayesi & birikim |
+| **N** | Haftalık çalışma süresi |
+| **S** | Sınıf örgütlenme stoku & kentleşme (lojistik stok) |
+| **T** | Lojistik protesto riski & **sosyalist devrim** |
+| — | **Tonak değer gaspı** — gasbedilen değer üretken sermayeye değil spekülatif stoka akar |
+| — | Evrensel temel gelir ve finansmanı |
+| — | Karanlık devlet (illegalite primi, cezaevi oranı) |
+| — | Marksist politik özne (parti, örgütlü güç) |
 
-Gerekçe: harita bu oyunda bir **bilgi saklama** aracı değil, bir **bilgi
-düzenleme** aracıdır. Victoria'nın harita modları (renk katmanları) tam olarak
-budur — aynı görünür veriyi uzamsal olarak dizerler. 20 ülkenin kâr oranını
-yan yana bir listede okumak ile haritada renk olarak görmek arasındaki fark
-bilgi miktarı değil, **kavranabilirliktir**.
+Ayrıca saf yardımcılar: `organik_bilesim(q)`, `sg(x)`, `kappa_v(cv,q)`,
+`ucuzlama_orani(q)`.
 
-Sis, keşif, istihbarat belirsizliği gibi mekanikler **hâlâ yasaktır.** Oyunun
-amacı mekanizmaların görünür olmasıdır.
+### 1.2 Taşınmayan — hepsi serbest
+
+| v4.4'te | v2'de |
+|---|---|
+| 20 ülke | **serbest** — hedef tam dünya (§3.6) |
+| 1259 tur, 1 tur = 0.27 yıl | **serbest** — haftalık tik (§3.2) |
+| 1760–2100 | **serbest** — 1836–1936 (§3.3) |
+| 355 sabitlik kalibrasyon | **geçersiz** — yeni mimaride yeniden ayarlanacak |
+| 10 kabul bandı | **geçersiz** — eski kalibrasyonun kaydıydı |
+| Senaryo odaları | yeniden tanımlanacak |
+| Sıfır asset kuralı | **gevşetiliyor** (§3.1) |
+| CPython parite zorunluluğu (`py_sum`, `py_round`) | **düşüyor** — kâhin yok, bit-parite hedefi yok |
+
+> **`py_sum` / `py_round` neden düşüyor:** ikisi de yalnızca CPython kâhiniyle
+> bit-birebir tutmak için vardı. Kâhin ortadan kalkınca amaçları da kalkar.
+> Kaldırmak serbesttir; ama **kaldırılırsa CLAUDE.md'deki iki tuzak notu da
+> güncellenmeli**, yoksa gelecekteki bir oturum var olmayan bir kuralı arar.
 
 ---
 
-## 4. Motorun elinde ne var
+## 2. Mimari: iki katman, tanımlı kuplaj
 
-Tasarımın dayanabileceği zemin. Hepsi bugün mevcut, hiçbiri eklenmeyecek.
+Asıl tasarım sorusu şu: kriz denklemleri **toplam büyüklükler** üzerine
+yazılmıştır (`r`, `q`, `c/v`, `pay`, `u`, `V`), Victoria ise **mekânsal ve
+mikro**dur (eyalet, pop, bina, mal). İkisi nasıl bağlanır?
 
-### 4.1 Dünya
-
-20 ülke, **dünya sistemi konumuyla birlikte** (`tip`):
-
-| konum | ülkeler |
-|---|---|
-| **merkez** | ABD, Almanya, İngiltere, Fransa, Japonya, Kanada, Avustralya, AB-blok |
-| **yarı** | İtalya, G.Kore, Rusya |
-| **çevre** | Çin, Hindistan, Brezilya, Meksika, Endonezya, Türkiye, S.Arabistan, G.Afrika, Arjantin |
-
-Bu üçlü ayrım haritanın **birincil düzenleyici ilkesidir** (§6.1) — merkez/
-çevre ilişkisi zaten motorun içinde çalışıyor, sadece görünmüyor.
-
-**6 çağ:** 1.0 Buhar · 2.0 Elektrik · 3.0 Otomasyon · 4.0 Siber-fiz. ·
-5.0 İnsan-YZ · 6.0 Tam otom.
-
-**2 rejim** (kapitalist / sosyalist) × **3 kurumsal rejim** (liberal / düzenli
-/ neoliberal).
-
-### 4.2 Ülke başına ~120 alan
-
-Tasarımda doğrudan kullanılacak olanlar:
-
-| alan | ne |
-|---|---|
-| `r`, `q`, `K`, `Y`, `u`, `g` | kâr oranı, üretkenlik, sermaye, hasıla, kapasite, büyüme |
-| `pay`, `e`, `org`, `canli_pay`, `oto` | ücret payı, istihdam, örgütlenme, canlı emek, otomasyon |
-| `L_max`, `katilim`, `cezaevi_orani` | nüfus, katılım, hapis oranı |
-| `Omega`, `PC`, `PR` | siyasi öfke, siyasi sermaye, protesto riski |
-| `borc`, `varlik`, `i_ef`, `minsky_sayac` | hanehalkı borcu, spekülatif varlık, efektif faiz, Minsky |
-| `FX`, `eps`, `pi_m`, `cari`, `BoP_R`, `deval` | kur, ihracat/ithalat esneklikleri, cari, rezerv, devalüasyon |
-| `muttefik`, `savas`, `abluka`, `ambargo`, `hegemon` | diplomasi durumu |
-| `kurum`, `rejim`, `parti_iktidari`, `pakt_durusu` | rejim durumu |
-| `kriz`, `delev`, `stagflasyon`, `fx_kriz` | kriz sayaçları |
-
-**Hazır türetilmiş metotlar** (`country.gd`):
-
-```gdscript
-l_etkin()         # L_max * katilim * (1 - min(0.90, cezaevi_orani))
-iss_duzeltilmis() # ETG'ye gore duzeltilmis issizlik
-guc()             # K * q  -- iktisadi/askeri guc
-savasta()         # savas.size() > 0
-atil_endeks()     # hapis / serbest orani
-```
-
-### 4.3 Olay güncesi — 23 tip, hazır
-
-`motor.log` zaten Victoria'nın journal'ı gibi akıyor:
+Cevap: **birbirinin yerine geçmezler, üst üste binerler.**
 
 ```
-ASIRI URETIM · BUYUK BUNALIM · CAG · COKME · DEGISMEZ IHLALI · DEVRIM
-DOVIZ KRIZI · DUNYA DEVRIMI · HEGEMONYA · KARSI-DEVRIM · KONTROL
-KONTROL BITTI · KURUM · MORATORYUM · PIYASA SOS. · RESTORASYON · SAVAS
-SENARYO · TEMERRUT · YENILGI
+  MIKRO KATMAN  (Victoria bicimi)
+  eyalet -> bina -> pop -> mal piyasasi
+        |                        ^
+        | toplamlar              | geri besleme
+        v                        |
+  DEGER KATMANI  (kriz cekirdegi)
+  V, c/v, r, kriz durumlari
 ```
 
-### 4.4 `Sim` API'si — arayüzün tek kapısı
+### 2.1 Mikro katman — ne üretir
 
-Okuma: `ulke()`, `ulke_adlari()`, `seri()`, `metrik()`, `olaylar()`,
-`bekleyen_politikalar()`, `kurumsal_insa_durumu()`, `tur()`, `yil()`,
-`ilerleme()`, `bitti()`.
+Her haftalık tikte, ülke başına **gözlenen toplamlar**:
 
-Yazma (hepsi **ilandır**, 8 tur gecikmeli): `temel_gelir_ilan()`,
-`etg_finansman_ilan()`, `plan_profili_ilan()`, `pakt_durusu_ayarla()`,
-`kurumsal_insa_ilan()`, `mafya_kilidi_ayarla()`.
-
-Sinyaller: `kosu_basladi`, `tur_ilerledi`, `olay_eklendi`, `rejim_degisti`,
-`kosu_bitti`.
-
----
-
-## 5. Motorda olmayan ve bu tasarımda da olmayacak
-
-Dürüstlük bölümü. Victoria 3'ün omurgası olan şu dört şey **yoktur**:
-
-| Victoria 3 | motorda |
+| toplam | mikro kaynağı |
 |---|---|
-| Eyaletler, coğrafya | **yok** — hiç mekânsal boyut yok |
-| Pop'lar (servet, ihtiyaç, meslek, siyaset) | **yok** — `pay`/`e`/`org` toplam oranlardır |
-| ~50 mal, arz/talep, piyasa fiyatı | **yok** — tek toplam hasıla `Y` |
-| Binalar, üretim yöntemleri, inşaat kuyruğu | **yok** — `K` ve `c/v` |
+| `K` sermaye stoku | binaların birikmiş inşaat maliyeti |
+| `L`, `e` | pop'ların istihdam durumu |
+| `pay` ücret payı | ücret ödemeleri ÷ toplam hasıla |
+| `Y` fiziksel hasıla | binaların mal çıktısı toplamı |
+| `u` kapasite kullanımı | doluluk / azami kapasite |
+| `q` üretkenlik | aktif üretim yöntemlerinin ağırlıklı seviyesi |
+| `oto` otomasyon payı | makine-ağırlıklı üretim yöntemlerinin payı |
 
-### 5.1 Neden eklenmiyor — teorik sebep
+### 2.2 Değer katmanı — ne hesaplar
 
-LTRPF denklemleri **toplam büyüklükler üzerine** yazılmıştır: `r`, `q`, `c/v`,
-`pay`, `u` arasındaki ilişkiler. Pop ve mal piyasası eklenirse kâr oranı artık
-*hesaplanan* değil, mikro katmandan **doğması gereken** bir büyüklük olur.
+Bu toplamları alır, **değer büyüklüklerini** üretir:
 
-O noktada iki seçenek kalır:
+- `c/v = organik_bilesim(q)` — üretkenlik yükseldikçe yükselir, **tavansız**
+- `V` yeni değer — **yalnızca canlı emekten**; `oto` yükseldikçe `Y` büyür ama
+  `V` küçülür
+- `r` kâr oranı — birikimin hızını yöneten büyüklük
+- Kriz durumları: aşırı üretim açığı, Minsky sayacı, borç patlaması, döviz
+  krizi, resesyon/bunalım tescili
 
-- **(a)** motor otoriter makro katman kalır, mikro katman **türetilmiş görünüm**
-  olur → kalibrasyon ve yön testleri sağlam kalır → **bu belgenin yolu**
-- **(b)** ekonomi mikro-öncelikli yeniden kurulur, LTRPF'nin kendiliğinden
-  çıkması umulur → yeni motor, yeni kalibrasyon, yeni kâhin → **§10**
+### 2.3 Kuplaj — bu belgenin kalbi
 
-(b) meşru bir araştırma programıdır ama **port değil, yeniden inşadır** ve
-bugünkü doğrulama merdiveninin tamamını sıfırlar.
+Her kriz mekanizmasının hangi Victoria altsistemini **okuduğu** ve hangisini
+**geri beslediği**:
 
----
-
-## 6. Ekranlar
-
-### 6.1 Dünya haritası — yeni ana ekran
-
-**Sıfır asset kuralı geçerli**: `.png` yok, her şey `_draw()`. Bu, gerçek
-coğrafi kıyı çizgilerini dışarıda bırakır (§9.1 açık karar).
-
-Önerilen biçim: **soyut dünya sistemi haritası.** 20 ülke düğüm olarak, üç
-eşmerkezli kuşakta dizilir — merkez içte, yarı ortada, çevre dışta. Bu,
-gerçek coğrafyanın veremeyeceği bir şeyi verir: **sömürü ilişkisi görünür
-hale gelir.**
-
-**Harita modları** (renk katmanı seçici — Victoria'nın kendi fikri):
-
-| mod | kaynak |
-|---|---|
-| Rejim | `rejim` + `parti_iktidari` |
-| Kurumsal rejim | `kurum` |
-| Kâr oranı | `r` |
-| İşsizlik | `iss_duzeltilmis()` |
-| Örgütlenme | `org` |
-| Siyasi öfke | `Omega` |
-| Çağ | `era` |
-| Dış denge | `BoP_R`, `cari` |
-| Güç | `guc()` = `K·q` |
-
-**Bağlar** düğümler arası çizgi olarak: ittifak (`muttefik`), savaş (`savas`),
-abluka (`abluka`), ambargo (`ambargo`), hegemonya (`hegemon`).
-
-### 6.2 Ülke paneli — sınıf diliyle
-
-Victoria'nın pop panelinin karşılığı. **Yeni simülasyon değil, türetilmiş
-görünüm** — her satır mevcut alanlardan hesaplanır:
-
-| gösterilen | formül |
-|---|---|
-| Etkin emek gücü | `l_etkin()` |
-| Çalışan | `l_etkin() · e` |
-| İşsiz | `l_etkin() · (1 − e)` |
-| Örgütlü emek | `l_etkin() · e · org` |
-| Örgütsüz emek | `l_etkin() · e · (1 − org)` |
-| Hapisteki nüfus | `L_max · katilim · min(0.90, cezaevi_orani)` |
-| Emeğin hasıla payı | `pay` |
-| Sermayenin hasıla payı | `1 − pay` |
-| Canlı emek / ölü emek | `canli_pay` ↔ `oto` |
-
-> Son satır **hapis oranını görünür kılar** — karanlık devlet kolunun insani
-> bedeli bugün hiçbir ekranda yok, oysa motorda hesaplanıyor.
-
-### 6.3 Kabine — politika ekranı
-
-Mevcut beş kol korunur. **Eklenecek olan:**
-
-- **`pakt_durusu`** ("ittifak" / "rekabet") — motorda var, arayüzde **yok**
-- **Bekleyen ilanlar kuyruğu** — `bekleyen_politikalar()` hazır, arayüzde yok.
-  Her ilan için "N tur sonra yürürlükte" gösterilecek.
-
-> Kuyruğu göstermek §44'ün ("sis yok") gereğidir. Şu anki sessiz gecikme
-> Aşama 4'te bilinçli bir tercihti; v2 onu görünür kılar, çünkü oyuncunun
-> **ne zaman** ne olacağını bilmemesi bilgi kıtlığıdır, zorluk değil.
->
-> **Bir tur kayması unutulmayacak:** kuyruk adımın BAŞINDA boşalır, `t` ise
-> SONUNDA artar. `t=0`'da ilan edilen politika 9. adımda yürürlüğe girer,
-> 8'incide değil.
-
-### 6.4 Diplomasi
-
-Motorda çalışan ama hiç görünmeyen katman: `muttefik`, `savas`, `abluka`,
-`ambargo`, `ideolojik_mesafe`, `saldirganlik`, `hegemon`, `guc()`.
-
-Aşama A'da **salt okunur** — kim kiminle, kim kime karşı, güç dengesi ne.
-Oyuncu kolu yok; savaş kararı motorun AI'sinde.
-
-> `muttefik` GDScript'te `Array`, Python'da `set`. **Üyelik** aynı, **sıra**
-> değil. Arayüz bu diziyi sıralayarak göstermeli, yoksa aynı tohumda liste
-> koşudan koşuya farklı sırada görünür.
-
-### 6.5 Günce
-
-23 olay tipi, tipe göre filtre, ülkeye göre filtre. Rejim kopuşları (`DEVRIM`,
-`KARSI-DEVRIM`, `RESTORASYON`, `PIYASA SOS.`) ayrı vurgulanır — `Sim.kopuslar`
-bunları zaten ayrı tutuyor.
-
-### 6.6 Grafik paneli ve rapor
-
-**Korunur.** 12 çekirdek metrik ve koşu sonu raporu bu oyunun öğretici
-omurgasıdır; harita onların yerine değil **yanına** gelir.
-
----
-
-## 7. Oyuncunun kolları
-
-| kol | motor API | arayüzde | siyasi sermaye |
-|---|---|---|---|
-| Temel gelir hedefi | `set_temel_gelir` | ✅ | bedava |
-| ETG finansmanı | `set_etg_finansman` | ✅ | bedava |
-| Plan profili | `set_plan_profili` | ✅ (yalnız planlı) | bedava |
-| Kurumsal inşa | `set_kurumsal_insa` | ✅ | **PC ≥ 0.8, maliyet 0.45, 60 tur arayla** |
-| Karanlık devlet | `mafya_kilit` | ✅ | bedava |
-| **Pakt duruşu** | `set_pakt_durusu` | ❌ **eklenecek** | bedava |
-
-§9.8: siyasi sermaye **yalnızca yapısal değişiklikleri** kısıtlar. ETG düzeyi,
-finansmanı ve plan payları siyaseten bedavadır.
-
----
-
-## 8. Aşamalar
-
-Her aşamanın kabul ölçütü aynı üç maddeyle biter:
-
-1. `--sim-test` **31/31** geçer
-2. `--yon-testleri=6` çıktısı taban ölçümle **birebir aynı** (motora
-   dokunulmadığının kanıtı, §2.1)
-3. Ekran `--ss=` ile **gerçekten çizdirilip bakılmış** olur — headless kapılar
-   `_draw()` koşturmaz, bozuk yerleşim beş kapıyı da geçer
-
-| aşama | iş | biter dediğimiz an |
+| kriz mekanizması | okur | geri besler |
 |---|---|---|
-| **A1** | Pakt duruşu + bekleyen ilanlar kuyruğu | Kabine ekranı altı kolu da gösterir, her ilanın kalan turu görünür |
-| **A2** | Sınıf paneli (§6.2) | Ülke paneli dokuz satırı da türetir; hiçbir yeni durum alanı yok |
-| **A3** | Dünya haritası + harita modları (§6.1) | 20 düğüm, üç kuşak, dokuz mod, bağlar çizili |
-| **A4** | Diplomasi ekranı (salt okunur) | İttifak/savaş/abluka/ambargo ve güç dengesi okunur |
-| **A5** | Günce filtreleri | Tipe ve ülkeye göre süzme |
+| **LTRPF** (`c/v`, `r`) | üretim yöntemi seviyesi → `q` | birikim hızı: `r` düşünce inşaat yavaşlar |
+| **Otomasyon → değer** | makine-ağırlıklı üretim yöntemleri | `V` küçülür → satınalma gücü düşer |
+| **Aşırı üretim (H)** | mal arzı vs pop satınalma gücü | satılamayan mal → bina kapanır, işten çıkarma |
+| **Minsky (J, K)** | yatırım havuzu, finans binaları | balon patlar → kredi kurur, delev başlar |
+| **Goodwin (Q)** | istihdam oranı, sendika gücü | ücret pazarlığı → `pay` ↔ `r` salınımı |
+| **Thirlwall (B)** | ticaret rotaları, pazar erişimi | ithalat tıkanır → büyüme tavanı |
+| **Değer transferi (C, L)** | ticaret ortakları, üretkenlik farkı | çevreden merkeze **eşitsiz mübadele** |
+| **Döviz krizi (F)** | rezerv, cari açık | devalüasyon → ithalat çöker |
+| **Örgütlenme (S)** | kentleşme, fabrika pop yoğunluğu | sendika gücü, siyasi kanun baskısı |
+| **Devrim (T)** | öfke, örgütlenme, protesto riski | **rejim değişir**, oyuncunun kolları değişir |
+| **Kurumsal geçiş** | yürürlükteki kanunlar | Polanyi çifte hareketi: liberal ↔ düzenli ↔ neoliberal |
 
-**Aşama B** (§10'a girmeden): sunum düzeyinde sektör ya da kohort kırılımı —
-birikim çekirdeğine dokunmadan. Tasarımı A bittikten sonra yazılacak.
+### 2.4 Tersine çevrilen mantık
 
----
+Victoria 3'te kârlılık **bina başına piyasa sonucudur**: bina ucuz girdi alır,
+pahalı çıktı satar, kâr eder. v2'de bu katman **durur**, ama üstüne şu gelir:
 
-## 9. Açık kararlar
+> **Toplam kâr oranı `r` piyasadan okunmaz; değer katmanında hesaplanır ve
+> bütün birikim sürecini kısıtlar.**
 
-Bunlar **karar bekliyor**; tahminle ilerlenmeyecek.
+Yani tek tek binalar kârlı görünürken toplam kâr oranı düşebilir — ve düşer.
+Oyunun anlattığı şey tam olarak budur ve Victoria 3'ün kendi mantığının
+Marksist tersine çevrilmesidir.
 
-**9.1 Harita biçimi.** Soyut dünya sistemi (üç kuşak) mı, kabaca coğrafi
-yerleşim mi? Sıfır asset kuralı gerçek kıyı çizgilerini dışarıda bırakıyor;
-coğrafi görünüm istenirse ya elle girilmiş poligon verisi gerekir ya da
-kuralın gevşetilmesi. **Öneri: soyut kuşak haritası** — hem kuralı korur hem
-merkez/çevre ilişkisini görünür kılar.
-
-**9.2 Zaman ölçeği.** 1 tur = 0.27 yıl, 1259 tur. Victoria haftalık tikler.
-Tur uzunluğu **motorun kalibrasyonuna gömülüdür, değiştirilemez.** Soru şu:
-arayüz turu mu gösterecek, yılı mı, yoksa ikisini mi?
-
-**9.3 Zaman aralığı.** 1760–2100. Victoria 1836–1936. Senaryo odaları
-(`golden_age_1950`, `neoliberal_1995`, `turkey_2001`, `socialist_siege`) daha
-kısa kampanyalar sunuyor — büyük strateji için varsayılan hangisi olmalı?
-
-**9.4 Ülke değiştirme.** Şu an bir koşuda tek ülke oynanıyor (`ai_muaf`).
-Devrim sonrası ülke değiştirme ya da blok yönetimi düşünülmeli mi?
-
-**9.5 Panel mi harita mı ana ekran?** Harita gelince 12 grafik nereye gider —
-ayrı sekme mi, yan panel mi?
+**Üretim yöntemi yükseltmesi buradaki en güzel bağlantıdır:** Victoria'nın
+kendi teknoloji döngüsü (daha iyi üretim yöntemi = daha yüksek `q`) doğrudan
+`c/v`'yi yükseltir, o da `r`'yi düşürür. Oyuncu her "iyileştirme"yle kendi kâr
+oranını aşındırır. Mekanizma zaten oradaydı; v2 sadece sonucunu görünür kılar.
 
 ---
 
-## 10. Aşama C'ye ertelenenler
+## 3. Uygulanan kararlar
 
-Şunlar **bu belgenin kapsamı dışındadır** ve yapılmak istenirse §5.1'deki (b)
-yolu, yani **yeni bir motor** demektir:
+Önceki taslakta açık bırakılan sorular, **Victoria 3'e en yakın** seçenekle
+kapatıldı.
 
-- Eyalet/bölge kırılımı ve gerçek coğrafya
-- Pop'lar (servet, ihtiyaç, meslek, siyasi tutum taşıyan nesneler)
-- Mal piyasası, arz/talep, piyasa fiyatı
-- Binalar, üretim yöntemleri, inşaat kuyruğu
-- Ticaret rotaları
+### 3.1 Harita: gerçek coğrafi, eyalet bazlı
 
-Bunlara girilecekse **v4.4 silinmez, v5 açılır**: donmuş sürüm referans olarak
-durur, yeni model onun yanına kurulur ve aynı yön testleriyle sınanır.
-Karşılaştırılabilirlik kaybedilirse "değişikliğim iyileştirdi mi bozdu mu"
-sorusu **cevapsız** kalır — bu projede en pahalı kayıp budur.
+Victoria 3 gerçek dünya haritasını eyaletlere böler. **Aynısı yapılacak.**
+
+Sonucu: **sıfır asset kuralı gevşetiliyor.** Ama tamamen değil —
+uzlaşma şu:
+
+- **`.png` yok** — hâlâ hiçbir bitmap yok, her şey `_draw()` ile çizilir
+- **Vektör geometri verisi var** — eyalet sınırları sıkıştırılmış poligon
+  tablosu olarak depoda durur (üretilmiş veri dosyası, `tables.gd` gibi)
+
+Böylece "her görsel koddur" ilkesi korunur, coğrafya kazanılır.
+
+### 3.2 Zaman: haftalık tik
+
+Victoria 3 günlük tikler, ekonomiyi haftalık günceller. v2:
+**haftalık ekonomik tik**, duraklat + hız kademeleri.
+
+> **DİKKAT — oran parametreleri yeniden ölçeklenmeli.** v4.4'ün bütün oran ve
+> akım parametreleri **tur başına** tanımlıydı ve 1 tur = 0.27 yıldı. Hafta =
+> 0.0192 yıl, yani **14 kat kısa**. Denklemler kopyalanırken her oran
+> parametresi yeniden ölçeklenmezse motor 14 kat hızlı koşar. Bu, taşımanın
+> en olası sessiz hatasıdır.
+
+### 3.3 Zaman aralığı: 1836–1936
+
+Victoria 3'ün aralığı, birebir. ~5200 haftalık tik.
+
+v4.4'ün 1760–2100'ü düşüyor. Bunun bir bedeli var: **çağ 5–6 (İnsan-YZ, tam
+otomasyon) 1936'da yaşanmaz.** Otomasyon mekanizması korunur ama tarihsel
+olarak erken sanayi otomasyonuna denk gelir. Geç kapitalizm senaryosu istenirse
+ayrı bir kampanya olarak açılır (§5).
+
+### 3.4 Ülke değiştirme: yok
+
+Victoria 3'te başta bir ülke seçilir ve sonuna kadar o oynanır. **Aynısı.**
+Devrim ülkeyi değiştirmez; **elindeki kolları** değiştirir — bu zaten v4.4'ün
+ve mevcut oyunun çerçevesiydi, korunur.
+
+### 3.5 Ana ekran: harita
+
+Victoria 3'te harita ana ekrandır, paneller üstüne açılır. **Aynısı.**
+12 çekirdek metrik grafiği harita üstünde açılan bir panele taşınır — silinmez,
+oyunun öğretici omurgası odur.
+
+### 3.6 Ülke sayısı: tam dünya
+
+v4.4'ün 20 ülkesi bir kısıt değildi, kalibrasyon kolaylığıydı. Hedef Victoria
+ölçeğidir: **tam dünya, ~100+ ülke**, dinamik kurulma/ilhak.
+
+Aşamalı gerçekleşir (§4): önce eyalet-ülke veri modeli, sonra harita, sonra
+ülke sayısı ölçeklenir. Kriz denklemleri ülke sayısından bağımsızdır —
+`L` (bölgeler arası değer transferi) ve `C` (uluslararası transfer) dışında
+hepsi ülke-içidir; o ikisi de ülke sayısına göre genelleşir.
+
+### 3.7 Tek oyunculu
+
+Victoria 3'ün çok oyunculu kipi **örnek alınmaz** (§0). Bu, V3'e benzerlik
+hedefinden bilinçli bir sapmadır ve gerekçesi mekaniktir: oyunun konusu bir
+ülkenin dünya sistemindeki konumuyla hesaplaşmasıdır, ikinci bir insan oyuncu
+onu müzakereye çevirir.
+
+Pratik sonucu: **ağ katmanı, belirlenimci lockstep, oturum yönetimi yok.**
+Mimaride bunlara yer ayrılmaz — sonradan eklenmesi gerekirse yeniden
+tasarlanır.
+
+---
+
+## 4. Aşamalar
+
+Bu bir yeniden inşadır; v4.4'ün oyun katmanı üstüne eklenmez, yanına kurulur.
+
+| aşama | iş |
+|---|---|
+| **B0** | **Kriz çekirdeğinin ayıklanması.** A–T blokları v4.4'ten çıkarılır, ülke-içi saf bir modül haline getirilir, oran parametreleri haftalığa ölçeklenir |
+| **B1** | **Mikro katman iskeleti.** Eyalet, pop, bina, üretim yöntemi, mal piyasası — tek ülkede, haritasız |
+| **B2** | **Kuplaj.** §2.3 tablosunun bağlanması; mikro toplamlar → değer katmanı → geri besleme |
+| **B3** | **Yön testleri yeşile.** §5'teki dokuz iddia yeni motorda geçmeli |
+| **B4** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi |
+| **B5** | **Ölçek.** Ülke sayısı tam dünyaya çıkarılır, başarım ölçülür |
+| **B6** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller üstünde, günce, diplomasi |
+
+**B0 ve B3 en kritik ikilidir.** B0 yanlış yapılırsa (özellikle §3.2'deki
+ölçekleme) motor sessizce yanlış koşar; B3 onu yakalayan tek şeydir.
+
+---
+
+## 5. Doğrulama: ne taşınır, ne taşınmaz
+
+v4.4'ün doğrulama merdiveni yeni mimaride büyük ölçüde geçersizdir — ama
+**tamamı değil**, ve hangi parçanın kaldığı bu projenin en değerli kavrayışıdır.
+
+| katman | v2'de |
+|---|---|
+| RNG akış paritesi | **düşer** — kâhin yok |
+| crc32, parametre dökümü | **düşer** |
+| Tur-tur iz karşılaştırması | **düşer** |
+| 10 kabul bandı | **düşer** — eski kalibrasyonun kaydıydı, bağımsız ölçüt değildi |
+| **9 mekanizma yön testi** | **TAŞINIR — tek ve birincil ölçüt** |
+
+Sebep belgenin kendi epistemolojisinde yazılı (§9.14):
+
+> "kabul bantları kalibrasyonun kaydıdır, bağımsız kriter değil; bağımsız olan
+> yön testleridir"
+
+Yön testleri **büyüklük değil yön** iddia eder — `q↑` ise `c/v↑` ve `r↓`;
+otomasyon artarsa canlı emek payı düşer; finansallaşma kapalıysa daha az
+Minsky. Bu iddialar **kalibrasyondan bağımsızdır**, dolayısıyla **yeni bir
+motorda da sınanabilirler.**
+
+Dokuz iddia, v2'nin kabul ölçütü olarak aynen geçerli:
+
+| test | iddia |
+|---|---|
+| LTRPF | `q↑` → `c/v↑` → `r↓` |
+| Otomasyon | `oto↑` → `canli_pay↓` → `r↓` |
+| Goodwin | `e ↔ pay` pozitif, `pay ↔ r` negatif |
+| Thirlwall | yüksek `q` → yüksek `eps/pi_m` |
+| Minsky | finansallaşma kapalı → daha az Minsky |
+| Kriz devalüasyonu | devalüasyon kapalı → `r` daha çok düşer |
+| Sosyalist bolluk/kıtlık | bolluk → düşük protesto riski |
+| Karanlık devlet | tolerans kapalı → daha az uyuşturucu |
+| Politik özne | parti açık → daha yüksek örgütlü güç |
+
+> **Kural:** B3 bitmeden B4'e geçilmez. Dokuz testi geçmeyen bir motor
+> Victoria biçiminde bir kabuğa sarıldığında **güzel görünen ama iktisadi
+> olarak anlamsız** bir oyun olur — ve bu, oynayarak fark edilmez.
+
+---
+
+## 6. Riskler
+
+**6.1 Ölçekleme sessizliği.** §3.2. Tur→hafta dönüşümü her oran parametresini
+etkiler; tek tek gözden geçirilmeli, toplu çarpanla geçiştirilmemeli (bazıları
+stok, bazıları akım).
+
+**6.2 Mikro-makro tutarsızlığı.** Mikro katman `pay` ve `e` üretirken değer
+katmanı bunları kullanıyor; ama Goodwin bloğu `pay`'i **geri** yazıyor. Kimin
+otorite olduğu her alan için tek tek kararlaştırılmalı, yoksa iki katman
+birbirini ezer.
+
+**6.3 Başarım.** 5200 tik × ~100 ülke = 520 000 ülke-tik; v4.4'ün 1259 tur ×
+20 ülkesi 25 180'di, yani **~21 kat** ağır — üstelik bu yalnızca değer katmanı,
+mikro katman (pop, bina, mal piyasası) bunun üstüne biniyor. B5'te ölçülmeli;
+gerekirse mikro katman aylık, değer katmanı haftalık koşar.
+
+**6.4 Kapsam.** Victoria 3 yüzlerce insan-yılıdır. B0–B3 iktisadi çekirdeği
+kurar ve tek başına anlamlı bir oyundur; B4–B6 kabuktur ve kademeli
+büyütülebilir.
