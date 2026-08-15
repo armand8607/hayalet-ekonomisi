@@ -35,6 +35,13 @@ func _ready() -> void:
 			"--v2-olcek":
 				# v2 kriz cekirdeginin olcek degismezligi. v4.4'e DOKUNMAZ.
 				cikis = OlcekTesti.kos()
+			_ when a.begins_with("--v2-iz"):
+				# --v2-iz[=YIL[:baslangic_yili]] -- cekirdegin teshis izi.
+				var z := a.get_slice("=", 1) if a.contains("=") else ""
+				OlcekTesti.iz(
+						float(z.get_slice(":", 0)) if z != "" else 100.0,
+						OlcekTesti.HAFTA,
+						float(z.get_slice(":", 1)) if z.count(":") >= 1 else 1836.0)
 			"--dump-rng":
 				Parity.dump_rng(42)
 			"--dump-crc32":

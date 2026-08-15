@@ -335,10 +335,43 @@ poligon tablosu, üretilmiş veri dosyası).
 > kısa**. Yeniden ölçeklenmezse motor 14 kat hızlı koşar ve bu oynayarak fark
 > edilmez.
 
-### 5.3 Zaman aralığı: 1836–1936
+### 5.3 Zaman aralığı: 1836–1936 — **YENİDEN AÇILMASI GEREKEN KARAR**
 
-~5200 haftalık tik. Bedeli: çağ 5–6 (İnsan-YZ, tam otomasyon) yaşanmaz;
-otomasyon mekanizması korunur ama erken sanayi otomasyonuna denk gelir.
+~5200 haftalık tik. Bu karar B0'da koşturunca **ciddi bir sorun çıkardı** ve
+kapatılmadan B1'e geçilmemeli.
+
+Çağ tablosu (`Tables.ERAS`) çağ geçişlerini takvim yılına bağlıyor:
+
+| çağ | ad | en erken yıl |
+|---|---|---|
+| 2 | Elektrik | 1840 |
+| 3 | Otomasyon | 1925 |
+| 4 | Siber-fiziksel | 1980 |
+| **5** | **İnsan-YZ** | **2000** |
+| 6 | Tam otomasyon | 2072 |
+
+Otomasyon stoku **çağ 5'te** birikmeye başlıyor (`oto_esik_era = 5`). Yani:
+
+> **1836–1936 penceresinde otomasyon hiç başlamaz.** `oto` sıfır kalır,
+> `canli_pay` 1.0'da durur, dolayısıyla **otomasyon kaynaklı gerçekleşme
+> krizi o pencerede ateşlenemez.**
+
+Ölçüldü (`--v2-iz=340:1760`, tam yay): çekirdek otomasyon gelince
+**canlanıyor** — `oto` 0→0.49, `canli_pay` 1.0→0.56, istihdam 1.0→0.02,
+kâr oranı 0.028→0.0026, ve devrim gerçekleşiyor. Ama bunların hepsi
+**2000 sonrasında**.
+
+Üç seçenek var, ve bu tasarımcının kararıdır:
+
+| seçenek | sonucu |
+|---|---|
+| **(a)** 1836–1936'da kal | Otomasyon oyun dışı. Krizler kredi/Minsky/Goodwin ve dış şoklardan gelmeli. Tarihsel olarak savunulabilir (19. yy krizleri öyleydi) ama oyunun amiral mekanizması kaybolur |
+| **(b)** Çağ eşiklerini yeniden ölçekle | Buhar→tam otomasyon yayı 100 yıla sıkışır. Victoria penceresi korunur, mekanizmaların hepsi oynanır. Tarihsel takvim kurgusallaşır |
+| **(c)** Pencereyi uzat | Örn. 1836–2100. Bütün mekanizmalar doğal yerinde kalır, ama Victoria'nın dönem hissi dağılır |
+
+**Öneri: (b).** Oyunun tezi otomasyonun değeri yok etmesidir; onu oyun dışına
+atmak tezi oyun dışına atar. Çağ eşikleri kalibrasyonun değil **anlatının**
+parçasıdır; sıkıştırılabilirler.
 
 ### 5.4 Ülke değiştirme: yok
 
@@ -439,3 +472,22 @@ testiyle korunmalı.
 
 **8.5 Kapsam.** B0–B3 iktisadi çekirdeği kurar ve tek başına anlamlı bir
 oyundur; B4–B7 kademeli büyütülebilir.
+
+**8.6 Konjonktür dalgası henüz yok — B0'da ölçüldü.** Ülke-içi çekirdek tek
+başına koşturulduğunda **100 yılda sıfır resesyon, sıfır bunalım** tescil
+ediyor. Sebep bir hata değil, eksiklik: hasıla tekdüze büyüyor çünkü
+**talep hiç bağlamıyor** (`talep_acigi` ilk geçici dönem dışında hep 0).
+
+İki kaynağı var ve ikisi de bilinen:
+
+1. **Dış bloklar yok.** v4.4'te erken/orta oyun krizlerinin çoğu dış
+   kaynaklıdır — ani duruş (D), döviz krizi (F), moratoryum (E), ticaret
+   tıkanması (B). Hepsi B2'ye ertelendi (§1, §2.3), çünkü ticaret ortağı ve
+   dünya ortalaması ister.
+2. **Otomasyon penceresi dışında.** §5.3. Gerçekleşme krizinin motoru
+   `canli_pay`'in düşmesidir; o da çağ 5 gerektirir.
+
+Yani çekirdek doğru çalışıyor ama **tek başına sakin.** Konjonktür
+dalgasının B2 sonunda ortaya çıkması beklenir; çıkmazsa talep bloğunun
+kalibrasyonu ayrıca ele alınmalıdır. **B3'ün kabul ölçütüne bir madde
+eklenmeli: 100 yılda en az bir resesyon ve bir bunalım tescil edilmeli.**

@@ -58,9 +58,11 @@ static func _baslangic() -> KrizDurumu:
 
 
 ## `yil` kadar kosar ve son durumu dondurur.
-static func _kos(donem_yil: float, yil: float, param: KrizParam = null) -> KrizDurumu:
+static func _kos(donem_yil: float, yil: float, param: KrizParam = null,
+		cag_sabit := false) -> KrizDurumu:
 	var d := _baslangic()
 	var cekirdek := KrizCekirdegi.new(param)
+	cekirdek.cag_sabit = cag_sabit
 	var n := Oran.donem_sayisi(yil, donem_yil)
 	for _i in range(n):
 		cekirdek.adim(d, donem_yil)
@@ -75,6 +77,30 @@ static func _bagil(a: float, b: float) -> float:
 ## Cok kucuk bagil farklari okunur kilmak icin bilimsel gosterime cevirir.
 static func _bilimsel(x: float) -> String:
 	return String.num_scientific(x)
+
+
+## On yilda bir durumu basar. Kriz makinesi sessiz kalinca sebebini bulmanin
+## tek yolu bu: hangi buyukluk esige hic yaklasmiyor, hangisi sikismis?
+static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
+		bas_yil: float = 1836.0) -> void:
+	var d := _baslangic()
+	d.yil = bas_yil
+	var cekirdek := KrizCekirdegi.new()
+	var n := Oran.donem_sayisi(yil, donem_yil)
+	var adim_basi := maxi(1, n / 10)
+	print("")
+	print("V2 CEKIRDEK IZI -- %d yil, %d donem" % [int(yil), n])
+	print("%6s %3s %9s %8s %8s %8s %8s %8s %8s %8s %8s"
+			% ["yil", "cag", "Y", "u", "e", "pay", "r", "oto", "canli", "Omega", "talep_ac"])
+	for i in range(n):
+		cekirdek.adim(d, donem_yil)
+		if i % adim_basi == 0 or i == n - 1:
+			print("%6.0f %3d %9.1f %8.4f %8.4f %8.4f %8.5f %8.4f %8.4f %8.4f %8.4f"
+					% [d.yil, d.era, d.Y_yil, d.u, d.e, d.pay, d.r_yil,
+						d.oto, d.canli_pay, d.Omega, d.talep_acigi])
+	print("  krizler: asiri_uretim=%d resesyon=%d bunalim=%d delev=%d rejim=%s"
+			% [d.asiri_uretim_krizleri.size(), d.resesyonlar.size(),
+				d.bunalimlar.size(), d.delev, d.rejim])
 
 
 static func kos() -> int:
@@ -104,13 +130,15 @@ static func kos() -> int:
 	# degil, sure ayriklastirmasidir; karsilastirma bu yuzden ham q uzerinden
 	# degil, HER KOSUNUN KENDI GECEN SURESINE gore yapilir. (Ilk yazimda ham
 	# q karsilastirilmisti ve test bu yuzden yanlis yere "kaldi" diyordu.)
-	print("--- 1. q kesinligi (kapali formule karsi) ---")
+	# CAG SABIT: kapali formul `qg`'nin sabit olmasini gerektirir. Cag
+	# ilerlemesi acikken bu test cevrimi degil CAG TABLOSUNU olcer -- ilk
+	# yazimda oyle oldu ve test yanlis yere "kaldi" dedi.
+	print("--- 1. q kesinligi (kapali formule karsi, cag sabit) ---")
 	var qg_yil := Oran.v44_buyume(float(Tables.ERAS[2]["qg"]))
 	print("  qg = %.6f/yil (cag 2)" % qg_yil)
-	for c in [["haftalik", HAFTA, hafta], ["aylik", AY, ay],
-			["v4.4 turu", V44_TUR, tur], ["yillik", YIL, yillik]]:
+	for c in [["haftalik", HAFTA], ["aylik", AY], ["v4.4 turu", V44_TUR], ["yillik", YIL]]:
 		var donem: float = c[1]
-		var s: KrizDurumu = c[2]
+		var s := _kos(donem, yil, null, true)
 		var gecen := float(Oran.donem_sayisi(yil, donem)) * donem
 		var beklenen: float = 1.0 * pow(1.0 + qg_yil, gecen)
 		var fark := _bagil(s.q, beklenen)
@@ -140,6 +168,32 @@ static func kos() -> int:
 	_dogrula(_bagil(yillik.K, hafta.K) < 0.15, "K: haftalik <-> yillik",
 			"(bagil fark %.3f)" % _bagil(yillik.K, hafta.K))
 
+	# -- 2b. KRIZ SAYACLARI -------------------------------------------------
+	# Asil sinama budur: yorungenin yakin olmasi yetmez, KRIZ MAKINESI de ayni
+	# sayida ve turde olay uretmeli. Krizler esik gecisleridir, dolayisiyla
+	# tam esitlik beklenmez -- beklenen, ayni buyukluk mertebesi.
+	#
+	# YILLIK ADIM BILEREK DISARIDA. 1 yillik bir adim, patlayip sonen bir
+	# balonu cozemez: esik iki olcum arasinda gecilip geri donebilir. Bu bir
+	# hata degil, ayriklastirmanin sinuridir -- ve haftalik kosmamizin
+	# sebebidir.
+	print("")
+	print("--- 2b. kriz makinesi (esik gecisleri) ---")
+	print("  %-12s %10s %10s %10s %10s" % ["", "asiri ur.", "resesyon", "bunalim", "minsky"])
+	for c in [["haftalik", hafta], ["aylik", ay], ["v4.4 turu", tur], ["yillik", yillik]]:
+		var s: KrizDurumu = c[1]
+		print("  %-12s %10d %10d %10d %10d" % [c[0],
+				s.asiri_uretim_krizleri.size(), s.resesyonlar.size(),
+				s.bunalimlar.size(), s.minsky_sayac])
+	for c in [["aylik", ay], ["v4.4 turu", tur]]:
+		var s: KrizDurumu = c[1]
+		var f_res := absi(s.resesyonlar.size() - hafta.resesyonlar.size())
+		var f_bun := absi(s.bunalimlar.size() - hafta.bunalimlar.size())
+		_dogrula(f_res <= 2, "resesyon sayisi: haftalik <-> %s" % c[0],
+				"(%d vs %d)" % [hafta.resesyonlar.size(), s.resesyonlar.size()])
+		_dogrula(f_bun <= 2, "bunalim sayisi: haftalik <-> %s" % c[0],
+				"(%d vs %d)" % [hafta.bunalimlar.size(), s.bunalimlar.size()])
+
 	# -- 3. TUZAK -----------------------------------------------------------
 	# Naif kopyalama: tur basina tanimli parametreleri HAFTALIK donguye
 	# oldugu gibi vermek. `donem_yil = V44_TUR` diyerek 5200 hafta yerine
@@ -165,13 +219,21 @@ static func kos() -> int:
 	# Cekirdegin asil iddiasi: q yukselirken c/v yukselmeli, r dusmeli.
 	print("")
 	print("--- 4. LTRPF yonu (cekirdegin asil iddiasi) ---")
+	# ISINMA. Ilk adimlar baslangic durumunun gecici hallenmesidir (talep
+	# acigi %60'tan sifira duser, r sicrar). LTRPF bir EGILIMDIR, gecici bir
+	# sicramanin ustunden olculemez -- olcum 10 yillik isinmadan SONRA baslar.
+	# (Ilk yazimda 1. adimdan olculuyordu ve test bu yuzden yanlis yere
+	# "kaldi" diyordu.)
 	var bas := _baslangic()
 	var cek2 := KrizCekirdegi.new()
-	cek2.adim(bas, HAFTA)
+	var isinma := Oran.donem_sayisi(10.0, HAFTA)
+	for _i in range(isinma):
+		cek2.adim(bas, HAFTA)
 	var q0 := bas.q
 	var cv0 := bas.cv
 	var r0 := bas.r_yil
-	for _i in range(Oran.donem_sayisi(yil, HAFTA) - 1):
+	print("  (10 yillik isinmadan sonra olculuyor)")
+	for _i in range(Oran.donem_sayisi(yil, HAFTA) - isinma):
 		cek2.adim(bas, HAFTA)
 	print("  q    %.4f -> %.4f" % [q0, bas.q])
 	print("  c/v  %.4f -> %.4f" % [cv0, bas.cv])
