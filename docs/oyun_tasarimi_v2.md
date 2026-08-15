@@ -21,52 +21,41 @@ Bu belgenin geri kalanı bu tek cümlenin sonuçlarıdır:
 > **Oyuncu, dünya ve ülke ekonomisinin altında yatan kriz teorisinin dayattığı
 > krizlere göre yol alır.**
 
-Yani krizler **elle yazılmış olay zincirleri değildir.** Hiçbir yerde "1873'te
-bir bunalım tetikle" satırı olmayacak. Bunalım, aşırı üretim, balon patlaması,
-döviz krizi, devrim — hepsi **denklemlerin sonucu** olarak ortaya çıkar:
-üretkenlik yükselir, organik bileşim yükselir, kâr oranı düşer, birikim
-yavaşlar, gerçekleşme makası açılır, borç şişer, balon patlar.
-
-Sonuçları tasarımı boydan boya bağlar:
+Krizler **elle yazılmış olay zincirleri değildir.** Hiçbir yerde "1873'te bir
+bunalım tetikle" satırı olmayacak. Bunalım, aşırı üretim, balon patlaması,
+döviz krizi, savaş, devrim — hepsi **denklemlerin sonucu** olarak ortaya çıkar.
 
 - **Olay sistemi yoktur, kriz tescili vardır.** Günceye düşen her satır bir
-  ölçümün eşiği geçmesidir (`R` bloğu: resesyon / bunalım tescili), bir olay
-  tablosundan çekiliş değil.
-- **Zorluk ayarı yoktur.** Oyunun zorluğu seçtiğin ülkenin dünya sistemindeki
-  konumudur — çevre ülke olmak zaten zordur, çünkü değer transferi (`C`, `L`)
-  onu sürekli boşaltır.
-- **Rastgelelik ikincildir.** Tohum krizlerin *zamanlamasını* ve
-  *ayrıntısını* değiştirir, *kaçınılmazlığını* değil. Kâr oranı her koşuda
-  düşer; ne zaman ve neye mal olarak düşeceği oyuncunun kararlarına bağlıdır.
-- **Oyuncunun işi krizi önlemek değil, karşılamaktır.** Kolları (§2.3 geri
-  besleme sütunu) krizin *biçimini* ve *bedelinin kime yükleneceğini*
-  değiştirir. Kimin ödeyeceği — ücret mi kâr mı — oyunun asıl kararıdır.
+  ölçümün eşiği geçmesidir (`R` bloğu), bir olay tablosundan çekiliş değil.
+- **Zorluk ayarı yoktur.** Zorluk, seçtiğin ülkenin dünya sistemindeki
+  konumudur — çevre olmak zaten zordur, çünkü değer transferi (`C`, `L`) onu
+  sürekli boşaltır.
+- **Rastgelelik ikincildir.** Tohum krizlerin *zamanlamasını* değiştirir,
+  *kaçınılmazlığını* değil.
+- **Oyuncunun işi krizi önlemek değil, karşılamaktır.** Kolları krizin
+  *biçimini* ve *bedelinin kime yükleneceğini* değiştirir. **Kimin ödeyeceği
+  oyunun asıl kararıdır.**
 
 **Tek oyunculu.** Victoria 3'ün çok oyunculu kipi örnek alınmaz. Sebep
-mekaniktir, teknik değil: bu oyunun konusu bir ülkenin dünya sistemindeki
-konumuyla ve kendi birikim çelişkisiyle hesaplaşmasıdır; ikinci bir insan
-oyuncu o hesaplaşmayı bir müzakereye çevirir.
+mekaniktir: oyunun konusu bir ülkenin dünya sistemindeki konumuyla ve kendi
+birikim çelişkisiyle hesaplaşmasıdır; ikinci bir insan oyuncu onu bir
+müzakereye çevirir.
 
 ---
 
 ## 1. v4.4 ile ilişki: yalnızca denklemler
 
-v4.4-Frozen bundan sonra **bir kütüphanedir, bir çerçeve değil.** Ondan
-alınacak tek şey **kriz teorisi denklemleridir.** Başka hiçbir kısıtı
-bağlayıcı değildir.
+v4.4-Frozen bundan sonra **bir kütüphanedir, bir çerçeve değil.**
 
 ### 1.1 Taşınan — kriz çekirdeği
-
-`step()` içindeki A–T blokları ve dört adlandırılmış mekanizma. Bunlar oyunun
-iktisadi tezidir:
 
 | blok | mekanizma |
 |---|---|
 | **c/v** | Organik bileşim, `q`'nun sürekli fonksiyonu — **tavanı yok**, LTRPF'nin yakıtı |
 | **G** | Arz kapasitesi + **otomasyon**; canlı emeğin fiziksel hasıladaki payı |
-| **H** | Efektif talep & borçlanma sınırı (Clarke & Fisher) — **aşırı üretim / gerçekleşme krizi** |
+| **H** | Efektif talep & borçlanma sınırı — **aşırı üretim / gerçekleşme krizi** |
 | **J** | Spekülatif varlık balonu — finansallaşma + **Minsky** |
-| **K** | Fisher & Clarke borç/balon patlaması (Tip B) |
+| **K** | Fisher & Clarke borç/balon patlaması |
 | **P** | Phillips eğrisi & enflasyon |
 | **Q** | **Goodwin** sınıfsal nominal ücret pazarlığı |
 | **R** | İki kademeli kriz tescili (resesyon / bunalım) |
@@ -75,47 +64,36 @@ iktisadi tezidir:
 | **C** | Cari açık sızıntısı & uluslararası **değer transferi** |
 | **D** | Ani duruş & dış borçlanma tıkacı |
 | **E** | Borç yapılandırma & moratoryum |
-| **F** | Rezerv erimesi & döviz krizi (Tip C) |
+| **F** | Rezerv erimesi & döviz krizi |
 | **L** | Bölgeler arası değer transferi — **eşitsiz mübadele** |
 | **I / M** | Kamu maliyesi, vergi, kemer sıkma; kamu sermayesi & birikim |
 | **N** | Haftalık çalışma süresi |
-| **S** | Sınıf örgütlenme stoku & kentleşme (lojistik stok) |
+| **S** | Sınıf örgütlenme stoku & kentleşme |
 | **T** | Lojistik protesto riski & **sosyalist devrim** |
-| — | **Tonak değer gaspı** — gasbedilen değer üretken sermayeye değil spekülatif stoka akar |
-| — | Evrensel temel gelir ve finansmanı |
-| — | Karanlık devlet (illegalite primi, cezaevi oranı) |
-| — | Marksist politik özne (parti, örgütlü güç) |
+| — | **Tonak değer gaspı**, evrensel temel gelir, karanlık devlet, Marksist politik özne |
 
-Ayrıca saf yardımcılar: `organik_bilesim(q)`, `sg(x)`, `kappa_v(cv,q)`,
+Saf yardımcılar: `organik_bilesim(q)`, `sg(x)`, `kappa_v(cv,q)`,
 `ucuzlama_orani(q)`.
 
 ### 1.2 Taşınmayan — hepsi serbest
 
 | v4.4'te | v2'de |
 |---|---|
-| 20 ülke | **serbest** — hedef tam dünya (§3.6) |
-| 1259 tur, 1 tur = 0.27 yıl | **serbest** — haftalık tik (§3.2) |
-| 1760–2100 | **serbest** — 1836–1936 (§3.3) |
-| 355 sabitlik kalibrasyon | **geçersiz** — yeni mimaride yeniden ayarlanacak |
+| 20 ülke | **serbest** — hedef tam dünya |
+| 1259 tur, 1 tur = 0.27 yıl | **serbest** — haftalık tik |
+| 1760–2100 | **serbest** — 1836–1936 |
+| 355 sabitlik kalibrasyon | **geçersiz** |
 | 10 kabul bandı | **geçersiz** — eski kalibrasyonun kaydıydı |
-| Senaryo odaları | yeniden tanımlanacak |
-| Sıfır asset kuralı | **gevşetiliyor** (§3.1) |
-| CPython parite zorunluluğu (`py_sum`, `py_round`) | **düşüyor** — kâhin yok, bit-parite hedefi yok |
+| Sıfır asset kuralı | **gevşetiliyor** (§5.1) |
+| CPython parite zorunluluğu | **düşüyor** — kâhin yok |
 
 > **`py_sum` / `py_round` neden düşüyor:** ikisi de yalnızca CPython kâhiniyle
-> bit-birebir tutmak için vardı. Kâhin ortadan kalkınca amaçları da kalkar.
-> Kaldırmak serbesttir; ama **kaldırılırsa CLAUDE.md'deki iki tuzak notu da
-> güncellenmeli**, yoksa gelecekteki bir oturum var olmayan bir kuralı arar.
+> bit-birebir tutmak için vardı. Kaldırılırsa **CLAUDE.md'deki iki tuzak notu
+> da güncellenmeli.**
 
 ---
 
 ## 2. Mimari: iki katman, tanımlı kuplaj
-
-Asıl tasarım sorusu şu: kriz denklemleri **toplam büyüklükler** üzerine
-yazılmıştır (`r`, `q`, `c/v`, `pay`, `u`, `V`), Victoria ise **mekânsal ve
-mikro**dur (eyalet, pop, bina, mal). İkisi nasıl bağlanır?
-
-Cevap: **birbirinin yerine geçmezler, üst üste binerler.**
 
 ```
   MIKRO KATMAN  (Victoria bicimi)
@@ -127,185 +105,290 @@ Cevap: **birbirinin yerine geçmezler, üst üste binerler.**
   V, c/v, r, kriz durumlari
 ```
 
-### 2.1 Mikro katman — ne üretir
-
-Her haftalık tikte, ülke başına **gözlenen toplamlar**:
+### 2.1 Mikro katman ne üretir
 
 | toplam | mikro kaynağı |
 |---|---|
-| `K` sermaye stoku | binaların birikmiş inşaat maliyeti |
+| `K` | binaların birikmiş inşaat maliyeti |
 | `L`, `e` | pop'ların istihdam durumu |
-| `pay` ücret payı | ücret ödemeleri ÷ toplam hasıla |
-| `Y` fiziksel hasıla | binaların mal çıktısı toplamı |
-| `u` kapasite kullanımı | doluluk / azami kapasite |
-| `q` üretkenlik | aktif üretim yöntemlerinin ağırlıklı seviyesi |
-| `oto` otomasyon payı | makine-ağırlıklı üretim yöntemlerinin payı |
+| `pay` | ücret ödemeleri ÷ toplam hasıla |
+| `Y` | binaların mal çıktısı toplamı |
+| `u` | doluluk / azami kapasite |
+| `q` | aktif üretim yöntemlerinin ağırlıklı seviyesi |
+| `oto` | makine-ağırlıklı üretim yöntemlerinin payı |
 
-### 2.2 Değer katmanı — ne hesaplar
+### 2.2 Değer katmanı ne hesaplar
 
-Bu toplamları alır, **değer büyüklüklerini** üretir:
+`c/v = organik_bilesim(q)` (tavansız) · `V` yeni değer (yalnızca canlı
+emekten) · `r` kâr oranı · kriz durumları.
 
-- `c/v = organik_bilesim(q)` — üretkenlik yükseldikçe yükselir, **tavansız**
-- `V` yeni değer — **yalnızca canlı emekten**; `oto` yükseldikçe `Y` büyür ama
-  `V` küçülür
-- `r` kâr oranı — birikimin hızını yöneten büyüklük
-- Kriz durumları: aşırı üretim açığı, Minsky sayacı, borç patlaması, döviz
-  krizi, resesyon/bunalım tescili
-
-### 2.3 Kuplaj — bu belgenin kalbi
-
-Her kriz mekanizmasının hangi Victoria altsistemini **okuduğu** ve hangisini
-**geri beslediği**:
+### 2.3 Kuplaj
 
 | kriz mekanizması | okur | geri besler |
 |---|---|---|
-| **LTRPF** (`c/v`, `r`) | üretim yöntemi seviyesi → `q` | birikim hızı: `r` düşünce inşaat yavaşlar |
-| **Otomasyon → değer** | makine-ağırlıklı üretim yöntemleri | `V` küçülür → satınalma gücü düşer |
-| **Aşırı üretim (H)** | mal arzı vs pop satınalma gücü | satılamayan mal → bina kapanır, işten çıkarma |
-| **Minsky (J, K)** | yatırım havuzu, finans binaları | balon patlar → kredi kurur, delev başlar |
-| **Goodwin (Q)** | istihdam oranı, sendika gücü | ücret pazarlığı → `pay` ↔ `r` salınımı |
-| **Thirlwall (B)** | ticaret rotaları, pazar erişimi | ithalat tıkanır → büyüme tavanı |
-| **Değer transferi (C, L)** | ticaret ortakları, üretkenlik farkı | çevreden merkeze **eşitsiz mübadele** |
-| **Döviz krizi (F)** | rezerv, cari açık | devalüasyon → ithalat çöker |
-| **Örgütlenme (S)** | kentleşme, fabrika pop yoğunluğu | sendika gücü, siyasi kanun baskısı |
-| **Devrim (T)** | öfke, örgütlenme, protesto riski | **rejim değişir**, oyuncunun kolları değişir |
-| **Kurumsal geçiş** | yürürlükteki kanunlar | Polanyi çifte hareketi: liberal ↔ düzenli ↔ neoliberal |
+| **LTRPF** | üretim yöntemi seviyesi → `q` | birikim hızı: `r` düşünce inşaat yavaşlar |
+| Otomasyon → değer | makine-ağırlıklı üretim yöntemleri | `V` küçülür → satınalma gücü düşer |
+| Aşırı üretim (H) | mal arzı vs pop satınalma gücü | bina kapanır, işten çıkarma |
+| Minsky (J, K) | yatırım havuzu, finans binaları | balon patlar → kredi kurur |
+| Goodwin (Q) | istihdam oranı, **sendika gücü** | ücret pazarlığı → `pay` ↔ `r` salınımı |
+| Thirlwall (B) | ticaret rotaları, pazar erişimi | ithalat tıkanır → büyüme tavanı |
+| Değer transferi (C, L) | ticaret ortakları, üretkenlik farkı | **eşitsiz mübadele** |
+| Döviz krizi (F) | rezerv, cari açık | devalüasyon → ithalat çöker |
+| Örgütlenme (S) | kentleşme, fabrika pop yoğunluğu | sendika gücü, kanun baskısı |
+| Devrim (T) | öfke, örgütlenme, protesto riski | **rejim değişir**, kollar değişir |
+| Kurumsal geçiş | yürürlükteki kanunlar | Polanyi: liberal ↔ düzenli ↔ neoliberal |
 
 ### 2.4 Tersine çevrilen mantık
 
-Victoria 3'te kârlılık **bina başına piyasa sonucudur**: bina ucuz girdi alır,
-pahalı çıktı satar, kâr eder. v2'de bu katman **durur**, ama üstüne şu gelir:
+Victoria 3'te kârlılık bina başına piyasa sonucudur. v2'de o katman durur, ama:
 
 > **Toplam kâr oranı `r` piyasadan okunmaz; değer katmanında hesaplanır ve
 > bütün birikim sürecini kısıtlar.**
 
-Yani tek tek binalar kârlı görünürken toplam kâr oranı düşebilir — ve düşer.
-Oyunun anlattığı şey tam olarak budur ve Victoria 3'ün kendi mantığının
-Marksist tersine çevrilmesidir.
-
-**Üretim yöntemi yükseltmesi buradaki en güzel bağlantıdır:** Victoria'nın
-kendi teknoloji döngüsü (daha iyi üretim yöntemi = daha yüksek `q`) doğrudan
-`c/v`'yi yükseltir, o da `r`'yi düşürür. Oyuncu her "iyileştirme"yle kendi kâr
-oranını aşındırır. Mekanizma zaten oradaydı; v2 sadece sonucunu görünür kılar.
+Tek tek binalar kârlı görünürken toplam kâr oranı düşer. **Üretim yöntemi
+yükseltmesi en güzel bağlantıdır:** Victoria'nın kendi teknoloji döngüsü `q`'yu
+yükseltir, o `c/v`'yi yükseltir, o `r`'yi düşürür. Oyuncu her "iyileştirme"yle
+kendi kâr oranını aşındırır.
 
 ---
 
-## 3. Uygulanan kararlar
+## 3. Krizden çıkış: savaş, ittifak, diplomasi
 
-Önceki taslakta açık bırakılan sorular, **Victoria 3'e en yakın** seçenekle
-kapatıldı.
+**Evet — ve bunlar eklenti değil, teorinin gereğidir.** Kâr oranı sıkıştıkça
+sermaye ulusal sınırların dışına taşar; pazar arayışı, sermaye ihracı ve çevre
+üzerindeki rekabet aynı sıkışmanın yüzleridir. Emperyalizm ve savaş bu oyunda
+ayrı bir strateji katmanı değil, **iktisadi krizin dış politikadaki
+görünümüdür.**
 
-### 3.1 Harita: gerçek coğrafi, eyalet bazlı
+### 3.1 Hangi kriz hangi dış çıkışa iter
 
-Victoria 3 gerçek dünya haritasını eyaletlere böler. **Aynısı yapılacak.**
+| kriz | dış çıkış | motor karşılığı |
+|---|---|---|
+| Aşırı üretim | Yeni pazar açmak — gerekirse zorla | pazar erişimi, `B` bloğu |
+| Düşen kâr oranı | Sermaye ihracı: `c/v`'nin düşük, `r`'nin yüksek olduğu çevreye | `C`, `L` değer transferi |
+| Değer transferi sürsün | Eşitsiz mübadeleyi dayatmak | tarife, abluka, himaye |
+| Borç ödenemiyor | Moratoryum — ama alacaklı devlet müdahale edebilir | `E` bloğu + `ilan()` |
+| Rakip aynı çevreyi istiyor | **Emperyalistler arası savaş** | `savas_karari()`, `guc()` |
+| İçeride öfke patlama noktasında | **Dış savaşla basınç boşaltma** | §4 ile bağlantılı |
+| Bir yerde devrim oldu | Kuşatma, abluka, müdahale | `abluka`, `ambargo`, `dunya_devrimi_isle()` |
 
-Sonucu: **sıfır asset kuralı gevşetiliyor.** Ama tamamen değil —
-uzlaşma şu:
+### 3.2 Savaş bir kriz çıkışıdır — en şiddetlisi
 
-- **`.png` yok** — hâlâ hiçbir bitmap yok, her şey `_draw()` ile çizilir
-- **Vektör geometri verisi var** — eyalet sınırları sıkıştırılmış poligon
-  tablosu olarak depoda durur (üretilmiş veri dosyası, `tables.gd` gibi)
+Motorda `savas_yikim_isle()` sermayeyi yok eder. Marksist okumada bunun
+sonucu tektir ve acımasızdır:
 
-Böylece "her görsel koddur" ilkesi korunur, coğrafya kazanılır.
+> **Savaş sermayeyi imha eder, sermayenin imhası kâr oranını yükseltir.**
 
-### 3.2 Zaman: haftalık tik
+Yani savaş, "bırak yansın" çıkışının ulusal ölçekli ve silahlı biçimidir.
+Oyun bunu bir zafer olarak değil, **bir muhasebe olarak** gösterir: kâr oranı
+grafiği savaştan sonra yukarı döner, nüfus grafiği aşağı.
 
-Victoria 3 günlük tikler, ekonomiyi haftalık günceller. v2:
-**haftalık ekonomik tik**, duraklat + hız kademeleri.
+### 3.3 İttifak ve bloklar
 
-> **DİKKAT — oran parametreleri yeniden ölçeklenmeli.** v4.4'ün bütün oran ve
-> akım parametreleri **tur başına** tanımlıydı ve 1 tur = 0.27 yıldı. Hafta =
-> 0.0192 yıl, yani **14 kat kısa**. Denklemler kopyalanırken her oran
-> parametresi yeniden ölçeklenmezse motor 14 kat hızlı koşar. Bu, taşımanın
-> en olası sessiz hatasıdır.
+Motorda hazır: `muttefik`, `ideolojik_mesafe`, `saldirganlik`, `hegemon`,
+`abluka`, `ambargo`, `pakt_durusu`.
 
-### 3.3 Zaman aralığı: 1836–1936
+- **Merkez içi rekabet** — aynı çevre için yarışan merkez ülkeler
+- **Sosyalist pakt** — `pakt_durusu` ile ittifak mı rekabet mi
+- **Kuşatma** — devrim olan ülkeye abluka ve ambargo
+- **Himaye** — çevre ülkeyi bir merkeze bağlamak: koruma karşılığı değer transferi
 
-Victoria 3'ün aralığı, birebir. ~5200 haftalık tik.
+### 3.4 Kapsam dürüstlüğü
 
-v4.4'ün 1760–2100'ü düşüyor. Bunun bir bedeli var: **çağ 5–6 (İnsan-YZ, tam
-otomasyon) 1936'da yaşanmaz.** Otomasyon mekanizması korunur ama tarihsel
-olarak erken sanayi otomasyonuna denk gelir. Geç kapitalizm senaryosu istenirse
-ayrı bir kampanya olarak açılır (§5).
-
-### 3.4 Ülke değiştirme: yok
-
-Victoria 3'te başta bir ülke seçilir ve sonuna kadar o oynanır. **Aynısı.**
-Devrim ülkeyi değiştirmez; **elindeki kolları** değiştirir — bu zaten v4.4'ün
-ve mevcut oyunun çerçevesiydi, korunur.
-
-### 3.5 Ana ekran: harita
-
-Victoria 3'te harita ana ekrandır, paneller üstüne açılır. **Aynısı.**
-12 çekirdek metrik grafiği harita üstünde açılan bir panele taşınır — silinmez,
-oyunun öğretici omurgası odur.
-
-### 3.6 Ülke sayısı: tam dünya
-
-v4.4'ün 20 ülkesi bir kısıt değildi, kalibrasyon kolaylığıydı. Hedef Victoria
-ölçeğidir: **tam dünya, ~100+ ülke**, dinamik kurulma/ilhak.
-
-Aşamalı gerçekleşir (§4): önce eyalet-ülke veri modeli, sonra harita, sonra
-ülke sayısı ölçeklenir. Kriz denklemleri ülke sayısından bağımsızdır —
-`L` (bölgeler arası değer transferi) ve `C` (uluslararası transfer) dışında
-hepsi ülke-içidir; o ikisi de ülke sayısına göre genelleşir.
-
-### 3.7 Tek oyunculu
-
-Victoria 3'ün çok oyunculu kipi **örnek alınmaz** (§0). Bu, V3'e benzerlik
-hedefinden bilinçli bir sapmadır ve gerekçesi mekaniktir: oyunun konusu bir
-ülkenin dünya sistemindeki konumuyla hesaplaşmasıdır, ikinci bir insan oyuncu
-onu müzakereye çevirir.
-
-Pratik sonucu: **ağ katmanı, belirlenimci lockstep, oturum yönetimi yok.**
-Mimaride bunlara yer ayrılmaz — sonradan eklenmesi gerekirse yeniden
-tasarlanır.
+**Taktik savaş yoktur.** Cephe yönetimi, birlik hareketi, muharebe çözümü
+olmayacak. Savaş bir **iktisadi olaydır**: sonucu `guc()` (= `K·q`), yıpranma,
+abluka ve iç cephe (öfke, örgütlenme) belirler. Paradox'un askeri derinliği
+hedeflenmiyor; hedeflenen, savaşın ekonomiden **çıkması** ve ekonomiye
+**dönmesi**.
 
 ---
 
-## 4. Aşamalar
+## 4. Karanlık devlet: rıza ve zor
 
-Bu bir yeniden inşadır; v4.4'ün oyun katmanı üstüne eklenmez, yanına kurulur.
+v4.4'te bu mekanizma dar bir haldeydi (uyuşturucuya tolerans, cezaevi oranı,
+illegalite primi). v2'de **tam haliyle** açılıyor.
+
+### 4.1 Ne yapar — asıl mekanik kavrayış
+
+Motorda **öfke (`Omega`) ile örgütlenme (`org`) ayrı değişkenlerdir** ve
+devrim ikisini birden gerektirir (`T` bloğu). Karanlık devletin işlevi buradan
+çıkar:
+
+> **Amaç öfkeyi azaltmak değil; öfkenin SINIFSAL ÖRGÜTLENMEYE dönüşmesini
+> kırmaktır.** Öfke yerinde kalır, hedefi değiştirilir — sınıftan komşuya.
+
+Bunun için yeni bir durum değişkeni gelir: **`bolunme`** — emekçi sınıfın
+kendi içine bölünmüşlüğü. Etkileri:
+
+| `bolunme` şunu yapar | hangi bloğa |
+|---|---|
+| `Omega` → `org` dönüşümünü kırar | `S` — örgütlenme stoku |
+| Sendika pazarlık gücünü düşürür → `pay` kazanımı zayıflar | `Q` — Goodwin |
+| Protestoyu sınıfsal olmaktan çıkarır, topluluklar arası şiddete çevirir | `T` — protesto riski |
+
+Sermaye için sonuç nettir: **ücret payı baskılanır, kâr oranı korunur, devrim
+riski düşer.** Bedeli başka yerden çıkar (§4.3).
+
+### 4.2 İki aygıt
+
+Gramsci'nin ayrımı doğrudan iki kola dönüşür.
+
+**RIZA — ucuz, yavaş, sinsi.** Sınıf bilincinin yerine başka bir bilinç koyar:
+
+- dini cemaat/tarikat ağlarının önünü açmak
+- mistisizm, astroloji, evrim karşıtlığı, düz dünyacılık gibi akımları desteklemek
+- milliyetçiliği körüklemek; ülke içindeki küçük etnik gruplara karşı düşmanlık
+- mülteci düşmanlığı, ırkçılık
+- LGBT düşmanlığı, kadınlara karşı baskıcı politikalar
+- uyuşturucuya göz yummak
+
+**ZOR — hızlı, pahalı, iz bırakır.** Rıza yetmediğinde devreye girer:
+
+- sendikal harekete baskı, grev kırma
+- muhalif siyasi karakterlerin tutuklanması
+- paramiliter faşist grupların önünü açmak; siyasi cinayet
+
+### 4.3 Bedeller — bunlar bedava kollar değildir
+
+Mekanizmanın tasarım değeri burada. Her aygıt **kendi geleceğini yiyerek**
+çalışır.
+
+**Rıza aygıtlarının bedeli — üretkenlik.**
+
+> Bilim karşıtlığı, eğitim tabanını çürütür: `egitim_pay` düşer, `q` büyümesi
+> (`qg`) yavaşlar.
+
+Ve `q` büyümesi, LTRPF'ye karşı elindeki **tek karşı eğilimdir.** Yani:
+
+> **Karanlık devlet toplumsal barışı, kendi gelecekteki birikimini yiyerek
+> satın alır.** Bugün devrimi öteler, yarın kâr oranını daha da düşürür.
+
+Uyuşturucuya göz yumma ayrıca motorun **Tonak değer gaspı** kanalına bağlanır:
+illegal sektör değer çeker, ama gasbedilen değer üretken sermayeye değil
+**spekülatif stoka** akar — yani doğrudan Minsky balonunu besler.
+
+**Zor aygıtlarının bedeli — emek gücü ve meşruiyet.**
+
+- Tutuklama → `cezaevi_orani` ↑ → `l_etkin()` ↓ → **daha az canlı emek → daha
+  az yeni değer** (`V`). Baskı, artı değerin kaynağını daraltır.
+- Siyasi cinayet → kısa vadede örgütlenme kırılır, ama `Omega` **yükselir**:
+  şehitler radikalleştirir.
+- Baskıdan sağ çıkan örgütlenme **daha radikal** döner: `org` yeniden büyüdüğünde
+  ılımlı kanal kapalıdır.
+- Uluslararası meşruiyet düşer: ittifak bulmak zorlaşır (§3.3).
+
+### 4.4 Karşı hareket — sendikalar ve sosyalist yapılar
+
+Karanlık devlet tek taraflı bir kol değil, **bir mücadelenin bir tarafı.**
+Karşısında `bolunme`yi aşağı iten kuvvetler vardır:
+
+| kuvvet | ne yapar |
+|---|---|
+| **Sendikalar** | `org` yüksekken `bolunme` birikimi yavaşlar; sendika ayrıca aktif olarak `bolunme`yi düşürür — sınıfı ortak çıkar etrafında yeniden birleştirir |
+| **Sosyalist parti** (Marksist politik özne) | Dağınık öfkeyi sınıfsal güce çevirir — tam da karanlık devletin kırmaya çalıştığı kanal. `parti_iktidari` açıkken bölünme en hızlı geriler |
+| **Kentleşme** (`S`) | Fabrika yoğunluğu örgütlenmeyi besler; bölünme kentte kırda olduğundan zor tutunur |
+| **Dayanışma kazanımları** | Ücret, sosyal harcama ve iş güvencesi kazanımları bölünme anlatısını zayıflatır |
+
+Sonuç bir **yarıştır**: karanlık devlet `bolunme`yi iter, sendika ve parti
+çeker. Kim kazanırsa krizin siyasi sonucunu o belirler — patlama mı, çürüme mi.
+
+### 4.5 Oyuncu hangi tarafta
+
+**Her ikisi de oynanabilir.** Kapitalist rejimde bu kollar senin elindedir;
+kullanmamak da bir karardır ve bedeli daha erken devrimdir. Sosyalist parti
+iktidara gelirse kollar tersine döner: bölünmeyi çözmek, örgütlenmeyi
+derinleştirmek senin işin olur.
+
+Yapay zekâ yönetimindeki ülkeler bu kolları kendi krizlerine göre kullanır —
+yani dünyada başka ülkelerin faşizme kayışını **dışarıdan izlersin**, ve o
+kayış senin ihracat pazarını, ittifaklarını ve savaş riskini etkiler.
+
+### 4.6 Temsil ilkesi
+
+Bunlar oyunda **ne iseler o olarak** görünür: mağdurları adlandırılmış,
+bedelleri sayılmış politikalar. "Etkinlik" kolu gibi sunulmaz.
+
+- Ekranda **kimin** hedef alındığı yazılır — hangi etnik grup, hangi topluluk.
+- Cezaevi oranı, siyasi cinayet sayısı ve eğitim tabanındaki çöküş **görünür
+  metriklerdir**, gizli çarpanlar değil.
+- Karşı hareket dekor değil, ölçülebilir bir kuvvettir (§4.4).
+
+Oyun bu politikaları bir yönetim tekniği olarak değil, **sınıf egemenliğinin
+bir aracı olarak** modeller — ve maliyetini kimin ödediğini sayar.
+
+---
+
+## 5. Uygulanan kararlar
+
+Victoria 3'e en yakın seçenekle kapatıldı.
+
+### 5.1 Harita: gerçek coğrafi, eyalet bazlı
+
+Sıfır asset kuralı **gevşetiliyor** ama tamamen değil: `.png` yok (her şey
+`_draw()`), **vektör geometri verisi var** (eyalet sınırları sıkıştırılmış
+poligon tablosu, üretilmiş veri dosyası).
+
+### 5.2 Zaman: haftalık tik
+
+> **UYARI — en olası sessiz hata.** v4.4'ün bütün oran parametreleri **tur
+> başına** tanımlıydı, 1 tur = 0.27 yıl. Hafta = 0.0192 yıl, yani **14 kat
+> kısa**. Yeniden ölçeklenmezse motor 14 kat hızlı koşar ve bu oynayarak fark
+> edilmez.
+
+### 5.3 Zaman aralığı: 1836–1936
+
+~5200 haftalık tik. Bedeli: çağ 5–6 (İnsan-YZ, tam otomasyon) yaşanmaz;
+otomasyon mekanizması korunur ama erken sanayi otomasyonuna denk gelir.
+
+### 5.4 Ülke değiştirme: yok
+
+Devrim ülkeyi değiştirmez; **elindeki kolları** değiştirir.
+
+### 5.5 Ana ekran: harita
+
+Paneller üstüne açılır. 12 çekirdek metrik grafiği panele taşınır — silinmez.
+
+### 5.6 Ülke sayısı: tam dünya
+
+~100+ ülke, dinamik kurulma/ilhak. Kriz denklemleri ülke sayısından
+bağımsızdır; `C` ve `L` genelleşir.
+
+### 5.7 Tek oyunculu
+
+Ağ katmanı, lockstep, oturum yönetimi yok.
+
+---
+
+## 6. Aşamalar
 
 | aşama | iş |
 |---|---|
-| **B0** | **Kriz çekirdeğinin ayıklanması.** A–T blokları v4.4'ten çıkarılır, ülke-içi saf bir modül haline getirilir, oran parametreleri haftalığa ölçeklenir |
+| **B0** | **Kriz çekirdeğinin ayıklanması.** A–T blokları saf modül haline gelir, oran parametreleri haftalığa ölçeklenir |
 | **B1** | **Mikro katman iskeleti.** Eyalet, pop, bina, üretim yöntemi, mal piyasası — tek ülkede, haritasız |
-| **B2** | **Kuplaj.** §2.3 tablosunun bağlanması; mikro toplamlar → değer katmanı → geri besleme |
-| **B3** | **Yön testleri yeşile.** §5'teki dokuz iddia yeni motorda geçmeli |
-| **B4** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi |
-| **B5** | **Ölçek.** Ülke sayısı tam dünyaya çıkarılır, başarım ölçülür |
-| **B6** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller üstünde, günce, diplomasi |
+| **B2** | **Kuplaj.** §2.3 tablosunun bağlanması |
+| **B2b** | **Bölünme ve karşı hareket.** `bolunme` değişkeni, rıza/zor kolları, sendika ve parti karşı kuvvetleri (§4) |
+| **B3** | **Yön testleri yeşile.** Dokuz iddia + karanlık devlet için yeni yön testleri |
+| **B4** | **Dış katman.** İttifak, abluka, ambargo, savaş — kriz çıkışı olarak (§3) |
+| **B5** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi |
+| **B6** | **Ölçek.** Tam dünya, başarım ölçümü |
+| **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce, diplomasi |
 
-**B0 ve B3 en kritik ikilidir.** B0 yanlış yapılırsa (özellikle §3.2'deki
-ölçekleme) motor sessizce yanlış koşar; B3 onu yakalayan tek şeydir.
+**B0 ve B3 en kritik ikilidir.** B0 yanlış yapılırsa motor sessizce yanlış
+koşar; B3 onu yakalayan tek şeydir.
 
 ---
 
-## 5. Doğrulama: ne taşınır, ne taşınmaz
-
-v4.4'ün doğrulama merdiveni yeni mimaride büyük ölçüde geçersizdir — ama
-**tamamı değil**, ve hangi parçanın kaldığı bu projenin en değerli kavrayışıdır.
+## 7. Doğrulama: ne taşınır, ne taşınmaz
 
 | katman | v2'de |
 |---|---|
-| RNG akış paritesi | **düşer** — kâhin yok |
-| crc32, parametre dökümü | **düşer** |
-| Tur-tur iz karşılaştırması | **düşer** |
-| 10 kabul bandı | **düşer** — eski kalibrasyonun kaydıydı, bağımsız ölçüt değildi |
+| RNG akış paritesi, crc32, iz karşılaştırması | **düşer** — kâhin yok |
+| 10 kabul bandı | **düşer** — eski kalibrasyonun kaydıydı |
 | **9 mekanizma yön testi** | **TAŞINIR — tek ve birincil ölçüt** |
 
-Sebep belgenin kendi epistemolojisinde yazılı (§9.14):
-
-> "kabul bantları kalibrasyonun kaydıdır, bağımsız kriter değil; bağımsız olan
-> yön testleridir"
-
-Yön testleri **büyüklük değil yön** iddia eder — `q↑` ise `c/v↑` ve `r↓`;
-otomasyon artarsa canlı emek payı düşer; finansallaşma kapalıysa daha az
-Minsky. Bu iddialar **kalibrasyondan bağımsızdır**, dolayısıyla **yeni bir
-motorda da sınanabilirler.**
-
-Dokuz iddia, v2'nin kabul ölçütü olarak aynen geçerli:
+Sebep belgenin kendi epistemolojisinde (§9.14): *"kabul bantları kalibrasyonun
+kaydıdır, bağımsız kriter değil; bağımsız olan yön testleridir"*. Yön testleri
+**büyüklük değil yön** iddia eder, dolayısıyla yeni bir motorda da sınanabilir.
 
 | test | iddia |
 |---|---|
@@ -319,28 +402,40 @@ Dokuz iddia, v2'nin kabul ölçütü olarak aynen geçerli:
 | Karanlık devlet | tolerans kapalı → daha az uyuşturucu |
 | Politik özne | parti açık → daha yüksek örgütlü güç |
 
-> **Kural:** B3 bitmeden B4'e geçilmez. Dokuz testi geçmeyen bir motor
-> Victoria biçiminde bir kabuğa sarıldığında **güzel görünen ama iktisadi
-> olarak anlamsız** bir oyun olur — ve bu, oynayarak fark edilmez.
+**Karanlık devlet için yeni yön testleri** (§4 mekanizması test edilebilir
+olmalı, yoksa "çalışıyor" diyemeyiz):
+
+| yeni test | iddia |
+|---|---|
+| Bölünme → örgütlenme | `bolunme↑` → `org` birikimi yavaşlar |
+| Bölünme → ücret | `bolunme↑` → `pay` kazanımı düşer, `r` korunur |
+| Rıza aygıtının bedeli | rıza kolu açık → `qg` düşer → uzun vadede `r` **daha çok** düşer |
+| Zor aygıtının bedeli | zor kolu açık → `cezaevi_orani↑` → `l_etkin()↓` → `V↓` |
+| Şehit etkisi | siyasi cinayet → kısa vadede `org↓`, orta vadede `Omega↑` |
+| Karşı hareket | sendika/parti güçlü → `bolunme` birikimi tersine döner |
+
+> **Kural:** B3 bitmeden B5'e geçilmez. Testleri geçmeyen bir motor Victoria
+> kabuğuna sarıldığında **güzel görünen ama iktisadi olarak anlamsız** bir oyun
+> olur — ve bu oynayarak fark edilmez.
 
 ---
 
-## 6. Riskler
+## 8. Riskler
 
-**6.1 Ölçekleme sessizliği.** §3.2. Tur→hafta dönüşümü her oran parametresini
-etkiler; tek tek gözden geçirilmeli, toplu çarpanla geçiştirilmemeli (bazıları
-stok, bazıları akım).
+**8.1 Ölçekleme sessizliği.** §5.2. Tur→hafta dönüşümü her oran parametresini
+etkiler; bazıları stok, bazıları akım — toplu çarpanla geçiştirilemez.
 
-**6.2 Mikro-makro tutarsızlığı.** Mikro katman `pay` ve `e` üretirken değer
-katmanı bunları kullanıyor; ama Goodwin bloğu `pay`'i **geri** yazıyor. Kimin
-otorite olduğu her alan için tek tek kararlaştırılmalı, yoksa iki katman
-birbirini ezer.
+**8.2 Mikro-makro tutarsızlığı.** Mikro katman `pay` ve `e` üretiyor, Goodwin
+bloğu `pay`'i **geri** yazıyor. Her alan için kimin otorite olduğu
+kararlaştırılmalı, yoksa iki katman birbirini ezer.
 
-**6.3 Başarım.** 5200 tik × ~100 ülke = 520 000 ülke-tik; v4.4'ün 1259 tur ×
-20 ülkesi 25 180'di, yani **~21 kat** ağır — üstelik bu yalnızca değer katmanı,
-mikro katman (pop, bina, mal piyasası) bunun üstüne biniyor. B5'te ölçülmeli;
-gerekirse mikro katman aylık, değer katmanı haftalık koşar.
+**8.3 Başarım.** 5200 tik × ~100 ülke = 520 000 ülke-tik; v4.4'ün 1259 × 20'si
+25 180'di, yani **~21 kat** ağır — üstelik bu yalnızca değer katmanı.
 
-**6.4 Kapsam.** Victoria 3 yüzlerce insan-yılıdır. B0–B3 iktisadi çekirdeği
-kurar ve tek başına anlamlı bir oyundur; B4–B6 kabuktur ve kademeli
-büyütülebilir.
+**8.4 Bölünme mekanizmasının dengesi.** §4 güçlü bir kol: yanlış kalibre
+edilirse ya devrimi imkânsız kılar ya da etkisiz kalır. Karşı hareket (§4.4)
+ve rıza aygıtının `qg` bedeli bu dengenin iki sigortasıdır; ikisi de yön
+testiyle korunmalı.
+
+**8.5 Kapsam.** B0–B3 iktisadi çekirdeği kurar ve tek başına anlamlı bir
+oyundur; B4–B7 kademeli büyütülebilir.
