@@ -370,15 +370,46 @@ bağımsızdır; `C` ve `L` genelleşir.
 
 Ağ katmanı, lockstep, oturum yönetimi yok.
 
-### 5.8 Eyaletler: simülasyon birimi DEĞİL
+### 5.8 Eyaletler: **yok**
 
-Ekonomi **ülke düzeyinde** çalışır. Eyaletler haritada görünür, tıklanır ve
-adlandırılır ama kendi pop'unu, binasını, altyapısını taşımaz.
+Eyalet katmanı tamamen kaldırıldı. Sebebi tasarımsal değil olgusal: eyalet
+sistemi her ülkede yoktur (üniter devletlerde karşılığı yok), oyunun hiçbir
+mekanizması eyalet düzeyinde çalışmıyor, ve harita ülke düzeyinde de pekâlâ
+okunuyor.
 
-Gerekçe: değer katmanı zaten ülke düzeyinde; eyaletleri simüle etmek maliyeti
-bir basamak büyütür (100 ülke × ~10 eyalet × 13 700 hafta) ve karşılığında
-oyunun tezine hiçbir şey katmaz — tez sınıf ve dünya sistemi üzerine, coğrafya
-üzerine değil. Victoria görünümü korunur, Victoria maliyeti alınmaz.
+Ekonominin tek mekânsal birimi **ülkedir**. Harita ülkeleri gösterir;
+tıklanan şey ülkedir.
+
+### 5.8b Ülkeler: simüle edilen dünya ≠ oynanabilir küme
+
+İki ayrı liste:
+
+**Simüle edilen dünya** — Victoria 3 ölçeğinde bütün egemen devletler.
+Hepsi kendi kriz çekirdeğini koşturur, ticaret yapar, savaşır, rejim
+değiştirir. Oyuncu onları dışarıdan izler.
+
+**Oynanabilir küme** — **G20 + 1836'daki tarihsel öncülleri**:
+
+| bugünkü | 1836'daki öncülü |
+|---|---|
+| Türkiye | Osmanlı İmparatorluğu |
+| Almanya | Prusya / Alman Konfederasyonu |
+| Rusya | Rusya İmparatorluğu |
+| Çin | Çing Hanedanı |
+| Hindistan | Babür / Britanya Hindistanı |
+| İtalya | Sardinya-Piemonte / İki Sicilya |
+| Japonya | Tokugawa şogunluğu |
+| İngiltere | Britanya İmparatorluğu |
+| ABD, Fransa, Brezilya, Meksika, Arjantin | kendileri |
+| Kanada, Avustralya, G.Afrika | Britanya sömürgesi (geç açılır) |
+| Endonezya | Hollanda Doğu Hint Adaları |
+| S.Arabistan | Necd / Osmanlı vilayeti |
+| G.Kore | Choson |
+
+Gerekçe: dünyanın zenginliği korunur ama oyuncu **anlamlı bir özneye**
+bağlanır. Dünya sistemindeki konum oyunun zorluk ayarı olduğu için (§0),
+oynanabilir kümenin merkez–yarı–çevre yelpazesini kapsaması yeterlidir;
+G20 tam olarak bunu yapar.
 
 ### 5.9 Pop'lar: sınıf kohortları
 
@@ -429,7 +460,8 @@ inşa edip en sonda "krizler hâlâ yok" bulmak demekti.
 | aşama | iş | biter dediğimiz an |
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
-| **B1** | **DÜNYA.** Çok ülke, değer transferi (C, L), dış ticaret ve Thirlwall (B), ani duruş / moratoryum / döviz krizi (D, E, F) | **`--v2-tarih` geçer** — 1825–2023'te 10–60 kriz, en az bir aşırı üretim krizi |
+| **B1a** | **KAPALI EKONOMİ KRİZ ÜRETSİN.** Amortisman talebinin kârlılığa bağlanması, Departman I/II orantısızlığı (§8.6) | Tek ülkeli koşu 1825–2023'te **en az bir aşırı üretim krizi** tescil eder |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L), dış ticaret (B), ani duruş / moratoryum / döviz krizi (D, E, F) | **`--v2-tarih` geçer** — 10–60 kriz, tür karışımı tabloya yakın |
 | **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -437,7 +469,7 @@ inşa edip en sonda "krizler hâlâ yok" bulmak demekti.
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | ~100 ülke, kabul edilebilir tik süresi |
 | **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce | Ekran `--ss=` ile çizdirilip bakılmış |
 
-**B1 artık en kritik aşamadır.** Geçmezse mikro katmana geçilmez — çünkü
+**B1a artık en kritik aşamadır.** Geçmezse mikro katmana geçilmez — çünkü
 geçmemesi, kriz teorisinin bu mimaride çalışmadığı anlamına gelir ve bunu
 pop/bina yığınının altında keşfetmek çok pahalıdır.
 
@@ -509,33 +541,40 @@ testiyle korunmalı.
 **8.5 Kapsam.** B0–B3 iktisadi çekirdeği kurar ve tek başına anlamlı bir
 oyundur; B4–B7 kademeli büyütülebilir.
 
-**8.6 Konjonktür dalgası ülke-içi değil, ULUSLARARASI — B0'da ölçüldü.**
+**8.6 Kapalı ekonomi kriz üretmiyor — bu modelin KUSURU.**
 
-Ülke-içi çekirdek tek başına koşturulduğunda **sıfır kriz** tescil ediyor.
-İlk teşhisim "yatırım talebi kaçıyor" idi; **yanlıştı**. v4.4'ün kendisiyle
-karşılaştırıldı (`--dump-turn=200`, `=1000`):
+B0 sonunda "bu modelde kriz uluslararasıdır, kapalı ekonomi istikrarlıdır"
+diye yazmıştım. **Bu aşırı yorumdu ve geri alınıyor.**
 
-| | v4.4 ABD (merkez) | v4.4 Almanya | v4.4 Çin |
-|---|---|---|---|
-| istihdam | `e = 1.000` | `e = 0.429` | `e = 0.537` |
-| talep açığı | `0.0000` | `0.295` | `0.303` |
-| kriz sayacı | `0` | `18` | `147` |
+Marx'ta kriz eğilimi sermayenin kendi içindedir: aşırı üretim işçilerin
+toplam ürünü satın alamamasından, kâr oranının düşüşü organik bileşimin
+yükselmesinden doğar. İkisi de dış ticaret gerektirmez. **Kapalı bir
+kapitalist ekonomi krizsiz kalamaz.**
 
-Tur 200'de 20 ülkenin **yalnızca 9'unda** talep açığı var; ABD'de yok. Tur
-1000'de ABD hâlâ `e = 0.978`. Yatırım payı da eşleşiyor: v4.4 ABD `I/Y = 0.478`.
+Ölçtüğüm ile çıkardığım ayrılmalı:
 
-> **Yani v4.4'ün merkez ülkesi de sakindir.** Tek ülkeli, savaşsız, ticaretsiz
-> bir koşu v4.4'ün en sakin ülkesini üretir — çekirdek tam da onu üretiyor.
-> Kusur çekirdekte değil, **eksik olan dünyada**.
+| ölçüm | çıkarım |
+|---|---|
+| Tek ülkeli koşu 198 yılda 0 kriz; v4.4'ün ABD'si de `talep_acigi=0` | ~~"kriz uluslararasıdır"~~ **yanlış** |
+| | **doğrusu:** model, olması gereken krizi üretmiyor |
 
-Krizleri üretenler: ülke heterojenliği, değer transferi, savaş, abluka,
-ticaret şoku ve politika AI'si. Hepsi B2'de gelir.
+Kendi verim de bunu doğruluyordu ve okumamıştım: aynı dökümde, **çağ 1'de,
+otomasyon yokken** Almanya `talep_acigi = 0.295`, Çin `0.303`. Yani v4.4'ün
+19. yüzyıl aşırı üretim kanalı **vardır**; benim tek ülkeli parametrelemem
+tesadüfen talebin bol olduğu bölgeye düşmüştü.
 
-**`--v2-tarih` B2 bitmeden geçemez ve geçmesi beklenmemelidir.** O test bir
-kalibrasyon hedefi değil, **dünya katmanının gerekliliğinin kanıtıdır.**
+### Şüpheliler — B1'in hedefi
 
-**Teorik sonuç — ve bu tasarımı doğruluyor:** bu modelde kriz
-**uluslararasıdır**. §3'te savaşı ve emperyalizmi "krizden çıkış yolu" diye
-koymuştuk; ölçüm daha güçlüsünü söylüyor: emperyalizm dekor değil,
-**krizlerin doğduğu yerdir**. Tek bir kapalı ekonomi istikrarlıdır; kriz
-dünya sisteminin ürünüdür.
+**(a) Amortisman talebi kârlılıktan bağımsız bir taban kuruyor.** Brüt
+yatırım `(g + δ)·K`; kâr oranı çökse ve net birikim dursa bile `δ·K` talebi
+ayakta tutuyor. Oysa kârlılık kaybolunca kapitalist yenilemez bile — parayı
+tutar, ya da spekülasyona kaydırır.
+
+**(b) Departman I / II orantısızlığı yok.** Marx'ın yeniden üretim şemaları
+krizi üretim araçları ile tüketim malları sektörleri arasındaki orantısızlığa
+bağlar. Bu, §5.10'daki mal kategorilerinin (tüketim malı / sermaye malı) tam
+karşılığıdır — yani çözüm zaten planda, yalnızca sırası öne alınmalı.
+
+> **B1'in ilk işi dünya değil, kapalı ekonomiyi kriz üretir hale
+> getirmektir.** Dünya katmanı krizi *derinleştirir ve yayar*; ama krizin
+> kaynağı olmak zorunda değildir ve teoriye göre değildir.
