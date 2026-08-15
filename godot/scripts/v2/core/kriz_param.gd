@@ -111,6 +111,12 @@ var parti_hiz_yil: float
 var etg_yerlesme_yil: float
 var kat_hiz_yil: float
 
+## KRIZ DEVALUASYONUNUN GERI DONUSU. v4.4:
+##     deger_carpani += dev_geri * (1 - deger_carpani)
+## Hedefi 1.0 olan bir UYUM katsayisidir, akim degil -- yanlis turden
+## cevrilirse devaluasyon ya hic geri donmez ya da bir donemde silinir.
+var dev_geri_yil: float
+
 # ---------------------------------------------------------------------------
 # SURE  --  tur cinsinden sayaclar; donem sayisina cevrilir
 # ---------------------------------------------------------------------------
@@ -169,6 +175,7 @@ func _init(kaynak: ParamSet = null) -> void:
 	parti_hiz_yil = Oran.v44_uyum(v44.parti_hiz)
 	etg_yerlesme_yil = Oran.v44_uyum(v44.etg_yerlesme)
 	kat_hiz_yil = Oran.v44_uyum(v44.kat_hiz)
+	dev_geri_yil = Oran.v44_uyum(v44.dev_geri)
 
 	# --- SURE (tur -> yil) ---
 	delev_sure_yil = Oran.yillik_sure(v44.delev_sure, Oran.V44_TUR_YIL)

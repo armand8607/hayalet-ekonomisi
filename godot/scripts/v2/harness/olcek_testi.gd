@@ -63,6 +63,10 @@ static func _kos(donem_yil: float, yil: float, param: KrizParam = null,
 	var d := _baslangic()
 	var cekirdek := KrizCekirdegi.new(param)
 	cekirdek.cag_sabit = cag_sabit
+	# Cag sabitlenmisse test q'nun KAPALI FORMULUNU sinar; doyum q'ya bagli
+	# oldugu icin o da sabitlenmeli, yoksa test donem cevrimini degil doyum
+	# egrisini olcer.
+	cekirdek.doyum_sabit = cag_sabit
 	cekirdek.baslat(d)
 	var n := Oran.donem_sayisi(yil, donem_yil)
 	for _i in range(n):
@@ -92,19 +96,21 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	var adim_basi := maxi(1, n / 10)
 	print("")
 	print("V2 CEKIRDEK IZI -- %d yil, %d donem" % [int(yil), n])
-	print("  (C/I/G/D sutunlari Y_pot'a ORANDIR -- D>1 ise talep baglamaz)")
-	print("  (C/I/D sutunlari Y_pot'a ORANDIR)")
-	print("%6s %3s %8s %6s %6s %6s %7s %7s %7s %6s %6s %6s"
-			% ["yil", "cag", "Y_pot", "C/Yp", "I/Yp", "D/Yp", "pi", "i", "r",
-				"yenile", "pay_I", "e"])
+	print("  (C/I/D sutunlari Y_pot'a ORANDIR -- D>1 ise talep BAGLAMAZ)")
+	print("  (K/Y yillik sermaye-hasila; u kapasite kullanimi; acik talep_acigi)")
+	print("  (var/Y balon; i_s-r Minsky kapisi: NEGATIFSE balon hic sismez)")
+	print("%6s %3s %8s %6s %6s %6s %6s %6s %6s %7s %7s %6s %6s %7s"
+			% ["yil", "cag", "Y_pot", "C/Yp", "I/Yp", "D/Yp", "K/Y", "u",
+				"cv", "i", "r", "yenile", "e", "i_s-r"])
 	for i in range(n):
 		cekirdek.adim(d, donem_yil)
 		if i % adim_basi == 0 or i == n - 1:
 			var yp := maxf(d.Y_pot_yil, 1e-9)
-			print("%6.0f %3d %8.1f %6.3f %6.3f %6.3f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f"
+			print("%6.0f %3d %8.1f %6.3f %6.3f %6.3f %6.2f %6.3f %6.2f %7.4f %7.4f %6.3f %6.3f %7.4f"
 					% [d.yil, d.era, d.Y_pot_yil, d.C_yil / yp, d.I_yil / yp,
-						d.D_yil / yp, d.pi_inf, d.i_yil, d.r_yil,
-						d.yenileme_orani, d.pay_I, d.e])
+						d.D_yil / yp, d.K / maxf(d.Y_yil, 1e-9), d.u, d.cv,
+						d.i_yil, d.r_yil, d.yenileme_orani, d.e,
+						d.i_spec_yil - d.r_yil])
 	print("  krizler: asiri_uretim=%d resesyon=%d bunalim=%d delev=%d rejim=%s"
 			% [d.asiri_uretim_krizleri.size(), d.resesyonlar.size(),
 				d.bunalimlar.size(), d.delev, d.rejim])

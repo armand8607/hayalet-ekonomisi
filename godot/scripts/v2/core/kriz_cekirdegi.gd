@@ -44,6 +44,13 @@ var P: KrizParam
 ## kendisini degil cag tablosunu olcer.
 var cag_sabit := false
 
+## Cag ici teknolojik doyumu kapatir. YALNIZCA test icindir, `cag_sabit` ile
+## ayni gerekcesi var: `Oran.donem_buyume`'yi q'nun KAPALI FORMULUNE karsi
+## sinamak icin buyume oraninin sabit kalmasi gerekir. `doyum` q'ya bagli
+## oldugu icin q'yu geri beslemeli yapar ve kapali formul gecerliligini
+## yitirir -- o zaman test donem cevrimini degil DOYUM EGRISINI olcer.
+var doyum_sabit := false
+
 ## Devrim gibi ayrik olaylar icin. Motorun kendi RNG'si degil -- v2'nin
 ## belirlenimciligi kendi tohumundan gelir.
 var rng: PyRandom
@@ -87,7 +94,7 @@ func kappa_v(cv: float, q: float) -> float:
 func baslat(d: KrizDurumu, hedef_istihdam: float = 0.90) -> void:
 	P.cag_uygula(d.era)
 	_calisma_suresi(d)
-	d.cv = Formulas.organik_bilesim(d.q)
+	d.cv = Formulas.organik_bilesim(d.q) * d.deger_carpani
 	d.kv = kappa_v(d.cv, d.q)
 
 	var emek := d.l_etkin() * d.hafta_saati
@@ -115,7 +122,7 @@ func adim(d: KrizDurumu, donem_yil: float, dis: Dictionary = {}) -> void:
 	var VT_net_yil := float(dis.get("VT_net_yil", 0.0))
 	var Y_onceki := d.Y_yil
 
-	_deger_bilesimi(d)
+	_deger_bilesimi(d, donem_yil)
 	_calisma_suresi(d)
 	var Y_pot := _arz_kapasitesi(d, donem_yil)
 	_merkez_bankasi(d, donem_yil)
@@ -132,10 +139,43 @@ func adim(d: KrizDurumu, donem_yil: float, dis: Dictionary = {}) -> void:
 	_protesto_ve_devrim(d, donem_yil, dis)
 
 	# Uretkenlik en sonda: bu donemin hasilasi bu donemin q'suyla uretildi.
-	d.q *= (1.0 + Oran.donem_buyume(P.qg_yil, donem_yil))
+	_uretkenlik(d, donem_yil)
 	_nufus(d, donem_yil)
 	_cag_gecisi(d, donem_yil)
 	d.yil += donem_yil
+
+
+## URETKENLIK -- CAG ICINDE DOYUMA GIRER.
+##
+## v4.4 (`motor.py:2253`):
+##     doyum    = max(q_doyum_taban, 1 - q/E["q_tavan"])
+##     q_buyume = E["qg"] * ... * doyum * ito
+##
+## v2'nin ilk yaziminda `doyum` HIC TASINMADI: q sabit oranda, sinirsiz
+## bilesikleniyordu. Sonucu olculdu -- 198 yilda c/v 15 olan cag-6 capasini
+## asip 112'ye, yillik K/Y ise 21'e cikiyor.
+##
+## NEDEN OLDURUCU. `Y_pot = K/kv` oldugu icin K/Y ozdeslikle `kv*TUR_YIL`e
+## esittir ve `kv` yalnizca c/v'ye bakar. Yani K/Y'yi baska HICBIR SEY
+## sinirlayamaz -- sermaye stokunu kucultmek Y'yi ayni oranda kucultur.
+## (Olculdu: ahlaki asinma kanali 0'dan 1'e tarandi, K/Y 21.2'de kipirdamadi.)
+## K/Y buyudukce brut yatirim talebi `(g + yenileme*delta)*K` hasilayi asar --
+## 2023'te I/Y_pot = 1.80, D/Y_pot = 2.36. Talep arzi kalici olarak astigi
+## icin hicbir departmanda mal yigilamaz, `talep_acigi` sifirda kalir ve
+## ASIRI URETIM, RESESYON, BUNALIM kanallarinin ucu de ARITMETIK OLARAK
+## kapanir. 198 yilda sifir cevrimsel kriz, tek terminal devrim.
+##
+## Doyum bunu yapisal olarak kapatir ve oyunun asil iddiasini kurar:
+## teknolojik gelisme SICRAMALIDIR. Cag icinde buyume yavaslar, egilim
+## (LTRPF) ustunluk kurar ve kriz olgunlasir; cag atlamasi yeni bir capa
+## acar ve yeni bir birikim dalgasi baslar. Kriz artik takvimin degil
+## TEKNOLOJIK DONEMIN fonksiyonudur.
+func _uretkenlik(d: KrizDurumu, donem_yil: float) -> void:
+	var E: Dictionary = Tables.ERAS[clampi(d.era, 1, 6)]
+	var doyum := 1.0 if doyum_sabit else maxf(
+			P.v44.q_doyum_taban, 1.0 - d.q / float(E["q_tavan"]))
+	d.q_doyum = doyum
+	d.q *= (1.0 + Oran.donem_buyume(P.qg_yil * doyum, donem_yil))
 
 
 ## Nufus. B2'de mikro katman (pop'lar) uretecek; burada toplam bir oran.
@@ -175,10 +215,35 @@ func _cag_gecisi(d: KrizDurumu, donem_yil: float) -> void:
 # DEGER BILESIMI
 # ===========================================================================
 
-func _deger_bilesimi(d: KrizDurumu) -> void:
+## SABIT SERMAYENIN KRIZDE DEGERSIZLESMESI -- Kapital III bol. 14'un
+## karsi-egilimler listesindeki BIRINCI madde.
+##
+## `deger_carpani` v2'nin ilk yaziminda YAZILIYOR ama HIC OKUNMUYORDU: kriz
+## tescili ve Minsky patlamasi carpani dusuruyor, sonra kimse ona bakmiyordu.
+## Yani kriz yalnizca yikiyor, HICBIR SEYI ONARMIYORDU.
+##
+## Bu tam olarak v4.4'un kendi belgesinin §17'de tarif ettigi hastaliktir:
+## "Model r = (1-pay)*u/kv ozdesligine indirgendigi icin sermaye yikimi kar
+## oranini HIC yukseltmiyordu; kriz yalnizca yikiyor, hicbir seyi onarmiyordu."
+## v4.4 mekanizmayi tam da bunun icin eklemisti; v2'ye ayiklanirken dustu.
+##
+## SONUCU OLCULDU: cevrim dogmuyor. Kar orani 0.098'den 0.010'a TEK YONLU
+## iniyor, hicbir yerde geri donmuyor, ve 198 yilda sifir cevrimsel kriz ile
+## tek bir terminal devrim cikiyor. Marx'ta kriz dongunun SONU degil
+## DONUM NOKTASIDIR: sermayeyi degersizlestirir, boylece kar oranini onarir
+## ve bir sonraki birikim dalgasini acar.
+##
+## Zincir: kriz -> deger_carpani duser -> c/v duser -> kv duser -> ayni
+## sermaye ile daha cok hasila -> r YUKSELIR -> birikim yeniden baslar.
+## `dev_geri` ile carpan yavasca 1.0'a doner, yani onarim kalici degildir --
+## egilim yeniden ustunluk kurar ve bir sonraki kriz gelir.
+func _deger_bilesimi(d: KrizDurumu, donem_yil: float) -> void:
+	# Devaluasyon yavas geri doner: onarim gecicidir, egilim kalicidir.
+	d.deger_carpani = minf(1.0, d.deger_carpani
+			+ Oran.donem_uyum(P.dev_geri_yil, donem_yil) * (1.0 - d.deger_carpani))
 	# c/v'nin TAVANI YOKTUR. Egilimin yakiti budur: q buyudukce c/v buyur ve
-	# geri donmez.
-	d.cv = Formulas.organik_bilesim(d.q)
+	# geri donmez -- ama KRIZ onu geri iter. Egilim ile karsi-egilim.
+	d.cv = Formulas.organik_bilesim(d.q) * d.deger_carpani
 	d.kv = kappa_v(d.cv, d.q)
 
 
