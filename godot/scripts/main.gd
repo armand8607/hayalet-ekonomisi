@@ -32,6 +32,9 @@ func _ready() -> void:
 				cikis = Parity.self_test()
 			"--sim-test":
 				cikis = SimTest.kos()
+			"--v2-olcek":
+				# v2 kriz cekirdeginin olcek degismezligi. v4.4'e DOKUNMAZ.
+				cikis = OlcekTesti.kos()
 			"--dump-rng":
 				Parity.dump_rng(42)
 			"--dump-crc32":
