@@ -370,24 +370,80 @@ bağımsızdır; `C` ve `L` genelleşir.
 
 Ağ katmanı, lockstep, oturum yönetimi yok.
 
+### 5.8 Eyaletler: simülasyon birimi DEĞİL
+
+Ekonomi **ülke düzeyinde** çalışır. Eyaletler haritada görünür, tıklanır ve
+adlandırılır ama kendi pop'unu, binasını, altyapısını taşımaz.
+
+Gerekçe: değer katmanı zaten ülke düzeyinde; eyaletleri simüle etmek maliyeti
+bir basamak büyütür (100 ülke × ~10 eyalet × 13 700 hafta) ve karşılığında
+oyunun tezine hiçbir şey katmaz — tez sınıf ve dünya sistemi üzerine, coğrafya
+üzerine değil. Victoria görünümü korunur, Victoria maliyeti alınmaz.
+
+### 5.9 Pop'lar: sınıf kohortları
+
+Ülke başına **6–8 kohort**: sermayedar, küçük burjuva, ücretli işçi, örgütlü
+işçi, işsiz, hapisteki nüfus, kır emeği. Victoria'nın tip × kültür × din ×
+konum çarpımı **yok** — 100 ülkede yüzlerce nesne yerine ~800.
+
+**Azınlık gruplarının çözümü.** Karanlık devlet (§4) etnik, dinsel ve
+cinsiyet bölünmeleri üzerinde çalışır; kohort modeli bunları ayrı pop olarak
+taşımaz. Çözüm:
+
+- **azınlık grupları VERİ olarak** — ülke başına ad + nüfus payı listesi
+- **`bolunme` SKALER olarak** — sınıfın kendi içine bölünmüşlük derecesi
+
+Böylece §4.6'nın temsil ilkesi korunur (ekranda **kimin** hedef alındığı
+yazılır, bedeli sayılır) ama pop sayısı patlamaz.
+
+### 5.10 Mal piyasası: 4–6 kategori
+
+**Tüketim malı, sermaye malı, hammadde, lüks** — Victoria'nın ~50 malı değil.
+
+Mal katmanının bu oyundaki işi tek: **satılamayan mal yığınını görünür
+kılmak.** Gerçekleşme krizi bir sayı olarak değil, depoda biriken bir kütle
+olarak okunmalı. Bunun için elli mal gerekmez; dört kategori yeter ve piyasa
+temizleme makinesi yönetilebilir kalır.
+
+### 5.11 Binalar ve üretim yöntemleri: **pazarlık dışı**
+
+Oyunun merkezî tuzağı burada yaşar (§2.4): üretim yöntemi yükseltmesi `q`'yu
+yükseltir → `c/v` yükselir → `r` düşer. Oyuncunun asıl kolu budur ve
+çıkarılamaz.
+
+Bina **türü** azdır: sektör başına bir tane, ~6–8 tür. Zenginlik tür
+sayısında değil, **üretim yöntemi merdiveninde**.
+
 ---
 
-## 6. Aşamalar
+## 6. Aşamalar — **B0'dan sonra yeniden sıralandı**
 
-| aşama | iş |
-|---|---|
-| **B0** | **Kriz çekirdeğinin ayıklanması.** A–T blokları saf modül haline gelir, oran parametreleri haftalığa ölçeklenir |
-| **B1** | **Mikro katman iskeleti.** Eyalet, pop, bina, üretim yöntemi, mal piyasası — tek ülkede, haritasız |
-| **B2** | **Kuplaj.** §2.3 tablosunun bağlanması |
-| **B2b** | **Bölünme ve karşı hareket.** `bolunme` değişkeni, rıza/zor kolları, sendika ve parti karşı kuvvetleri (§4) |
-| **B3** | **Yön testleri yeşile.** Dokuz iddia + karanlık devlet için yeni yön testleri |
-| **B4** | **Dış katman.** İttifak, abluka, ambargo, savaş — kriz çıkışı olarak (§3) |
-| **B5** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi |
-| **B6** | **Ölçek.** Tam dünya, başarım ölçümü |
-| **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce, diplomasi |
+B0'ın ölçümü planı değiştirdi. Eski sıra "mikro katman → kuplaj → dünya"
+diyordu; ama §8.6'da ölçüldü ki **kapalı bir ekonomi istikrarlıdır ve kriz
+dünya sisteminin ürünüdür.** Eski sırayla ilerlemek, aylarca pop ve bina
+inşa edip en sonda "krizler hâlâ yok" bulmak demekti.
 
-**B0 ve B3 en kritik ikilidir.** B0 yanlış yapılırsa motor sessizce yanlış
-koşar; B3 onu yakalayan tek şeydir.
+> **Yeni kural: kriz makinesinin canlı olduğu, üstüne bir şey inşa edilmeden
+> ÖNCE kanıtlanır.** Risk öne alınır.
+
+| aşama | iş | biter dediğimiz an |
+|---|---|---|
+| ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
+| **B1** | **DÜNYA.** Çok ülke, değer transferi (C, L), dış ticaret ve Thirlwall (B), ani duruş / moratoryum / döviz krizi (D, E, F) | **`--v2-tarih` geçer** — 1825–2023'te 10–60 kriz, en az bir aşırı üretim krizi |
+| **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
+| **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
+| **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
+| **B5** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi | 20+ ülke, dokuz mod, bağlar çizili |
+| **B6** | **Ölçek.** Tam dünya, başarım ölçümü | ~100 ülke, kabul edilebilir tik süresi |
+| **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce | Ekran `--ss=` ile çizdirilip bakılmış |
+
+**B1 artık en kritik aşamadır.** Geçmezse mikro katmana geçilmez — çünkü
+geçmemesi, kriz teorisinin bu mimaride çalışmadığı anlamına gelir ve bunu
+pop/bina yığınının altında keşfetmek çok pahalıdır.
+
+Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 18/18,
+`--v2-tarih` geçer (B1'den sonra), ve ekran değişmişse `--ss=` ile
+gerçekten çizdirilip bakılmış olur.
 
 ---
 
