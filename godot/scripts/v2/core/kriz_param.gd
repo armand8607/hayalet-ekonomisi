@@ -26,6 +26,44 @@ extends RefCounted
 var v44: ParamSet
 
 # ---------------------------------------------------------------------------
+# v2'YE OZGU  --  v4.4'te KARSILIGI YOKTUR
+#
+# Bunlar port degil, EKLEMEDIR. v4.4'un kendi kusurunu gidermek icin
+# konuldular: orada brut yatirim `(g + delta)*K` idi ve amortisman talebi
+# karliliktan BAGIMSIZ bir taban kuruyordu. Kar orani cokse ve net birikim
+# dursa bile `delta*K` talebi ayakta tutuyor, dolayisiyla gerceklesme krizi
+# kapali bir ekonomide ateslenemiyordu.
+#
+# Marx'ta boyle degildir: karlilik kayboldugunda kapitalist eskiyen sermayeyi
+# YENILEMEZ bile -- parayi tutar ya da spekulasyona kaydirir. Yenileme
+# yatirimi bu yuzden karliliga baglanir.
+# ---------------------------------------------------------------------------
+
+## Kar orani sifira dustugunde bile yapilan yenileme payi. Bakimin tamamen
+## durmasi fiziksel olarak mumkun degil; taban bunu temsil eder.
+var yenileme_taban: float = 0.30
+
+## Yenilemenin kar orani-faiz makasina duyarliligi. Buyudukce yatirim daha
+## sert kesilir, konjonktur dalgasi derinlesir.
+var yenileme_duyarlilik: float = 4.0
+
+## DEPARTMAN I / II -- Marx'in yeniden uretim semalari.
+##
+## Tek mallik bir modelde gerceklesme krizi YAPISAL OLARAK IMKANSIZDIR:
+## yatirim talebi ile tuketim talebi ayni farksiz hasilayi satin alir,
+## dolayisiyla biri digerinin yerine gecer ve orantisizlik dogamaz. Marx'ta
+## kriz tam da bu orantisizliktan dogar: Departman I uretim araci uretir ve
+## alicisi YATIRIMDIR; Departman II tuketim mali uretir ve alicisi UCRET ile
+## kamu harcamasidir. Ikisi birbirinin yerine GECEMEZ.
+##
+## Sermayenin departmanlar arasi yeniden dagilimi YAVASTIR -- bir celik
+## fabrikasi bir gecede ekmek fabrikasina donmez. Kriz bu yavasligin
+## urunudur: patlama doneminde sermaye Departman I'e akar, yatirim
+## coktugunde orada MAHSUR kalir ve satilamayan uretim araci yigilir.
+var dept_uyum_yil: float = 0.15      ## yillik yeniden dagilim hizi (~7 yil)
+var dept_pay_I: float = 0.35         ## baslangicta uretim araci sektorunun payi
+
+# ---------------------------------------------------------------------------
 # BUYUME  --  bilesik oranlar, (1+x)^(1/donem) ile cevrilir
 # ---------------------------------------------------------------------------
 var g_taban_yil: float

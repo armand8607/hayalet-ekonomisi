@@ -151,6 +151,25 @@ var C_yil: float = 0.0
 var I_yil: float = 0.0
 var G_yil: float = 0.0
 var D_yil: float = 0.0
+## Yenileme yatiriminin karliliga gore olcegi [taban, 1]. 1 = tam yenileme,
+## taban = karlilik yok, yalnizca zorunlu bakim.
+var yenileme_orani: float = 1.0
+
+# ---------------------------------------------------------------------------
+# DEPARTMAN I / II  --  Marx'in yeniden uretim semalari
+# ---------------------------------------------------------------------------
+## Sermayenin Departman I'de (uretim araci) duran payi. YAVAS degisir.
+var pay_I: float = 0.35
+var Y_I_yil: float = 0.0           ## Dept I gerceklesen hasila
+var Y_II_yil: float = 0.0          ## Dept II gerceklesen hasila
+var satilamayan_I: float = 0.0     ## satilamayan uretim araci
+var satilamayan_II: float = 0.0    ## satilamayan tuketim mali
+
+## EMEK GERGINLIGI -- istihdam oraninin 1.0'da doydugu yerde ucret baskisini
+## tasiyan buyukluk. 1.0'i ASABILIR: sermaye kapasitesi emek arzini astiginda
+## karsilanmamis emek talebi olusur ve bu, tam istihdamda bile ucretleri
+## yukari iter. `e` bunu tasiyamaz cunku tanimi geregi tavanlidir.
+var emek_gerginlik: float = 0.9
 
 
 ## Etkin emek gucu -- hapsedilenler dusulmus.

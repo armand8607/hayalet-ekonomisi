@@ -563,18 +563,60 @@ otomasyon yokken** Almanya `talep_acigi = 0.295`, Çin `0.303`. Yani v4.4'ün
 19. yüzyıl aşırı üretim kanalı **vardır**; benim tek ülkeli parametrelemem
 tesadüfen talebin bol olduğu bölgeye düşmüştü.
 
-### Şüpheliler — B1'in hedefi
+### B1a'da yapılanlar ve kalan
 
-**(a) Amortisman talebi kârlılıktan bağımsız bir taban kuruyor.** Brüt
-yatırım `(g + δ)·K`; kâr oranı çökse ve net birikim dursa bile `δ·K` talebi
-ayakta tutuyor. Oysa kârlılık kaybolunca kapitalist yenilemez bile — parayı
-tutar, ya da spekülasyona kaydırır.
+Üç mekanizma eklendi. **Üçü de gerekli, üçü birlikte hâlâ yeterli değil.**
 
-**(b) Departman I / II orantısızlığı yok.** Marx'ın yeniden üretim şemaları
-krizi üretim araçları ile tüketim malları sektörleri arasındaki orantısızlığa
-bağlar. Bu, §5.10'daki mal kategorilerinin (tüketim malı / sermaye malı) tam
-karşılığıdır — yani çözüm zaten planda, yalnızca sırası öne alınmalı.
+**1. Yenileme yatırımı kârlılığa bağlandı.** v4.4'te brüt yatırım
+`(g + δ)·K` idi; `δ·K` kârlılıktan bağımsız bir **talep tabanı** kuruyordu.
+Marx'ta kârlılık kaybolunca kapitalist eskiyen sermayeyi yenilemez bile.
+Artık `yenileme = taban + (1−taban)·sg(duyarlılık · (r−i)/i)`.
 
-> **B1'in ilk işi dünya değil, kapalı ekonomiyi kriz üretir hale
-> getirmektir.** Dünya katmanı krizi *derinleştirir ve yayar*; ama krizin
-> kaynağı olmak zorunda değildir ve teoriye göre değildir.
+**2. Departman I / II kuruldu.** Bu **yapısal bir zorunluluktu**: tek mallı
+bir modelde gerçekleşme krizi imkânsızdır, çünkü yatırım talebi ile tüketim
+talebi aynı farksız hasılayı satın alır ve orantısızlık doğamaz. Artık
+Departman I üretim aracı üretir (alıcısı yatırım), Departman II tüketim malı
+(alıcısı ücret ve kamu), ve **ikisi birbirinin yerine geçemez**. Sermayenin
+departmanlar arası yeniden dağılımı yavaştır — kriz tam da bu yavaşlığın
+ürünüdür.
+
+**3. Emek gerginliği eklendi.** `e` tanımı gereği 1.0'da doyar; emek bağlayıcı
+kısıt olduğunda Goodwin terimi `bos_e = e − e_norm → 0` ile **ölür**.
+Gerçekte tam istihdam ücret baskısının bittiği yer değil, en şiddetli olduğu
+yerdir. Gerginlik 1.0'ı aşabilir ve pazarlığı yaşatır.
+
+Sonuç: fiyat ve faiz artık **salınıyor** (`pi` 0.018→0.027→0.001→0.026,
+`i` 0.005→0.023→0.032→0.005). Goodwin kanalı canlandı.
+
+### Kalan sorun: salınım genliği trende göre çok küçük
+
+Ölçüldü (1836–1956, haftalık):
+
+| | değer |
+|---|---|
+| toplam talep / potansiyel hasıla | **1.27 → 1.86** |
+| yatırım / potansiyel hasıla | 0.52 → **1.09** |
+| kâr oranı | 0.098 → 0.053 |
+| faiz | 0.005 → 0.032 |
+
+Talep kapasiteyi kalıcı olarak aşıyor, dolayısıyla **hiçbir departmanda
+satılamayan mal birikemiyor.** Kök neden nicel: `c/v` 8'e çıkınca yıllık
+`K/Y ≈ 8` oluyor ve `δ = %7.6/yıl` ile **amortisman tek başına hasılanın
+%60'ı** ediyor. Gerçek ekonomilerde bu oran %10–20'dir.
+
+Ve `r` (0.05–0.10) faizin (0.005–0.03) çok üstünde kaldığı için kârlılık
+sıkışması hiç bitmiyor; model kârlılık krizini ancak yayın **sonunda**
+(2050–2100, `r → 0.005`) üretiyor. Yani **tek bir terminal kriz** çıkıyor,
+tarihsel kayıt ise 198 yılda ~27 çevrimsel kriz istiyor.
+
+> **Teşhis: mekanizmalar yerinde, genlik yetersiz.** Çevrim trendin
+> etrafında salınmıyor, trendin üstünde düzgün ilerliyor.
+
+Sıradaki adaylar, en umut vericiden başlayarak:
+
+1. **Goodwin kazancı** (`phi`) ve **hızlandırıcı** çok zayıf — çevrimi
+   büyütecek olan bunlar
+2. **Kredi çevrimi** — `kredi_egilimi` ve borç limiti balonu besleyecek kadar
+   büyük değil; Minsky hiç ateşlenmiyor (`varlik → 0`, çünkü `r > i_spec`)
+3. **`kv`'nin sürüklenmesi** — `K/Y`'nin 8'e çıkması amortisman talebini
+   şişiriyor; `kappa_v`'ye tavan ya da `δ`'nın sermaye kalitesiyle düşmesi

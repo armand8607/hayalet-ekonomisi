@@ -298,7 +298,23 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 
 	var borc_servisi := (d.i_yil + P.v44.borc_faizi_marj) * d.borc
 	var C := C_temel + yeni_kredi - borc_servisi
-	var I := (maxf(0.0, (d.g_yil + P.v44.delta_K / Oran.V44_TUR_YIL) * d.K)
+	# --- BRUT YATIRIM: yenileme KARLILIGA baglidir (v2 eklemesi) ---
+	#
+	# v4.4'te brut yatirim `(g + delta)*K` idi ve `delta*K` karliliktan
+	# bagimsiz bir TALEP TABANI kuruyordu: kar orani cokse, net birikim dursa
+	# bile amortisman talebi hasilayi ayakta tutuyordu. Sonucu, kapali bir
+	# ekonomide gerceklesme krizinin ATESLENEMEMESIYDI -- oysa Marx'ta kriz
+	# egilimi tam da sermayenin kendi icindedir.
+	#
+	# Duzeltme: karlilik faizin altina dustukce kapitalist eskiyen sermayeyi
+	# yenilemez. Parayi tutar, ya da spekulasyona kaydirir (J blogu zaten o
+	# kanali tasiyor). Yenileme tabana kadar duser ama sifirlanmaz -- bakimin
+	# tamamen durmasi fiziksel olarak mumkun degil.
+	var marj := (d.r_yil - d.i_yil) / maxf(d.i_yil, 0.01)
+	var yenileme := (P.yenileme_taban + (1.0 - P.yenileme_taban)
+			* Formulas.sg(P.yenileme_duyarlilik * marj))
+	d.yenileme_orani = yenileme
+	var I := (maxf(0.0, (d.g_yil + yenileme * P.v44.delta_K / Oran.V44_TUR_YIL) * d.K)
 			* (1.0 - (P.v44.delev_yatirim_soku if d.delev > 0 else 0.0)))
 	var G := _kamu_maliyesi(d, donem_yil, Y_pot)
 
@@ -307,9 +323,50 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	d.I_yil = I
 	d.G_yil = G
 	d.D_yil = D_talep
-	# ASIRI URETIM: potansiyel hasila ile efektif talep arasindaki HAM acik.
-	d.talep_acigi = maxf(0.0, (Y_pot - D_talep) / maxf(Y_pot, 1e-9))
+
+	_departmanlar(d, donem_yil, Y_pot, C + G + maxf(VT_net_yil, 0.0), I)
 	return D_talep
+
+
+# ===========================================================================
+# DEPARTMAN I / II  --  Marx'in yeniden uretim semalari
+# ===========================================================================
+
+## Hasilayi iki departmana boler ve HER BIRINI KENDI TALEBIYLE karsilastirir.
+##
+## NEDEN ZORUNLU. Tek mallik bir modelde gerceklesme krizi YAPISAL OLARAK
+## imkansizdir: yatirim talebi ile tuketim talebi ayni farksiz hasilayi satin
+## alir, biri digerinin yerine gecer, orantisizlik dogamaz. Olculdu -- tek
+## mallik surumde 198 yilda SIFIR asiri uretim krizi cikti.
+##
+## Marx'ta kriz tam da bu orantisizliktan dogar:
+##   Departman I  uretim araci uretir, alicisi YATIRIMDIR
+##   Departman II tuketim mali uretir, alicisi UCRET ve KAMU harcamasidir
+## Ikisi birbirinin yerine GECEMEZ. Celik fabrikasina ekmek talebi gelmez.
+##
+## Kriz mekanizmasi: patlama doneminde yatirim payi buyur, sermaye Departman
+## I'e akar; kar orani dusup yatirim cokunce o kapasite MAHSUR kalir --
+## satilamayan uretim araci yigilir. Sermayenin yeniden dagilimi YAVASTIR ve
+## krizi ureten sey tam olarak bu yavasliktir.
+func _departmanlar(d: KrizDurumu, donem_yil: float, Y_pot: float,
+		D_tuketim: float, D_yatirim: float) -> void:
+	# Sermaye, talebin gectigimiz donemlerdeki bilesimini KOVALAR -- ama yavas.
+	var toplam := maxf(D_tuketim + D_yatirim, 1e-9)
+	var hedef := clampf(D_yatirim / toplam, 0.05, 0.90)
+	d.pay_I += Oran.donem_uyum(P.dept_uyum_yil, donem_yil) * (hedef - d.pay_I)
+	d.pay_I = clampf(d.pay_I, 0.05, 0.90)
+
+	var kap_I := Y_pot * d.pay_I
+	var kap_II := Y_pot * (1.0 - d.pay_I)
+
+	d.Y_I_yil = minf(kap_I, D_yatirim)
+	d.Y_II_yil = minf(kap_II, D_tuketim)
+	d.satilamayan_I = maxf(0.0, kap_I - D_yatirim)
+	d.satilamayan_II = maxf(0.0, kap_II - D_tuketim)
+
+	# ASIRI URETIM: satilamayan urun kitlesi. Artik "toplam talep toplam
+	# arzdan kucuk mu" degil, "HANGI DEPARTMANDA mal yigildi" sorusu.
+	d.talep_acigi = (d.satilamayan_I + d.satilamayan_II) / maxf(Y_pot, 1e-9)
 
 
 # ===========================================================================
@@ -373,7 +430,9 @@ func _hasila_ve_istihdam(d: KrizDurumu, Y_pot: float, D_talep: float,
 		# kendi kriz bicimi kitliktir.
 		Y = Y_pot * P.v44.plan_kullanim
 	else:
-		Y = minf(Y_pot, maxf(D_talep, Y_pot * P.v44.gecim_tabani))
+		# Hasila artik DEPARTMANLARIN TOPLAMIDIR. Her departman kendi
+		# talebiyle sinirli; birinin fazlasi digerinin acigini kapatmaz.
+		Y = maxf(d.Y_I_yil + d.Y_II_yil, Y_pot * P.v44.gecim_tabani)
 
 	d.Y_yil = Y
 	d.Y_zirve = maxf(d.Y_zirve, Y)
@@ -389,6 +448,21 @@ func _hasila_ve_istihdam(d: KrizDurumu, Y_pot: float, D_talep: float,
 	var robot := P.v44.oto_verim * d.oto * d.K / maxf(d.q, 1e-6)
 	var Y_L := d.q * (canli_emek + robot) / Oran.V44_TUR_YIL
 	d.e = clampf(Y / maxf(Y_L, 1e-9), P.v44.e_taban, 1.0)
+
+	# EMEK GERGINLIGI -- Goodwin salinimini tam istihdamda da yasatir.
+	#
+	# `e` tanimi geregi 1.0'da doyar. Emek baglayici kisit oldugunda (Y = Y_L)
+	# istihdam orani sabitlenir, `bos_e = e - e_norm` sifira gider ve GOODWIN
+	# TERIMI OLUR. Olculdu: istihdam 1836'dan sonra kalici olarak 1.000, ucret
+	# pazarligi donuyor, kar sikismasi hic gelmiyor, konjonktur dalgasi
+	# dogmuyor.
+	#
+	# Gercekte tam istihdam ucret baskisinin BITTIGI yer degil, en siddetli
+	# oldugu yerdir: sermaye kapasitesi emek arzini astikca karsilanmamis emek
+	# talebi birikir ve ucretleri yukari iter. Gerginlik bunu tasir ve 1.0'i
+	# asabilir.
+	var Y_K2 := d.K / maxf(d.kv, 1e-9) / Oran.V44_TUR_YIL
+	d.emek_gerginlik = clampf(minf(Y_K2, D_talep) / maxf(Y_L, 1e-9), 0.2, 1.6)
 
 
 func _etg(d: KrizDurumu, donem_yil: float) -> void:
@@ -559,13 +633,16 @@ func _phillips(d: KrizDurumu, donem_yil: float) -> void:
 
 func _goodwin(d: KrizDurumu, donem_yil: float) -> void:
 	var iss := 1.0 - d.e
-	d.e_norm += Oran.donem_uyum(P.e_norm_hiz_yil, donem_yil) * (d.e - d.e_norm)
+	d.e_norm += Oran.donem_uyum(P.e_norm_hiz_yil, donem_yil) * (
+			d.emek_gerginlik - d.e_norm)
 
 	if d.rejim == "kapitalist":
 		var telafi := P.v44.w_beklenti * (1.0 + P.v44.w_org * d.org)
 		# Goodwin terimi SABIT bir hedefe degil ulkenin kendi HAREKETLI
 		# istihdam normuna gore calisir.
-		var bos_e := d.e - d.e_norm
+		# Ucret pazarligi ISTIHDAM ORANINA degil EMEK GERGINLIGINE bakar:
+		# tavanda doyan bir olcuyle pazarlik yapilamaz.
+		var bos_e := d.emek_gerginlik - d.e_norm
 		# METASIZLASMA: garantili gelir rezervasyon ucretini yukseltir; isci
 		# ucret indirimini reddedebilir hale gelir, asagi yonlu katilik ARTAR.
 		var kat := P.v44.w_katilik + (1.0 - P.v44.w_katilik) * minf(

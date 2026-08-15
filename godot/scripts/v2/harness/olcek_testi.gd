@@ -93,15 +93,18 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	print("")
 	print("V2 CEKIRDEK IZI -- %d yil, %d donem" % [int(yil), n])
 	print("  (C/I/G/D sutunlari Y_pot'a ORANDIR -- D>1 ise talep baglamaz)")
-	print("%6s %3s %9s %7s %7s %7s %7s %7s %7s %7s %7s"
-			% ["yil", "cag", "Y_pot", "C/Yp", "I/Yp", "G/Yp", "D/Yp", "u", "r", "e", "pay"])
+	print("  (C/I/D sutunlari Y_pot'a ORANDIR)")
+	print("%6s %3s %8s %6s %6s %6s %7s %7s %7s %6s %6s %6s"
+			% ["yil", "cag", "Y_pot", "C/Yp", "I/Yp", "D/Yp", "pi", "i", "r",
+				"yenile", "pay_I", "e"])
 	for i in range(n):
 		cekirdek.adim(d, donem_yil)
 		if i % adim_basi == 0 or i == n - 1:
 			var yp := maxf(d.Y_pot_yil, 1e-9)
-			print("%6.0f %3d %9.1f %7.3f %7.3f %7.3f %7.3f %7.3f %7.4f %7.3f %7.3f"
+			print("%6.0f %3d %8.1f %6.3f %6.3f %6.3f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f"
 					% [d.yil, d.era, d.Y_pot_yil, d.C_yil / yp, d.I_yil / yp,
-						d.G_yil / yp, d.D_yil / yp, d.u, d.r_yil, d.e, d.pay])
+						d.D_yil / yp, d.pi_inf, d.i_yil, d.r_yil,
+						d.yenileme_orani, d.pay_I, d.e])
 	print("  krizler: asiri_uretim=%d resesyon=%d bunalim=%d delev=%d rejim=%s"
 			% [d.asiri_uretim_krizleri.size(), d.resesyonlar.size(),
 				d.bunalimlar.size(), d.delev, d.rejim])
