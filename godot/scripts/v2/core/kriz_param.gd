@@ -65,6 +65,12 @@ var yenileme_omru_yil: float = 10.0
 ## once baslar ve daha derin bir tikanmada doyar, o yuzden ayri bir olcek.
 var fin_tikanma_ref: float = 0.25
 
+## AMORTISMAN FONUNUN FINANSA SIZAN PAYI. Yenilenmeyen sermayenin karsiligi
+## fonda beklemez, faiz getiren sermayeye doner (Kapital II, bol. 20: fon atil
+## PARA SERMAYEDIR). Yalnizca harcanmayan pay (1 - yenileme) icin gecerlidir:
+## yenileme yapiliyorsa para zaten uretime donmustur.
+var fin_sizinti: float = 0.5
+
 ## DEPARTMAN I / II -- Marx'in yeniden uretim semalari.
 ##
 ## Tek mallik bir modelde gerceklesme krizi YAPISAL OLARAK IMKANSIZDIR:

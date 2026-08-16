@@ -466,8 +466,30 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	# Harcama donem BASINDAKI fondan hesaplanir, bu donemin girisi eklenmeden:
 	# aksi halde cikis kendi girisine baglanir ve bagi donem uzunlugu tasir.
 	var yenileme_harcamasi := yenileme * d.amortisman / P.yenileme_omru_yil
+
+	# --- FONUN SIZINTISI: AMORTISMAN URETIME DONMEYEBILIR ---
+	#
+	# Fonun harcanmayan payi fonda BEKLEMEK zorunda degildir. Marx amortisman
+	# fonunu zaten ATIL PARA SERMAYE olarak tarif eder (Kapital II, bol. 20);
+	# atil para sermaye ise faiz getiren sermayeye donusur. Yenilenmeyen
+	# sermayenin karsiligi uretime geri donmez, finansal varliga kayar.
+	#
+	# NEDEN ONEMLI. `c_akim = Y * (1 - canli_pay)` oldugu icin fon teknolojik
+	# gelismeyle BUYUR: canli_pay 0.58'den 0.07'ye inerken hasilanin giderek
+	# daha buyuk kismi fondan gecer. Sizinti da onunla buyur. Olculdu -- bu
+	# kanal yokken balon 19. yuzyil olgusu cikiyordu (1865'te varlik/Y 1.88,
+	# 1920'lerden sonra sifir), yani tarihin tersi. Sebebi yapisaldi: c/v
+	# yukseldikce yenileme talebi Departman I'i doyuruyor, `talep_acigi`
+	# kapaniyor ve finansallasmanin yakiti tukeniyordu -- oysa uretim ile
+	# tuketim kapasitesi arasindaki makas acilmaya devam ediyor.
+	#
+	# Sizinti iki ucu birden baglar: hem talebi KALICI olarak dusurur (fondaki
+	# para bekleyip sonra harcanmaz, hic donmez), hem de gec donemde
+	# finansallasmayi besler.
+	var sizinti := P.fin_sizinti * (1.0 - yenileme) * d.amortisman / P.yenileme_omru_yil
+	d.varlik += Oran.donem_akim(sizinti, donem_yil)
 	d.amortisman = maxf(0.0, d.amortisman
-			+ Oran.donem_akim(c_akim - yenileme_harcamasi, donem_yil))
+			+ Oran.donem_akim(c_akim - yenileme_harcamasi - sizinti, donem_yil))
 
 	# NET BIRIKIM TALEBI `max(0, g)`'dir. Negatif `g` sermayenin ERIMESIDIR --
 	# eksi satin alma degil, satin ALMAMA. Toplamda birakilirsa daralma
