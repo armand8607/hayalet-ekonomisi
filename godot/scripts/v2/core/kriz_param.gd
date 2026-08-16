@@ -71,6 +71,16 @@ var fin_tikanma_ref: float = 0.25
 ## yenileme yapiliyorsa para zaten uretime donmustur.
 var fin_sizinti: float = 0.5
 
+## PARASALLASTIRMANIN TAVANI. Borc orani `kamu_borc_limiti`'ne ulastiginda
+## acigin en fazla bu payi borclanma yerine emisyonla finanse edilir. 1.0
+## degil, cunku tam parasallastirma parayi bir anda degersizlestirir; devlet
+## her zaman bir miktar borclanmayi surdurur.
+var parasallasma_tavani: float = 0.6
+
+## Parasallastirilan acigin fiyat duzeyine gecis katsayisi. `parasallasma`
+## hasilaya ORAN oldugu icin bu bir DUZEYDIR, zamana bagli degildir.
+var ph_parasal: float = 0.5
+
 ## DEPARTMAN I / II -- Marx'in yeniden uretim semalari.
 ##
 ## Tek mallik bir modelde gerceklesme krizi YAPISAL OLARAK IMKANSIZDIR:

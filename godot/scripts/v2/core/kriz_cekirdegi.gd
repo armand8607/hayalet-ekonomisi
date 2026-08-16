@@ -585,11 +585,34 @@ func _kamu_maliyesi(d: KrizDurumu, donem_yil: float, Y_pot: float) -> float:
 		d.kemer -= 1
 
 	var birincil := (G - d.vergi_geliri_yil) / maxf(d.Y_yil, 1e-6)
+
+	# --- PARASALLASTIRMA: ACIGIN BIR KISMI BORCLANMAZ, BASILIR ---
+	#
+	# Motorda kamu acigi YALNIZCA borc oranina gidiyordu; fiyat duzeyine giden
+	# hicbir kanal yoktu. Sonucu olculdu ve zinciri bastan asagi kilitliyordu:
+	# enflasyon 198 yil ortalamasinda -%0.47 (hedef +%0.54), politika faizi
+	# koşunun %82'sinde TABANINDA, borc servisi arti degerin en fazla %19'u,
+	# Ponzi bolgesine hic girilmiyor. Kredi iki yuzyil bedavaya yakin olunca
+	# ne kar sikismasi ne Minsky ateslenebiliyordu.
+	#
+	# TAKVIME BAGLANMADI, BORC ORANINA BAGLANDI. Devlet emisyona keyfinden
+	# degil MECBUR KALDIGINDA basvurur: borc yuku agirlastikca borclanmak
+	# pahalilasir ve enflasyon borcu eritmenin -- yani temerrudun -- alternatifi
+	# haline gelir. Boylece kanal icseldir, bir tarih tablosuna degil motorun
+	# kendi durumuna baglidir, ve kendi geri beslemesini kurar: acik -> borc ->
+	# parasallastirma -> enflasyon -> Taylor faizi yukseltir -> borc servisi
+	# artar. Finansal kanalin ihtiyaci olan sey tam olarak bu dongudur.
+	var parasal_pay := P.parasallasma_tavani * minf(
+			1.0, d.kamu_borc / maxf(P.v44.kamu_borc_limiti, 1e-6))
+	# Yalnizca ACIK parasallastirilir; fazla veren butce para YARATMAZ.
+	d.parasallasma = parasal_pay * maxf(0.0, birincil)
+	var borclanan := birincil - d.parasallasma
+
 	var carpan := clampf(1.0 + d.i_yil - maxf(d.y_buyume, P.kamu_buyume_taban_yil),
 			0.97, 1.020)
 	# Borc orani bir STOKtur ama carpani donem basinadir.
 	var carpan_d := pow(carpan, donem_yil / Oran.V44_TUR_YIL)
-	d.kamu_borc = clampf(d.kamu_borc * carpan_d + Oran.donem_akim(birincil, donem_yil),
+	d.kamu_borc = clampf(d.kamu_borc * carpan_d + Oran.donem_akim(borclanan, donem_yil),
 			0.0, P.v44.borc_orani_tavani)
 
 	# Kamu iflasi: olasilik DONEM BASINADIR, yillik oranindan turetilir --
@@ -814,8 +837,11 @@ func _phillips(d: KrizDurumu, donem_yil: float) -> void:
 	var bosluk := d.u - P.v44.u_normal
 	var talep_etkisi := (P.v44.ph_talep * bosluk if bosluk > 0.0
 			else P.v44.ph_talep * P.v44.ph_asimetri * maxf(bosluk, -0.30))
+	# Parasallastirilan acik dogrudan fiyat duzeyine biner: karsiliginda mal
+	# uretilmeyen bir satinalma gucu yaratilmistir.
 	var pi := (P.v44.ph_beklenti * d.pi_bek + talep_etkisi
-			+ P.v44.ph_maliyet * maxf(birim_emek, -0.04))
+			+ P.v44.ph_maliyet * maxf(birim_emek, -0.04)
+			+ P.ph_parasal * d.parasallasma)
 	if d.delev > 0:
 		pi -= P.v44.delev_deflasyon
 

@@ -96,6 +96,9 @@ var res_ici: int = 0
 var res_bekle: int = 0
 var bun_ici: int = 0
 var deger_carpani: float = 1.0
+## Parasallastirilan kamu acigi (hasilaya oran). `_kamu_maliyesi` yazar,
+## `_phillips` okur.
+var parasallasma: float = 0.0
 ## AMORTISMAN FONU. Tuketilen sabit sermayenin degeri burada para olarak
 ## bekler: satis olmus, karsit alis henuz olmamistir. Bir STOKtur.
 var amortisman: float = 0.0
