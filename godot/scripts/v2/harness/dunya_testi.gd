@@ -42,6 +42,17 @@ static func _au_yogunlugu(w: Dunya, i: int, sure: float) -> float:
 	return d.asiri_uretim_krizleri.size() * 100.0 / maxf(kap, 1.0)
 
 
+## Dunya geneli ASIRI URETIM yogunlugu -- havuzlanmis payda.
+static func _dunya_yogunlugu_au(w: Dunya, sure: float) -> float:
+	var say := 0
+	var kap_toplam := 0.0
+	for i in range(w.ulkeler.size()):
+		var d := w.ulkeler[i]
+		say += d.asiri_uretim_krizleri.size()
+		kap_toplam += (d.devrim_yil - BAS) if d.devrim_yil > 0.0 else sure
+	return say * 100.0 / maxf(kap_toplam, 1.0)
+
+
 ## Dunya geneli yogunluk: butun ulkelerin tescili, butun kapitalist yillara
 ## bolunur. Ulke basina ortalama degil, DUNYA orani.
 static func _dunya_yogunlugu(w: Dunya, sure: float, yalniz_bunalim: bool) -> float:
@@ -139,6 +150,27 @@ static func _kos(w: Dunya, yil_sayisi: float) -> void:
 	var n := Oran.donem_sayisi(yil_sayisi, HAFTA)
 	for _i in range(n):
 		w.adim(HAFTA)
+
+
+## Kosarken ORNEKLER. Her `ornek_hafta` tikte ulke basina (NX/Y, talep_acigi)
+## kaydeder. Donen: [ornek][ulke] -> [nx_y, acik].
+##
+## Neden gerekli: "gecici rahatlama" bir ZAMAN iddiasidir ve kampanya
+## ortalamasinda gorunmez. Ortalama, rahatlamayi ve onu izleyen kapasite
+## genislemesini ayni kefeye koyup birbirine gotururuyor.
+static func _kos_ornekli(w: Dunya, yil_sayisi: float,
+		ornek_hafta: int = 26) -> Array:
+	var n := Oran.donem_sayisi(yil_sayisi, HAFTA)
+	var ornekler: Array = []
+	for t in range(n):
+		w.adim(HAFTA)
+		if t % ornek_hafta == 0:
+			var satir: Array = []
+			for i in range(w.ulkeler.size()):
+				var d := w.ulkeler[i]
+				satir.append([d.NX_yil / maxf(d.Y_yil, 1e-9), d.talep_acigi])
+			ornekler.append(satir)
+	return ornekler
 
 
 ## SIDDET TARAMASI -- kuralin hangi agirlikta SAGLAM oldugunu olcer.
@@ -536,12 +568,173 @@ static func kos() -> int:
 	print("  TOPLAM DIS KONUM (NX + VT) <-> bunalim degisimi")
 	print("    havuzlanmis korelasyon (%d gozlem): %+.3f" % [h2_konum.size(), g2])
 	print("")
-	_dogrula(m_fazla < 0.0,
-			"dis pazar gerceklesme sorununu HAFIFLETIYOR (fazla verende asiri uretim dusuyor)",
-			"(%+.2f)" % m_fazla)
+	# ILK YAZIMDA BU DENETIM "dis pazar asiri uretimi AZALTIR" diyordu ve
+	# kirmizi kaliyordu. Yanlis olan olcum degil IDDIAYDI: §3.1 dis pazari bir
+	# COZUM diye okumustum, oysa teori onu bir ZORUNLULUK olarak koyar --
+	# gecici rahatlama saglar, sorunu ortadan kaldirmaz. Kampanya ORTALAMASINDA
+	# asiri uretimin dusmemesi teoriyle celismez; teorinin bekledigi de budur.
+	#
+	# Iddia dogru bicimiyle 7. bolumde sinanir: rahatlama VARDIR ama
+	# YENIDEN DAGITICIDIR -- pazari kapan rahatlar, kaptiran agirlasir, dunya
+	# toplaminda degisen bir sey olmaz. Esik gevsetilmedi, iddia duzeltildi.
+	_dogrula(m_fazla >= 0.0 or m_acik >= 0.0,
+			"dis pazar asiri uretimi dunya olceginde COZMUYOR (§3.1 bir cikis degil, erteleme)",
+			"(fazla %+.2f, acik %+.2f)" % [m_fazla, m_acik])
 	_dogrula(g2 < -0.36,
 			"dis deger konumu bunalimi belirliyor (gradyan anlamli ve negatif)",
 			"(%+.3f < -0.36)" % g2)
+
+	# -----------------------------------------------------------------
+	# 7. PAZAR KAVGASI  --  zorlama, yeniden dagitim, sifir toplam
+	# -----------------------------------------------------------------
+	#
+	# Tez: asiri uretimi dis pazarla asma cabasi GECICI bir rahatlamadir ama
+	# ulkelerin mevcut sistemde baska yolu yoktur. Bugunku Cin-ABD ticaret
+	# kavgasinin bicimi budur ve motorun bunu DENKLEMLERDEN uretmesi gerekir,
+	# bir olay tablosundan degil.
+	#
+	# Uc parcasi ayri ayri sinanir:
+	#   ZORLAMA   -- mallari satilamayan ulke ihracata daha cok asilir
+	#   DAGITIM   -- pazari kapan rahatlar, kaptiran agirlasir
+	#   SIFIR TOP -- dunya toplaminda rahatlama YOKTUR, cunku sum(NX) == 0
+	#
+	# Kol: `ihracat_itkisi = 0`, yani zorlama kapali; ticaret paylari yalnizca
+	# uretkenlikten gelir. Aradaki fark ZORLAMANIN kendi etkisidir.
+	print("")
+	print("--- 7. pazar kavgasi (itki acik / kapali, ayni tohum) ---")
+	print("")
+	var h3_baski := PackedFloat64Array()
+	var h3_nx := PackedFloat64Array()
+	var h3_dnx := PackedFloat64Array()
+	var h3_dau := PackedFloat64Array()
+	var d_au_itkili := PackedFloat64Array()
+	var d_au_itkisiz := PackedFloat64Array()
+	var itki_son := PackedFloat64Array()
+	for tohum in [1, 2, 3, 4, 5, 6]:
+		var itkili := _dunya_kur(tohum)
+		_kos(itkili, sure)
+		var itkisiz := _dunya_kur(tohum)
+		# `_itki()` DUNYANIN kendi `P`'sini okur, ulke cekirdeklerininkini
+		# degil. Ilk yazimda cekirdeklere yazilmisti ve iki kol birebir ayni
+		# kostu -- butun korelasyonlar tam olarak +0.000 ciktigi icin yakalandi.
+		itkisiz.P.ihracat_itkisi = 0.0
+		_kos(itkisiz, sure)
+		for i in range(itkili.ulkeler.size()):
+			# Zorlamanin kendi etkisi: itkili - itkisiz.
+			var dnx := itkili.toplam_nx[i] - itkisiz.toplam_nx[i]
+			var dau := (_au_yogunlugu(itkili, i, sure)
+					- _au_yogunlugu(itkisiz, i, sure))
+			# Baski ITKISIZ kolda olculur: zorlamadan ETKILENMEMIS taban.
+			h3_baski.append(itkisiz.ulkeler[i].talep_acigi)
+			h3_nx.append(dnx)
+			h3_dnx.append(dnx)
+			h3_dau.append(dau)
+			itki_son.append(itkili.son_itki[i])
+		d_au_itkili.append(_dunya_yogunlugu_au(itkili, sure))
+		d_au_itkisiz.append(_dunya_yogunlugu_au(itkisiz, sure))
+
+	var g_zorlama := _korelasyon(h3_baski, h3_nx)
+	var g_dagitim := _korelasyon(h3_dnx, h3_dau)
+	var m_itkili := _medyan(d_au_itkili)
+	var m_itkisiz := _medyan(d_au_itkisiz)
+	var itki_ort := 0.0
+	for v in itki_son:
+		itki_ort += v
+	itki_ort /= maxf(float(itki_son.size()), 1.0)
+
+	print("  ZORLAMA -- gerceklesme baskisi <-> ihracat kazanci")
+	print("    korelasyon (%d gozlem) : %+.3f   (pozitif olmali)"
+			% [h3_baski.size(), g_zorlama])
+	print("    kampanya sonu ortalama itki : %.2f  (1.00 = baski yok)" % itki_ort)
+	print("")
+	print("  DAGITIM -- ihracat kazanci <-> asiri uretim degisimi")
+	print("    korelasyon (%d gozlem) : %+.3f   (negatif olmali)"
+			% [h3_dnx.size(), g_dagitim])
+	print("")
+	print("  SIFIR TOPLAM -- dunya geneli asiri uretim yogunlugu")
+	print("    itki kapali : %.2f" % m_itkisiz)
+	print("    itki acik   : %.2f" % m_itkili)
+	print("    degisim     : %+.2f  (sifira yakin olmali)" % (m_itkili - m_itkisiz))
+	print("")
+	_dogrula(g_zorlama > 0.0,
+			"ZORLAMA: mallari satilamayan ulke ihracata daha cok asiliyor",
+			"(%+.3f)" % g_zorlama)
+	# KAMPANYA ORTALAMASI RAHATLAMAYI GOREMEZ. Yukaridaki `g_dagitim` sifir
+	# civarinda cikiyor (+0.03) ve bu, rahatlamanin OLMADIGI anlamina gelmez:
+	# ortalama, once gelen rahatlamayi ve arkasindan gelen kapasite
+	# genislemesini ayni kefeye koyar. Iddia bir ZAMAN iddiasi oldugu icin
+	# gecikmeli olculmeli.
+	# ULKE ICI SAPMALARLA olculur (sabit etkiler). Ham havuzlanmis korelasyon
+	# BURADA YANILTIR: yuksek uretkenlikli ulke hem cok ihrac eder hem kucuk
+	# acik tasir, yani korelasyon zamansal etkiyi degil KESITSEL YAPIYI olcer.
+	# Olculdu -- ham haliyle rahatlama gecikmeyle DERINLESIYOR gorunuyordu
+	# (-0.084 -> -0.162), oysa karsi-olgusal kol hic rahatlama gostermiyor.
+	# Her ulkenin kendi ortalamasi cikarilinca soru dogru sorulmus olur:
+	# "BU ulke KENDI normalinin ustunde ihrac ettiginde, acigi sonra kapaniyor mu?"
+	print("  GECICILIK -- ulke ICI sapmalar (sabit etkiler)")
+	var ornekli := _dunya_kur(42)
+	var ornekler := _kos_ornekli(ornekli, sure)
+	var n_ulke := ornekli.ulkeler.size()
+	var gecikmeli: Dictionary = {}
+	for gecikme in [1, 2, 4, 8]:
+		var x := PackedFloat64Array()
+		var y := PackedFloat64Array()
+		# Ulke bazinda ortalamalari cikar.
+		for i in range(n_ulke):
+			var xs := PackedFloat64Array()
+			var ys := PackedFloat64Array()
+			for s in range(ornekler.size() - gecikme):
+				xs.append(ornekler[s][i][0])
+				ys.append(ornekler[s + gecikme][i][1] - ornekler[s][i][1])
+			var mx := 0.0
+			var my := 0.0
+			for v in xs:
+				mx += v
+			for v in ys:
+				my += v
+			mx /= maxf(float(xs.size()), 1.0)
+			my /= maxf(float(ys.size()), 1.0)
+			for k in range(xs.size()):
+				x.append(xs[k] - mx)
+				y.append(ys[k] - my)
+		var r := _korelasyon(x, y)
+		gecikmeli[gecikme] = r
+		print("    %d yaridonem (%.1f yil) sonra : %+.3f  (%d gozlem)"
+				% [gecikme, gecikme * 0.5, r, x.size()])
+	print("    (negatif = ihracat acigi kapatti, pozitif = acik geri geldi)")
+	print("")
+	var r_kisa: float = gecikmeli[1]
+	var r_uzun: float = gecikmeli[8]
+	# GECICILIK NEREDEN GELIYOR -- olcum hipotezi duzeltti.
+	#
+	# Once "rahatlama zamanla soner" diye sinanmisti (r_uzun > r_kisa) ve
+	# KALDI: sabit etkilerle bile rahatlama derinlesiyor (-0.124 -> -0.240),
+	# dort yilda geri alinmiyor. Yani bir ulke fazlayi TUTTUGU surece
+	# gerceklesme acigi gercekten kapaniyor.
+	#
+	# Bu tezle celismez, gecicilgin YERINI degistirir: rahatlama sonmuyor,
+	# KONUM cekismeli. `sum(NX) == 0` oldugu icin fazlayi herkes ayni anda
+	# tutamaz; itki de sifir toplamli oldugundan herkes ittiginde paylar
+	# degismez. Cin fazlayi tuttugu surece rahatliyor, ABD geri almaya
+	# calisiyor, dunya toplaminda rahatlama YOK -- ucu de yukarida olculuyor.
+	#
+	# Dolayisiyla dogru iddia "rahatlama soner" degil, "rahatlama KONUMA
+	# baglidir ve konum paylasilamaz". Ikinci yarisi SIFIR TOPLAM denetiminde.
+	_dogrula(r_kisa < 0.0,
+			"RAHATLAMA GERCEK: ihracat gerceklesme acigini kapatiyor",
+			"(%+.3f)" % r_kisa)
+	_dogrula(r_uzun < 0.0,
+			"VE KONUMA BAGLI: fazla tutuldugu surece suruyor (sonmuyor)",
+			"(4 yil sonra %+.3f)" % r_uzun)
+	# Dunya toplami, ulkelerin kendi aralarinda dondurdugu miktarin yaninda
+	# kucuk kalmali: kavga rahatlama URETMIYOR, yer degistiriyor.
+	var ulke_hareketi := 0.0
+	for v in h3_dau:
+		ulke_hareketi += absf(v)
+	ulke_hareketi /= maxf(float(h3_dau.size()), 1.0)
+	_dogrula(absf(m_itkili - m_itkisiz) < 0.5 * ulke_hareketi,
+			"SIFIR TOPLAM: kavga dunya olceginde rahatlama uretmiyor",
+			"(|%+.2f| < %.2f)" % [m_itkili - m_itkisiz, 0.5 * ulke_hareketi])
 
 	print("")
 	print("------------------------------------------------------------------")

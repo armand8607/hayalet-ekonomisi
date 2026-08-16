@@ -43,6 +43,21 @@ var v44: ParamSet
 ## durmasi fiziksel olarak mumkun degil; taban bunu temsil eder.
 var yenileme_taban: float = 0.30
 
+## IHRACAT ITKISI -- gerceklesme baskisinin dis pazar arayisina donusme siddeti.
+##
+## Bu, "asiri uretim -> yeni pazar" iddiasinin (tasarim belgesi §3.1) motordaki
+## KARSILIGIDIR ve olmadan o iddia bir temenniydi: ticaret paylari yalnizca
+## uretkenlikten geliyordu, yani mallari satilamayan bir ulke ihracata daha
+## fazla ASILMIYORDU. Zorlama yoksa pazar kavgasi da yoktur.
+##
+## Rekabet gucunu carpar: `k = (eps/pi_m) * (1 + itki * baski)`. Pay
+## `k_i/(k_i+k_j)` oldugu icin ITKI SIFIR TOPLAMLIDIR -- iki taraf da ayni
+## siddetle itiyorsa paylar DEGISMEZ. Tek basina iten kazanir, herkes
+## itince kimse kazanmaz. Cin-ABD tipi bir pazar kavgasinin biciminde
+## olmasinin sebebi budur ve bir olay tablosundan degil, `sum(NX) == 0`
+## ozdesliginden gelir: dunya kendine ihracat yapamaz.
+var ihracat_itkisi: float = 1.5
+
 ## Yenilemenin kar orani-faiz makasina duyarliligi. Buyudukce yatirim daha
 ## sert kesilir, konjonktur dalgasi derinlesir.
 var yenileme_duyarlilik: float = 4.0

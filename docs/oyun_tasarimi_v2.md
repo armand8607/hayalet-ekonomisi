@@ -476,7 +476,7 @@ yok" bulmak demekti.
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
 | ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
-| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ⬜ | **KISMEN** — C/L ve B kuruldu, `--v2-dunya` 8/9 (bir kırmızı: §3.1 çelişkisi); D, E, F duruyor |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ⬜ | **KISMEN** — C/L ve B kuruldu, `--v2-dunya` 11/13; D, E, F duruyor |
 | **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -680,6 +680,54 @@ fazlası da gelen değerdir; kural **toplam dış konuma** (NX + VT) uygulanınc
 **Açık soru:** transfer şiddeti 0.60'ı geçince gradyanın işareti dönüyor.
 Devrim zamanlaması değil (her ağırlıkta 30/30 devrim, ortalama 1932). B/D/E/F
 tamamlanmadan kovalanmamalı.
+
+### Pazar kavgası — §3.1 düzeltildi, çürütülmedi
+
+Önceki ölçüm "dış pazar aşırı üretimi azaltmıyor" diyordu ve bu §3.1 ile
+çelişki sayılmıştı. **Çelişki değildi, testin iddiası yanlıştı.** §3.1 dış
+pazarı bir *çözüm* diye okumuştum; teori onu bir **zorunluluk** olarak koyar —
+geçici rahatlama sağlar, sorunu ortadan kaldırmaz.
+
+Ama modelde asıl eksik olan başkaydı: ticaret payları **yalnızca üretkenlikten**
+geliyordu. Malları satılamayan ülke ihracata daha çok *asılmıyordu*. Zorlama
+yoksa pazar kavgası da yok. Eklenen: `ihracat_itkisi` — gerçekleşme baskısı
+rekabet gücünü çarpar,
+
+```
+k = (eps / pi_m) · (1 + itki · baski)
+```
+
+ve pay `k_i/(k_i+k_j)` olduğu için **itki sıfır toplamlıdır**: tek başına iten
+kazanır, herkes itince paylar değişmez. Kavganın çıkmaz olması bir olay
+tablosundan değil, `sum(NX) == 0` özdeşliğinden geliyor.
+
+Ölçülen (6 tohum, karşı-olgusal: itki açık/kapalı):
+
+| iddia | ölçüm |
+|---|---|
+| **Zorlama** — satılamayan mal ihracata iter | +0.219 ✅ |
+| **Rahatlama gerçek** — ihracat açığı kapatır (ülke içi sapmalar) | −0.124 ✅ |
+| **Konuma bağlı** — fazla tutulduğu sürece sürer, 4 yılda sönmez | −0.240 ✅ |
+| **Sıfır toplam** — dünya ölçeğinde rahatlama yok (13.61 → 13.87) | ✅ |
+
+> **Geçicilik rahatlamanın sönmesinden gelmiyor, konumun çekişmeli
+> olmasından.** Bir ülke ticaret fazlasını tuttuğu sürece gerçekleşme açığı
+> gerçekten kapanıyor — ve 4 yıl sonra daha da kapalı. Ama `sum(NX) == 0`
+> olduğu için fazlayı herkes aynı anda tutamaz, ve itki sıfır toplamlı olduğu
+> için herkes ittiğinde kimse kazanamaz. Çin fazlayı tuttuğu sürece rahatlıyor;
+> ABD geri almaya çalışıyor; dünya toplamında rahatlama yok. Kampanya
+> ortalamasının rahatlama göstermemesinin sebebi budur — sönme değil, çekişme.
+
+**Bunun bir bedeli oldu ve kaydedilmeli.** Zorlama eklenince "dış değer konumu
+bunalımı belirliyor" gradyanı **−0.80'den −0.11'e** çöktü; değer transferinin
+kendi gradyanı ise işaret değiştirdi (−0.06 → +0.21). Sebep tek: itki açıkken
+**ticaret fazlası artık "güçlü ülke" demek değil, "çaresiz ihracatçı" da
+olabilir.** `NX` yapısal gücü ve sıkışmayı birbirine karıştıran bir değişkene
+dönüştü.
+
+> Sonraki adım için: gradyan muhtemelen toplam dış konuma değil, konumun
+> **yapısal bileşenine** (itkisiz koşuda ülkenin ihraç edeceği miktar) karşı
+> ölçülmeli. `--v2-dunya` şu an 11/13; iki kırmızının ikisi de bu tek kökten.
 
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
 (B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran

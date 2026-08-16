@@ -121,6 +121,10 @@ var _onceki_Y_dunya: float = 0.0
 ## Ticaret korunum kaydi: sum(NX) / sum|NX|. VT ile ayni disiplin.
 var en_buyuk_ticaret_hatasi: float = 0.0
 
+## Son tikin dis pazar itkisi, ulke basina. 1.0 = baski yok. Kampanya boyunca
+## yukselmesi pazar kavgasinin kizistigi anlamina gelir.
+var son_itki: PackedFloat64Array = PackedFloat64Array()
+
 var P: KrizParam
 
 
@@ -145,6 +149,7 @@ func ekle(d: KrizDurumu, ad: String, tohum: int = 42, ulke_acikligi: float = 1.0
 	son_vt.append(0.0)
 	toplam_vt.append(0.0)
 	toplam_nx.append(0.0)
+	son_itki.append(1.0)
 
 
 ## DIS TICARET (B bloku) -- cift bazli, korunumlu.
@@ -204,9 +209,15 @@ func ticaret() -> void:
 			hacim *= minf(aciklik[i], aciklik[j])
 			if hacim <= 0.0:
 				continue
-			# Thirlwall orani: rekabet gucu.
-			var ka := a.eps / maxf(a.pi_m, 1e-6)
-			var kb := b.eps / maxf(b.pi_m, 1e-6)
+			# Thirlwall orani: rekabet gucu -- CARPANI gerceklesme baskisidir.
+			#
+			# Mallari satilamayan ulke dis pazara ASILIR (§3.1). Itki paylari
+			# carptigi ve pay `k_i/(k_i+k_j)` oldugu icin SIFIR TOPLAMLIDIR:
+			# tek basina iten kazanir, iki taraf da iterse paylar degismez.
+			# Pazar kavgasinin cikmaz olmasi buradan gelir, bir olay
+			# tablosundan degil.
+			var ka := a.eps / maxf(a.pi_m, 1e-6) * _itki(i)
+			var kb := b.eps / maxf(b.pi_m, 1e-6) * _itki(j)
 			var pay := ka / maxf(ka + kb, 1e-9)
 			var X_ab := hacim * pay              # a -> b
 			var X_ba := hacim * (1.0 - pay)      # b -> a
@@ -220,6 +231,20 @@ func ticaret() -> void:
 
 	for d in ulkeler:
 		d.NX_yil = d.X_yil - d.M_yil
+
+
+## Bir ulkenin DIS PAZAR ITKISI. Gerceklesme baskisi (`talep_acigi`, yani
+## satilamayan malin potansiyel hasilaya orani) ulkeyi ihracata iter.
+##
+## Esik olarak asiri uretim krizinin kendi esigi (`au_esik`) kullanilir: itki
+## kriz tescilinin olcegiyle ayni olcekte olsun, ayri bir kalibrasyon sayisi
+## dogmasin diye. `son_itki` tani icin saklanir -- kampanya boyunca yukselmesi
+## "pazar kavgasi kiziisiyor" demektir.
+func _itki(i: int) -> float:
+	var baski := ulkeler[i].talep_acigi / maxf(P.v44.au_esik, 1e-6)
+	var it := 1.0 + P.ihracat_itkisi * clampf(baski, 0.0, 3.0)
+	son_itki[i] = it
+	return it
 
 
 ## THIRLWALL KISITI. Odemeler dengesiyle uyumlu azami buyume `eps*z/pi_m`'dir;
