@@ -89,6 +89,18 @@ var ihracat_itkisi: float = 0.50
 ## ani durustaki bir ulkenin carpani en fazla 2.5 * 1.5 = 3.75 olur.
 var ani_durus_itkisi: float = 0.50
 
+## MORATORYUM YILLIK TEHLIKE ORANI -- kosullar saglandiginda.
+##
+## v4.4'te bu TUR BASINA 0.20 idi (`motor.py:1805`) ve tur 0.27 yil oldugu
+## icin yillik karsiligi ~0.74. Ilk portta `0.20 * donem_yil * 52/30` diye
+## yazilmisti; `52/30` carpani hicbir yerden gelmiyor ve yillik 0.35 veriyor,
+## yani v4.4'un yarisi. Kontrol edilmemis bir sayiydi, acikca yazildi.
+##
+## Donem uzunluguna `1 - (1-h)^dt` ile cevrilir, `h*dt` ile DEGIL: kucuk
+## dt'de ikisi yakin ama yillik 0.74 gibi buyuk bir tehlikede dogrusal
+## yaklasim olcek degismezligini kirar.
+var mor_tehlike_yil: float = 0.74
+
 ## Yenilemenin kar orani-faiz makasina duyarliligi. Buyudukce yatirim daha
 ## sert kesilir, konjonktur dalgasi derinlesir.
 var yenileme_duyarlilik: float = 4.0

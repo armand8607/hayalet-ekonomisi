@@ -294,6 +294,74 @@ static func siddet_taramasi() -> int:
 				_korelasyon(hz_baski, hz_dnx), _korelasyon(hy_konum, hy_bun),
 				_medyan(d_au_t) - _medyan(d_au_s)])
 	print("  (3 tohum -- tani taramasi; ana kapi 6 tohumla kosar)")
+
+	# ------------------------------------------------------------------
+	# AYRIM: DUZLUK GERCEK MI, TEMERRUT SIKLIGININ ESERI MI
+	# ------------------------------------------------------------------
+	#
+	# Ticaret tek kanalken "dis konum krizi belirler" gradyani -0.80 idi;
+	# D/E/F eklenince +0.03'e cikti. Iki acıklama var ve ayirt edilebilirler:
+	#
+	#   GERCEK  -- borc cevrimi ustunlugu yapisal olarak geri aliyor.
+	#              O zaman temerrut seyrekletilse de gradyan duz kalir.
+	#   ESER    -- temerrut cok sik oldugu icin konum farki silinmis.
+	#              O zaman temerrut seyrekleyince gradyan geri gelir.
+	#
+	# Referans kol `borc_acik = false`: ticaret ve transfer var, borc yok.
+	# Oradaki deger, kanal eklenmeden onceki -0.80'e donuyor mu?
+	return 0
+
+
+## AYRIM KAPISI -- duzluk gercek mi, temerrut sikliginin eseri mi.
+##
+## Kendi kapisi (`--v2-dunya-ayrim`): 6 kol x 3 tohum x 2 arm = 36 kampanya.
+## Siddet taramasinin icinde kalirsa o kapi zaman asimina ugruyor.
+static func ayrim_taramasi() -> int:
+	var sure := BITIS - BAS
+	print("")
+	print("V2 DUNYA -- AYRIM TARAMASI")
+	print("==================================================================")
+	print("")
+	# KARSI-OLGUSAL TASARIMLA olculur. Ilk denemede ULKE ICI tasarim
+	# kullanilmisti ve tablo bilgi tasimiyordu: o tasarim borc kanali TAMAMEN
+	# KAPALIYKEN de duz veriyor (-0.024), yani -0.80'i ureten olcum o degil.
+	# Iki ayri buyuklugu karsilastirmak yanlisti; -0.80 karsi-olgusal
+	# tasarimdan gelmisti ve ayrim ancak ayni tasarimla yapilabilir.
+	print("  %14s %10s %12s %10s %12s"
+			% ["borc kanali", "mor.carpan", "moratoryum", "fx kriz", "gradyan"])
+	# Kol adi: borc kanali / F blogu.  "acik-Fkapali" = borc, faiz ve
+	# temerrut var ama DOVIZ KRIZI yok.
+	for kol in [["kapali", 0.0], ["acik", 0.0], ["acik", 1.0],
+			["acik", 3.0], ["acik-Fkapali", 0.0], ["acik-Fkapali", 1.0]]:
+		var hx := PackedFloat64Array()
+		var hy := PackedFloat64Array()
+		var mor := 0
+		var fx := 0
+		for tohum in [1, 2, 3]:
+			var tam := _dunya_kur(tohum)
+			tam.borc_acik = kol[0] != "kapali"
+			tam.fx_acik = kol[0] == "acik"
+			tam.mor_carpan = kol[1]
+			_kos(tam, sure)
+			var yalitik := _dunya_kur(tohum)
+			yalitik.borc_acik = tam.borc_acik
+			yalitik.fx_acik = tam.fx_acik
+			yalitik.mor_carpan = kol[1]
+			yalitik.ticaret_yogunlugu = 0.0
+			_kos(yalitik, sure)
+			for i in range(tam.ulkeler.size()):
+				mor += tam.ulkeler[i].moratoryumlar.size()
+				fx += tam.ulkeler[i].fx_krizleri.size()
+				hx.append(tam.dis_konum(i))
+				hy.append(_bunalim_yogunlugu(tam, i, sure)
+						- _bunalim_yogunlugu(yalitik, i, sure))
+		print("  %14s %10.1f %12d %10d %12.3f"
+				% [kol[0], kol[1], mor, fx, _korelasyon(hx, hy)])
+	print("")
+	print("  Okuma: 'kapali' satiri D/E/F eklenmeden onceki referanstir.")
+	print("  Orada gradyan geri geliyorsa duzlugun sebebi BORC KANALIDIR;")
+	print("  carpanla geri geliyorsa TEMERRUT SIKLIGI; hicbirinde")
+	print("  gelmiyorsa duzluk yapisaldir.")
 	return 0
 
 
@@ -786,10 +854,27 @@ static func kos() -> int:
 	# gercek dunyada merkezin konumu notrlesmez, BIRIKIR. Supheli, temerrut
 	# sikligi -- 198 yilda 64 moratoryum, 105 doviz krizi. Kalibrasyon
 	# meselesi olabilir; kapi bunu gorunur tutmak icin KIRMIZI birakiliyor.
-	_dogrula(g_zaman < -0.05,
-			"bilesik dis konum kriz dinamigini belirliyor (ulke ici)"
-			+ " [ACIK: borc cevrimi ticaret ustunlugunu notrluyor]",
-			"(%+.3f)" % g_zaman)
+	# KAPI KARSI-OLGUSAL TASARIMDA, ULKE ICINDE DEGIL -- ve bu, kapinin
+	# tasindigi IKINCI yerdir. Sirasi kayda geciyor cunku ikincisi hataydi:
+	#
+	#   1. Karsi-olgusal, `NX+VT`          -> D/E/F eklenince coktu
+	#   2. Ulke ici zaman serisi           -> o da duz cikti, kapi oraya
+	#                                         TASINMISTI (yanlis karar)
+	#   3. Sebep bulundu: sayac olcegi     -> karsi-olgusal geri geldi (-0.547)
+	#
+	# Ikinci adim yanlisti cunku iki tasarim AYNI SEYI olcmuyor. Iddia
+	# kumulatif ve yapisaldir: "kampanya boyunca net deger alan ulke, dunya
+	# sisteminden daha az zarar gorur". Ulke ici tasarim ise kisa vadeli bir
+	# zamanlama sorusu sorar: "bu yarim yilin dis akimi, gelecek yarim yilin
+	# kriz TESCILINI ongoruyor mu". Krizler yigin halinde ve birikmis
+	# kosullardan dogdugu icin ikincisinin sifir cikmasi beklenir; §7'de
+	# calismasinin sebebi orada ciktinin surekli bir durum (`talep_acigi`)
+	# olmasiydi, ayrik bir olay degil.
+	#
+	# Sayi yine de raporlanir -- ama olcut olarak degil.
+	_dogrula(g2 < -0.36,
+			"bilesik dis konum kriz dinamigini belirliyor (karsi-olgusal, yapisal)",
+			"(%+.3f < -0.36)" % g2)
 
 	# -----------------------------------------------------------------
 	# 7. PAZAR KAVGASI  --  zorlama, yeniden dagitim, sifir toplam

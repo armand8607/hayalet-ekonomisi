@@ -84,9 +84,16 @@ Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
 **Oyun**: `--oyna[=kayıt:tohum:ülke:tur]`, `--menu`, `--ss=DOSYA`.
 
 **v2** (hiçbiri v4.4'e dokunmaz): `--v2-olcek` (ölçek değişmezliği, 23 denetim),
-`--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-dunya` (dünya katmanı, 6 denetim),
-`--v2-dunya-siddet` (transfer ağırlığı taraması — tanı, ana kapının dört katı
-sürer), `--v2-iz[=YIL[:baş[:dönem]]]` (teşhis izi).
+`--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-dunya` (dünya katmanı, 17 denetim),
+`--v2-dunya-siddet` ve `--v2-dunya-ayrim` (kalibrasyon taramaları — tanı, ana
+kapıdan yavaş), `--v2-iz[=YIL[:baş[:dönem]]]` (teşhis izi).
+
+> **v2'de SAYAÇLAR dönem cinsindendir, tur cinsinden DEĞİL.** v4.4'ün bütün
+> `*_sure` sabitleri 0.27 yıllık tur cinsindendir; haftalık döngüye olduğu gibi
+> kopyalanırsa **14 kat hızlı** dolar. Bir kez yaşandı: `fx_baski >= 8` (v4.4'te
+> 2.16 yıl, haftalıkta 0.15 yıl) döviz krizini salgına çevirdi — 198 yılda ülke
+> başına 22 kriz — ve dünya katmanının ana ölçütünü sessizce yok etti.
+> `Oran.v44_sayac(tur, donem_yil)` kullan.
 
 **Döküm kapıları yavaştır, motor değil.** Ölçüldü: maliyetin neredeyse tamamı
 stdout'a satır basmaktan geliyor (~3 ms/satır), simülasyondan değil. Gerçek

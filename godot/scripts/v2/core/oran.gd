@@ -93,5 +93,16 @@ static func v44_uyum(a_tur: float) -> float:
 	return yillik_uyum(a_tur, V44_TUR_YIL)
 
 
+## v4.4 TUR cinsinden bir SAYACI bu donemin sayacina cevirir.
+##
+## v4.4'un butun `*_sure` sabitleri tur (0.27 yil) cinsindendir. Haftalik
+## donguye oldugu gibi kopyalanirsa sayac 14 KAT hizli dolar -- birim
+## sozlesmesinin onlemek icin var oldugu hata tam olarak budur, ve
+## `fx_baski >= 8` ile bir kez yasandi: 8 tur (2.16 yil) yerine 8 hafta
+## (0.15 yil) beklendigi icin doviz krizi salgin haline geldi.
+static func v44_sayac(tur: float, donem_yil: float) -> int:
+	return maxi(1, donem_sayisi(tur * V44_TUR_YIL, donem_yil))
+
+
 static func v44_akim(x_tur: float) -> float:
 	return yillik_akim(x_tur, V44_TUR_YIL)

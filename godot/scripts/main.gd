@@ -42,6 +42,10 @@ func _ready() -> void:
 				# Dunya katmani: deger akisi korunuyor mu, ve esitsiz
 				# mubadelenin kriz yogunlugundaki imzasi olculebiliyor mu.
 				cikis = DunyaTesti.kos()
+			"--v2-dunya-ayrim":
+				# Dis konum gradyanindaki duzluk gercek mi, temerrut
+				# sikliginin eseri mi. 36 kampanya; ayri kapi.
+				cikis = DunyaTesti.ayrim_taramasi()
 			"--v2-dunya-siddet":
 				# Transferin agirligi ne kadar olmali ki kural gurultuden
 				# ciksin. Tani kapisi; ana testin dort kati surer.

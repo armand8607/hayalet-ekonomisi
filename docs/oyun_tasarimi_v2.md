@@ -476,7 +476,7 @@ yok" bulmak demekti.
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
 | ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
-| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ✅ | **KURULDU** — beş kanal da yerinde, `--v2-dunya` 15/17 (iki açık kırmızı) |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ✅ | **KURULDU** — beş kanal da yerinde, `--v2-dunya` 17/17 |
 | **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -806,10 +806,10 @@ kalibrasyona bağlıdır ve tek yönlü bir kapı taşıyamaz.
 `--v2-dunya` **15/17**. Kalan ikisi de aynı olgunun sonucu — dış kanal sayısı
 birden beşe çıktı:
 
-1. **"Dış değer konumu bunalımı belirliyor"** — bileşik konumla ölçüldü,
+1. ~~**"Dış değer konumu bunalımı belirliyor"**~~ — **ÇÖZÜLDÜ**, bileşik konumla ölçüldü,
    **düz çıktı.** Ayrıntı aşağıda.
-2. **"Negatif toplam"** −0.03'e döndü, yani kavganın dünya toplamındaki etkisi
-   D/E/F eklenince kayboldu. Borç kanalı kavganın etkisini yutuyor olabilir.
+2. ~~**"Negatif toplam"** −0.03'e döndü~~ — **ÇÖZÜLDÜ.** Aynı sayaç hatasıydı;
+   düzeltmeden sonra +0.44.
 
 ### Bileşik dış konum ölçüldü — ve borç çevrimi üstünlüğü nötrlüyor
 
@@ -829,16 +829,51 @@ Dört bağımsız tahminci denendi:
 Sonuncusu, §7'de aynı kurulumla −0.124 … −0.240 verdiği için tasarım
 çalışır durumda. Yani sonuç gerçekten düz — ölçüm kusuru değil.
 
-> **Bulgu: borç çevrimi ticaret üstünlüğünü geri alıyor.** Tek kanal varken aynı
-> ölçüm **−0.80** veriyordu. Aradaki farkı yapan D/E/F: fazla veren ülke
-> fazlasını borç olarak veriyor, faiz alıyor, sonra temerrütle onu geri
-> kaybediyor; açık veren borçlanıyor, faiz ödüyor, sonra borcunu siliyor. Dış
-> konumun kazandırdığı üstünlük çevrimde nötrleniyor.
+> ~~**Bulgu: borç çevrimi ticaret üstünlüğünü geri alıyor.**~~ **GERİ ÇEKİLDİ.**
+> Bu okuma yanlıştı ve `--v2-dunya-ayrim` onu çürüttü.
 
-Bu tutarlı bir okuma ama **gerçekle örtüşüp örtüşmediği ayrı bir soru**: gerçek
-dünyada merkezin konumu nötrleşmez, birikir. En güçlü şüpheli temerrüt
-sıklığı — 198 yılda 64 moratoryum, 105 döviz krizi. Bir kalibrasyon meselesi
-olabilir; kapı bunu görünür tutmak için kırmızı bırakıldı.
+### Ayrım: eserdi, ve sebebi tur→hafta tuzağıydı
+
+Düzlüğün gerçek mi eser mi olduğu ayrı bir kapıyla ayrıştırıldı — borç kanalı
+kapalıdan tam açığa, temerrüt sıklığı taranarak:
+
+| borç kanalı | mor. çarpan | moratoryum | fx kriz | gradyan |
+|---|---|---|---|---|
+| kapalı | 0.0 | 0 | 0 | **−0.723** |
+| açık | 0.0 | 0 | 325 | +0.064 |
+| açık | 3.0 | 41 | 226 | +0.255 |
+| **açık, F kapalı** | 0.0 | 0 | 0 | **−0.538** |
+| **açık, F kapalı** | 1.0 | 0 | 0 | **−0.538** |
+
+> **Suçlu temerrüt değil, döviz kriziydi.** Borç, faiz ve moratoryum açıkken
+> ama F bloğu kapalıyken ilişki duruyor (−0.538); temerrüt tamamen sıfırken
+> bile F açıksa çöküyor (+0.064). Yani düzlük borç çevriminin yapısal bir
+> sonucu değildi.
+
+Ve F'nin neden salgın hâline geldiği, bu deponun en çok uyardığı hataydı:
+**v4.4'ün tur cinsinden sayaçları haftalık döngüye olduğu gibi kopyalanmıştı.**
+`fx_baski >= 8` v4.4'te 8 tur, yani 2.16 yıl sürekli rezerv erimesi demek;
+haftalık döngüde 8 hafta, yani 0.15 yıl. **14 kat hızlı.** Aynısı
+`fx_kriz_sure` ve `mor_ceza_sure` için de geçerliydi.
+
+`Oran.v44_sayac()` eklendi ve üçü de dönem cinsine çevrildi. Döviz krizi 325'ten
+83'e indi, gradyan **−0.547**'ye döndü, kapı **17/17**.
+
+> **Yan bulgu: temerrüt yük taşıyor.** Sayaç düzeltmesinden sonra bile
+> `mor_carpan = 0` (hiç moratoryum yok) gradyanı +0.270'te bırakıyor; 1.0'da
+> −0.580. Moratoryum olmayınca borç sonsuza kadar birikiyor, herkes kalıcı ani
+> duruşa giriyor ve sistem donuyor. **Temerrüt gürültü değil, borç çevrimini
+> açık tutan valf.**
+
+### Ölçüt nerede duruyor — ve iki kez taşındı
+
+Kapı karşı-olgusal tasarımdadır. Sırası kayda geçiyor çünkü **ikinci taşıma
+hataydı**: ölçüm çökünce kapı ülke-içi zaman serisine taşınmıştı, oysa iki
+tasarım aynı şeyi ölçmüyor. İddia kümülatif ve yapısaldır ("kampanya boyunca net
+değer alan ülke dünya sisteminden daha az zarar görür"); ülke-içi tasarım ise
+kısa vadeli bir zamanlama sorusu sorar ve krizler yığın hâlinde geldiği için
+orada sıfır çıkması beklenir. §7'de çalışmasının sebebi oradaki çıktının sürekli
+bir durum (`talep_acigi`) olmasıydı, ayrık bir olay değil.
 
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
 (B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran

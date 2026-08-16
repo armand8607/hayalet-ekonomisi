@@ -156,6 +156,21 @@ var en_buyuk_borc_hatasi: float = 0.0
 ## ne yaptigini olcmenin tek yolu, temerrudun olmadigi bir kolla karsilastirmak.
 var moratoryum_acik: bool = true
 
+## Moratoryum tehlike orani carpani. Duzlugun GERCEK mi ESER mi oldugunu
+## ayirmak icin taranir: temerrut seyrekken gradyan geri geliyorsa duzluk
+## temerrut sikliginin eseridir, her siddette duzse yapisaldir.
+var mor_carpan: float = 1.0
+
+## BUTUN BORC KANALI (D/E/F). Kapatilinca dis borc, faiz, temerrut ve doviz
+## krizi devre disi kalir -- ticaret ve transfer kalir. Ayrim testinin
+## referans kolu: borc yokken gradyan -0.80'e donuyor mu?
+var borc_acik: bool = true
+
+## DOVIZ KRIZI (F blogu) ayri kapatilabilir. Ayrim taramasinda E ile F'yi
+## birbirinden ayirmak icin: temerrut sifirken bile gradyan cokuyorsa
+## suclu moratoryum degildir.
+var fx_acik: bool = true
+
 ## TEMERRUT ZARARININ HENUZ SINDIRILMEMIS KISMI, ulke basina.
 ##
 ## Silinen borc bir STOK kaybidir ve tek basina reel ekonomiye degmez -- ilk
@@ -467,9 +482,13 @@ func borc_ve_krizler(donem_yil: float) -> void:
 		d.ani_durus = d.dis_borc > P.v44.dis_borc_tavani or d.mor_ceza > 0
 
 		# F. DOVIZ KRIZI -- rezerv erimesi.
+		# SAYACLAR TUR DEGIL DONEM CINSINDEN. v4.4'un 8 turu 2.16 yildir;
+		# haftalik donguye 8 diye kopyalanirsa 0.15 yil olur ve doviz krizi
+		# salgina doner (olculdu: 3 tohumda 325 kriz, ve gradyani yok etti).
 		d.fx_baski = d.fx_baski + 1 if d.FX < -0.04 * Y else 0
-		if d.fx_baski >= 8 and d.fx_kriz == 0 and d.rejim == "kapitalist":
-			d.fx_kriz = P.v44.fx_kriz_sure
+		if (fx_acik and d.fx_baski >= Oran.v44_sayac(8.0, donem_yil)
+				and d.fx_kriz == 0 and d.rejim == "kapitalist"):
+			d.fx_kriz = Oran.v44_sayac(P.v44.fx_kriz_sure, donem_yil)
 			d.FX = 0.06 * Y
 			d.deval = P.v44.devaluasyon
 			d.borc *= 1.12
@@ -482,7 +501,8 @@ func borc_ve_krizler(donem_yil: float) -> void:
 		# E. MORATORYUM -- ve ZARARI ALACAKLIYA YAZILIR.
 		if (moratoryum_acik and d.dis_borc > P.v44.mor_borc_esigi and d.fx_kriz > 0
 				and d.mor_ceza == 0 and d.rejim == "kapitalist"
-				and rng.randf() < 0.20 * donem_yil * 52.0 / 30.0):
+				and rng.randf() < 1.0 - pow(1.0 - clampf(
+						P.mor_tehlike_yil * mor_carpan, 0.0, 0.999), donem_yil)):
 			for j in range(n):
 				# Silinen borc alacaklinin VARLIGINDAN dusulur. v4.4 bu
 				# satiri hic yazmamisti; borc yoktan siliniyordu.
@@ -491,7 +511,7 @@ func borc_ve_krizler(donem_yil: float) -> void:
 				# Zarar alacakliya, kurtulus borcluya -- toplami sifir.
 				_mor_bekleyen[j] -= silinen
 				_mor_bekleyen[i] += silinen
-			d.mor_ceza = P.v44.mor_ceza_sure
+			d.mor_ceza = Oran.v44_sayac(P.v44.mor_ceza_sure, donem_yil)
 			d.moratoryumlar.append(d.yil)
 		if d.mor_ceza > 0:
 			d.mor_ceza -= 1
@@ -579,8 +599,9 @@ func adim(donem_yil: float) -> void:
 	son_vt = vt
 	thirlwall(donem_yil)
 	# D/E/F Thirlwall'dan SONRA: cari denge orada kuruluyor, borc ondan dogar.
-	borc_ve_krizler(donem_yil)
-	_borc_korunumunu_kaydet()
+	if borc_acik:
+		borc_ve_krizler(donem_yil)
+		_borc_korunumunu_kaydet()
 	for i in range(ulkeler.size()):
 		var Y := ulkeler[i].Y_yil
 		if Y > 0.0:
