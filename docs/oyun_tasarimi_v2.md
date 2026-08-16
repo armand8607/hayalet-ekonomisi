@@ -450,9 +450,24 @@ sayısında değil, **üretim yöntemi merdiveninde**.
 ## 6. Aşamalar — **B0'dan sonra yeniden sıralandı**
 
 B0'ın ölçümü planı değiştirdi. Eski sıra "mikro katman → kuplaj → dünya"
-diyordu; ama §8.6'da ölçüldü ki **kapalı bir ekonomi istikrarlıdır ve kriz
-dünya sisteminin ürünüdür.** Eski sırayla ilerlemek, aylarca pop ve bina
-inşa edip en sonda "krizler hâlâ yok" bulmak demekti.
+diyordu; ama §8.6'da ölçüldü ki kapalı bir ekonomi istikrarlı görünüyordu.
+Eski sırayla ilerlemek, aylarca pop ve bina inşa edip en sonda "krizler hâlâ
+yok" bulmak demekti.
+
+> **GERİ ÇEKİLDİ — "kapalı ekonomi istikrarlıdır, kriz dünya sisteminin
+> ürünüdür."** O ölçüm, iki mekanizması eksik bir çekirdek üzerinde alınmıştı:
+> `deger_carpani` yazılıyor ama hiç okunmuyordu (kriz sermayeyi
+> değersizleştirmiyor, yani kâr oranını onarmıyordu) ve `q_doyum` hiç
+> taşınmamıştı (c/v çağ-6 çapası olan 15'i aşıp 112'ye kaçıyor, yıllık K/Y 21'e
+> çıkıyor, yenileme talebi tek başına hasılanın %160'ını istiyordu — talep arzı
+> kalıcı olarak aştığı için hiçbir departmanda mal yığılamıyordu).
+>
+> İkisi bağlanıp satın alma gücü değer bileşimine oturtulunca kapalı ekonomi
+> **100 kapitalist yılda 19.2 ayrık kriz olayı** üretiyor; tarihsel kayıt aynı
+> kümelemeyle 12.1. Yani kapalı ekonomi istikrarlı değil, **fazla** kriz-yatkın.
+>
+> Aşamaların sırası yine de doğruydu: riski öne almak kararı, gerekçesi
+> yanlışlanmış olsa bile isabetliydi.
 
 > **Yeni kural: kriz makinesinin canlı olduğu, üstüne bir şey inşa edilmeden
 > ÖNCE kanıtlanır.** Risk öne alınır.
@@ -460,8 +475,8 @@ inşa edip en sonda "krizler hâlâ yok" bulmak demekti.
 | aşama | iş | biter dediğimiz an |
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
-| **B1a** | **KAPALI EKONOMİ KRİZ ÜRETSİN.** Amortisman talebinin kârlılığa bağlanması, Departman I/II orantısızlığı (§8.6) | Tek ülkeli koşu 1825–2023'te **en az bir aşırı üretim krizi** tescil eder |
-| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L), dış ticaret (B), ani duruş / moratoryum / döviz krizi (D, E, F) | **`--v2-tarih` geçer** — 10–60 kriz, tür karışımı tabloya yakın |
+| ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L), dış ticaret (B), ani duruş / moratoryum / döviz krizi (D, E, F) | **YENİ ÖLÇÜT GEREKİYOR** — aşağıya bak |
 | **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -469,9 +484,33 @@ inşa edip en sonda "krizler hâlâ yok" bulmak demekti.
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | ~100 ülke, kabul edilebilir tik süresi |
 | **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce | Ekran `--ss=` ile çizdirilip bakılmış |
 
-**B1a artık en kritik aşamadır.** Geçmezse mikro katmana geçilmez — çünkü
-geçmemesi, kriz teorisinin bu mimaride çalışmadığı anlamına gelir ve bunu
-pop/bina yığınının altında keşfetmek çok pahalıdır.
+**B1a bitti ve kendi ölçütünü fazlasıyla aştı.** Kriz teorisi bu mimaride
+çalışıyor: kapalı ekonomi 100 kapitalist yılda 19.2 ayrık kriz olayı üretiyor.
+
+### B1b'nin ölçütü artık ayırt etmiyor
+
+Eski ölçüt "`--v2-tarih` geçer" idi. O test **B1b başlamadan geçiyor**,
+dolayısıyla B1b'nin bittiğini söyleyemez: dünya katmanı eklendiğinde de
+geçecek, eklenmediğinde de geçiyor. Bir kapı her iki durumda da yeşilse kapı
+değildir.
+
+B1b'nin asıl işi kriz ÜRETMEK değil, **krizden ÇIKIŞ yollarını** açmaktır
+(§3.1 tablosu). Kapalı çekirdek krizi üretebiliyor ama çözemiyor: ihracat
+pazarı, sermaye ihracı, eşitsiz mübadele, moratoryum ve savaş — hepsi eksik.
+Fazla kriz-yatkınlığı (19.2'ye karşı 12.1) tam da bunun beklenen imzasıdır.
+
+Bu yüzden B1b'nin ölçütü **çıkışların çalıştığını** göstermeli:
+
+1. Kriz yoğunluğu tarihsel banda **yaklaşmalı** — kapalı koşuda 19.2, dünya
+   katmanıyla 12.1'e doğru inmeli. Çıkışlar açılınca krizler seyrelir.
+2. **Tür karışımı** tabloya yakınsamalı: kayıttaki 27 olayın 5'i finansal,
+   3'ü kârlılık, 2'si aşırı birikim. Kapalı çekirdek bunları ayırt edemiyor.
+3. **Çıkışın kendisi ölçülmeli**: değer transferi alan merkez ülkede kriz
+   yoğunluğu, veren çevre ülkeninkinden DÜŞÜK olmalı. Emperyalizmin motordaki
+   imzası budur ve tek ülkede tanımsızdır.
+
+Üçüncüsü en önemlisi, çünkü yalnızca dünya katmanı varken anlamlıdır ve
+bugün geçmesi imkânsızdır — iyi bir kapının taşıması gereken özellik.
 
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 18/18,
 `--v2-tarih` geçer (B1'den sonra), ve ekran değişmişse `--ss=` ile
