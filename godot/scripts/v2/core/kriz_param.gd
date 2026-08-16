@@ -47,6 +47,15 @@ var yenileme_taban: float = 0.30
 ## sert kesilir, konjonktur dalgasi derinlesir.
 var yenileme_duyarlilik: float = 4.0
 
+## SABIT SERMAYENIN DEVIR OMRU (yil). Amortisman fonu bu sure boyunca
+## bosalir; yenileme talebinin cari hasiladan GECIKMESI budur.
+##
+## Marx bu devir cevrimini krizin periyoduna dogrudan baglar (Kapital II,
+## bol. 9): sabit sermaye yillar boyu asinir ama toptan yenilenir, ve
+## yenilemelerin kumelenmesi konjonktur dalgasini uretir. Tarihsel kayit da
+## ayni mertebeyi veriyor -- 1825-1938 arasi 14 kriz, ortalama 8.1 yilda bir.
+var yenileme_omru_yil: float = 10.0
+
 ## DEPARTMAN I / II -- Marx'in yeniden uretim semalari.
 ##
 ## Tek mallik bir modelde gerceklesme krizi YAPISAL OLARAK IMKANSIZDIR:

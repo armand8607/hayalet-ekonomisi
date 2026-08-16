@@ -96,6 +96,9 @@ var res_ici: int = 0
 var res_bekle: int = 0
 var bun_ici: int = 0
 var deger_carpani: float = 1.0
+## AMORTISMAN FONU. Tuketilen sabit sermayenin degeri burada para olarak
+## bekler: satis olmus, karsit alis henuz olmamistir. Bir STOKtur.
+var amortisman: float = 0.0
 ## Cag ici teknolojik doyum carpani (tani icin; `_uretkenlik` yazar).
 var q_doyum: float = 1.0
 var asiri_uretim_krizleri: Array = []

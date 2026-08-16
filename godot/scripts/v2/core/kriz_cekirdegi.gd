@@ -415,7 +415,20 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	# yenilemez. Parayi tutar, ya da spekulasyona kaydirir (J blogu zaten o
 	# kanali tasiyor). Yenileme tabana kadar duser ama sifirlanmaz -- bakimin
 	# tamamen durmasi fiziksel olarak mumkun degil.
-	var marj := (d.r_yil - d.i_yil) / maxf(d.i_yil, 0.01)
+	# Makas KAR ORANI OLCEGINE gore normalize edilir, faize gore DEGIL.
+	#
+	# Onceki hali `(r - i) / max(i, 0.01)` idi. Faiz taban degerine (0.005)
+	# indiginde payda 0.01'e sabitlenir ve makas 100*(r-i) olur: r'deki en
+	# kucuk kipirti sigmoidi bir ucundan otekine atar. Fren o zaman bir fren
+	# degil ANAHTARdir, ve motor bir GEVSEME SALINIMINA doner -- olculdu,
+	# yatirim her dokuz yilda tam sifira, istihdam 0.27'ye iniyordu. Keskin
+	# bir limit cevrimi faza duyarlidir, o yuzden haftalik ve aylik kosu
+	# ayni yorungede kalmiyordu (K %27 ayrisma).
+	#
+	# `r_referans` (0.03) kar oraninin kendi buyukluk mertebesidir; makas ona
+	# gore olculunce sigmoid butun bantta duyarli kalir ve fren surekli
+	# calisir. Kar-faiz makasinin ISARETI korunur: r < i iken fren yine kapanir.
+	var marj := (d.r_yil - d.i_yil) / P.v44.r_referans
 	var yenileme := (P.yenileme_taban + (1.0 - P.yenileme_taban)
 			* Formulas.sg(P.yenileme_duyarlilik * marj))
 	d.yenileme_orani = yenileme
@@ -434,8 +447,36 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	# `delta_K * K` ARTIK YOK: tuketilen sabit sermayenin karsiligi c'nin
 	# kendisidir, ikisini birden saymak amortismani cift sayardi.
 	var c_akim := d.Y_yil * (1.0 - d.canli_pay)
-	# Karlilik kayboldugunda kapitalist eskiyeni yenilemez; fren c'ye biner.
-	var I := (maxf(0.0, d.g_yil * d.K + yenileme * c_akim)
+
+	# --- SABIT SERMAYENIN DEVIR CEVRIMI (Kapital II, bol. 9 ve 20) ---
+	#
+	# `c` her donem AYNI donemde harcanirsa yenileme talebi cari hasilayi
+	# birebir kovalar ve D/Y ~ 1'e kilitlenir: olculdu, cevrim sonuyordu.
+	# Marx'ta oyle degildir ve bunu ACIKCA krizin periyoduna baglar: sabit
+	# sermaye YILLAR BOYU asinir ama TOPTAN yenilenir. Asinma payi bu arada
+	# bir AMORTISMAN FONUNDA para olarak yatar -- yani satis gerceklesmis
+	# ama karsit alis HENUZ YAPILMAMISTIR. Gerceklesme kriziinin imkani tam
+	# olarak bu ayrilmadan dogar.
+	#
+	# Fon `c` ile dolar, `omur` boyunca bosalir ve bosalma hizina karlilik
+	# freni biner. Durgun durumda harcama = c_akim, yani yeniden uretim
+	# semasi UZUN VADEDE aynen kapanir; kisa vadede ise `omur` kadar bir
+	# GECIKME vardir ve cevrimi ureten budur. Karlilik dustugunde kapitalist
+	# fonu harcamaz, TUTAR: talep dusen kar oranini takip eder, gecikmeyle.
+	# Harcama donem BASINDAKI fondan hesaplanir, bu donemin girisi eklenmeden:
+	# aksi halde cikis kendi girisine baglanir ve bagi donem uzunlugu tasir.
+	var yenileme_harcamasi := yenileme * d.amortisman / P.yenileme_omru_yil
+	d.amortisman = maxf(0.0, d.amortisman
+			+ Oran.donem_akim(c_akim - yenileme_harcamasi, donem_yil))
+
+	# NET BIRIKIM TALEBI `max(0, g)`'dir. Negatif `g` sermayenin ERIMESIDIR --
+	# eksi satin alma degil, satin ALMAMA. Toplamda birakilirsa daralma
+	# doneminde `g*K` butun yenileme talebini gotururdu ve brut yatirim
+	# `max(0, .)` tabanina carpardi: olculdu, yatirim her dokuz yilda TAM
+	# SIFIRA iniyordu. O sert taban motoru katilastirir (haftalik ile aylik
+	# kosu ayni yorungede kalamaz) ve gercek bir ekonomide karsiligi yoktur.
+	# Sermayenin erimesi zaten `d.K *= (1+g)` ile ayrica gerceklesir.
+	var I := ((maxf(0.0, d.g_yil) * d.K + yenileme_harcamasi)
 			* (1.0 - (P.v44.delev_yatirim_soku if d.delev > 0 else 0.0)))
 	var G := _kamu_maliyesi(d, donem_yil, Y_pot)
 
@@ -563,8 +604,12 @@ func _hasila_ve_istihdam(d: KrizDurumu, donem_yil: float, Y_pot: float, D_talep:
 	# Ikisi de cevrilmezse olcu donem uzunluguyla birlikte kayar ve ona bakan
 	# esikler (resesyon, kamu borcu, riza) haftalik kosuda hic, yillik kosuda
 	# kolayca tetiklenir.
+	# Yilliga cevirme DOGRUSALDIR (akim), bilesik degil. Bilesik bicim
+	# `(1+x)^(1/donem)` disbukeydir: haftalik kosuda donem basina gurultuyu
+	# asimetrik buyutur, ayni yorunge farkli olceklerde farkli ortalama verir.
+	# Olculdu -- bilesik bicimle haftalik <-> aylik K %25 ayrisiyordu.
 	var ham := (Y - Y_onceki) / maxf(Y_onceki, 1e-6)
-	var buyume_yil := Oran.yillik_buyume(maxf(ham, -0.99), donem_yil)
+	var buyume_yil := ham / maxf(donem_yil, 1e-9)
 	var uy_y := Oran.donem_uyum(P.y_buyume_uyum_yil, donem_yil)
 	d.y_buyume = (1.0 - uy_y) * d.y_buyume + uy_y * buyume_yil
 
