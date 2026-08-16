@@ -68,7 +68,7 @@ static func _ozet() -> Dictionary:
 
 ## Bir kosu yapar. `vt_pay` hasilanin kacta kacinin DISARI aktigidir
 ## (negatif = cevre konumu, deger merkeze akiyor).
-static func _kos(vt_pay: float) -> KrizDurumu:
+static func _kos(vt_pay: float, tohum: int = 42) -> KrizDurumu:
 	var d := KrizDurumu.new()
 	d.L_etkin = 110.0
 	d.pay = 0.52
@@ -76,7 +76,7 @@ static func _kos(vt_pay: float) -> KrizDurumu:
 	d.q = 1.0
 	d.yil = BAS
 	d.varlik = 0.5
-	var cekirdek := KrizCekirdegi.new()
+	var cekirdek := KrizCekirdegi.new(null, tohum)
 	cekirdek.baslat(d)
 	var n := Oran.donem_sayisi(BITIS - BAS, OlcekTesti.HAFTA)
 	for _i in range(n):
@@ -136,14 +136,51 @@ static func kos() -> int:
 	var model := en_iyi
 	print("    tarihsel toplam: %d kriz" % KAYIT.size())
 
+	# --- TOHUM TARAMASI ---
+	#
+	# Belgenin kendi uyarisi (§10): "devrim sayisi tohuma duyarli, en az uc
+	# tohum gerekir". Tek kosudan okunan bir sayi ornekten ibarettir.
+	#
+	# DIKKAT -- v2 cekirdeginin RASTGELELIK YUZEYI COK DARDIR: `rng` motorda
+	# TEK yerde kullanilir, kamu temerrudu olasiliginda. v4.4'teki savas,
+	# ittifak ve politika AI'si burada yok. Dolayisiyla tohumlar arasi sacilim
+	# KUCUK cikarsa bu modelin kararli oldugunu degil, stokastik kanalinin dar
+	# oldugunu gosterir; asil degisken hala deger transferidir.
+	print("")
+	print("--- tohum taramasi (VT/Y = 0, kapali ekonomi) ---")
+	print("  %6s %7s %7s %7s %7s %7s %s"
+			% ["tohum", "asiri", "resesy", "bunalim", "TOPLAM", "temerrut", "rejim"])
+	var sayimlar: Array[int] = []
+	for tohum in [1, 2, 3, 4, 5, 6]:
+		var s := _kos(0.0, tohum)
+		var t := (s.asiri_uretim_krizleri.size() + s.resesyonlar.size()
+				+ s.bunalimlar.size())
+		sayimlar.append(t)
+		print("  %6d %7d %7d %7d %7d %7d %s"
+				% [tohum, s.asiri_uretim_krizleri.size(), s.resesyonlar.size(),
+					s.bunalimlar.size(), t, s.temerrutler.size(), s.rejim])
+	var sirali := sayimlar.duplicate()
+	sirali.sort()
+	var medyan := 0.5 * float(sirali[2] + sirali[3])
+	print("  aralik %d-%d, medyan %.1f  (tarihsel %d)"
+			% [sirali[0], sirali[5], medyan, KAYIT.size()])
+
 	# --- Olcut ---
 	print("")
 	print("--- olcut ---")
 	var gecti := true
 	# (1) Kriz sikligi ayni mertebede olmali: tarihsel 27, kabul bandi 10-60.
-	var bant := model >= 10 and model <= 60
-	print("  [%s] kriz sayisi bandi 10-60 icinde (model %d, tarihsel %d)"
-			% ["gecti" if bant else "KALDI", model, KAYIT.size()])
+	#
+	# OLCUT TOHUM MEDYANIDIR, VT taramasinin EN IYISI DEGIL. Onceki hali
+	# `maxi()` ile taramanin en yuksek degerini aliyordu; bu, bes VT
+	# degerinden HERHANGI BIRI banda dustugunde testi gecirir, yani en iyi
+	# ornegi secer. Belgenin kendi kurali da (§10) tek kosudan okumaya karsi:
+	# "en az uc tohum gerekir".
+	var bant := medyan >= 10.0 and medyan <= 60.0
+	# TEK dize: GDScript'te `%` operatoru `+`'dan once baglar, yani parcali
+	# yazilirsa bicimlendirme yalnizca SON parcaya uygulanir ve argumanlar kayar.
+	print("  [%s] kriz sayisi bandi 10-60 icinde (tohum medyani %.1f, VT en yuksek %d, tarihsel %d)"
+			% ["gecti" if bant else "KALDI", medyan, model, KAYIT.size()])
 	gecti = gecti and bant
 	# (2) Asiri uretim krizi HIC olmamasi kabul edilemez: tablonun yarisindan
 	#     fazlasi asiri uretim baskinli.
@@ -161,22 +198,18 @@ static func kos() -> int:
 	if gecti:
 		print("SONUC: GECTI")
 		return 0
-	print("SONUC: KALDI -- ama kusur cekirdekte DEGIL.")
+	print("SONUC: KALDI")
 	print("")
-	print("OLCULDU (`--dump-turn=200` ve `=1000`, v4.4'un kendisi):")
-	print("  tur  200: 20 ulkenin 3'unde e=1.0, 9'unda talep acigi var.")
-	print("            ABD  e=1.000 talep_acigi=0.0000 u=0.745 I/Y=0.478")
-	print("            Almanya e=0.429 talep_acigi=0.295 | Cin kriz=147")
-	print("  tur 1000: ABD hala e=0.978, talep acigi 0.")
+	print("TESTIN TARIHI -- bu blok bir kez YANLIS teshis tasidi.")
+	print("Onceki hali 'kusur cekirdekte DEGIL' diyor, krizlerin kaynaginin")
+	print("ULUSLARARASI oldugunu ve testin B2 bitmeden gecemeyecegini savunuyordu.")
+	print("O teshis, iki mekanizmasi EKSIK bir cekirdek uzerinde konmustu:")
+	print("  - `deger_carpani` yaziliyor ama hic OKUNMUYORDU (kriz onarmiyordu)")
+	print("  - `q_doyum` hic tasinmamisti (c/v 112'ye kaciyordu)")
+	print("Ikisi baglanip satinalma gucu deger bilesimine oturtulunca test")
+	print("ULKE-ICI mekanizmayla GECTI. Deger transferi taramasi da bunu")
+	print("dogruluyor: VT/Y 0 ile -0.08 arasinda kriz sayisi neredeyse sabit.")
 	print("")
-	print("YANI: v4.4'un MERKEZ ulkesi de sakindir. Tek ulkeli, savassiz,")
-	print("ticaretsiz bir kosu v4.4'un en sakin ulkesini uretir -- cekirdek")
-	print("tam da onu uretiyor. Kriz uretenler ULKE HETEROJENLIGI, savas,")
-	print("abluka, ticaret soku ve politika AI'sidir; hepsi B2'de gelir.")
-	print("")
-	print("Bu test B2 BITMEDEN GECEMEZ. Gecmesi de beklenmemeli: kalibrasyon")
-	print("hedefi degil, DUNYA KATMANININ gerekliligi'nin kanitidir.")
-	print("")
-	print("Teorik sonuc: bu modelde kriz ULUSLARARASIDIR. Emperyalizm")
-	print("dekor degil, krizlerin dogdugu yerdir (tasarim belgesi §3).")
+	print("Yani bugun bu test kalirsa sebebi BASKA bir yerdedir; yukaridaki")
+	print("tabloya bakin -- hangi kriz turu sifir, hangi olcut disarida?")
 	return 1
