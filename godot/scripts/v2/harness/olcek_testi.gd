@@ -149,6 +149,15 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	var ardisik_max := 0.0
 	var bekl_min := INF
 	var bekl_max := -INF
+	# Minsky'nin KENDI olcutu: borc taahhutleri nakit akisini asiyor mu.
+	var ponzi_max := 0.0
+	var ponzi_top := 0.0
+	var borc_y_max := 0.0
+	var ponzi_yil := 0.0
+	var i_min_yil := 0.0
+	var i_pol_max := 0.0
+	var i_pol_top := 0.0
+	var pi_top := 0.0
 	var gereken := float(KrizParam.sure_donem(
 			Oran.yillik_sure(cekirdek.P.v44.minsky_sure, Oran.V44_TUR_YIL),
 			donem_yil)) * donem_yil
@@ -159,6 +168,19 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 		var v := d.varlik / maxf(d.Y_yil, 1e-9)
 		var k1 := v > cekirdek.P.v44.minsky_esik
 		var k2 := d.varlik_beklenti < d.i_spec_yil
+
+		var servis := (d.i_yil + cekirdek.P.v44.borc_faizi_marj) * d.borc
+		var ponzi := servis / maxf(d.s_yil, 1e-9)
+		ponzi_max = maxf(ponzi_max, ponzi)
+		ponzi_top += ponzi * donem_yil
+		borc_y_max = maxf(borc_y_max, d.borc / maxf(d.Y_yil, 1e-9))
+		if ponzi > 1.0:
+			ponzi_yil += donem_yil
+		i_pol_max = maxf(i_pol_max, d.i_pol_yil)
+		i_pol_top += d.i_pol_yil * donem_yil
+		pi_top += d.pi_inf * donem_yil
+		if d.i_pol_yil <= cekirdek.P.v44.i_min + 1e-9:
+			i_min_yil += donem_yil
 		v_max = maxf(v_max, v)
 		bekl_min = minf(bekl_min, d.varlik_beklenti)
 		bekl_max = maxf(bekl_max, d.varlik_beklenti)
@@ -194,6 +216,18 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	print("    en uzun KESINTISIZ   : %.2f yil   (gereken %.2f) -> %s"
 			% [ardisik_max, gereken, "YETER" if ardisik_max >= gereken else "YETMEZ"])
 	print("    varlik_beklenti araligi: [%.4f, %.4f]" % [bekl_min, bekl_max])
+	print("    --- borc tarafi (tetikleyicinin BAKMADIGI) ---")
+	print("    borc/Y tepesi        : %.3f" % borc_y_max)
+	print("    borc_servisi/s tepesi: %.3f   ortalama %.3f"
+			% [ponzi_max, ponzi_top / maxf(yil, 1e-9)])
+	print("    servis > arti deger  : %.1f yil  (Ponzi bolgesi)" % ponzi_yil)
+	print("    --- faiz (borc yukunun ON KOSULU) ---")
+	print("    politika faizi       : tepe %.4f  ortalama %.4f  (taban %.4f)"
+			% [i_pol_max, i_pol_top / maxf(yil, 1e-9), cekirdek.P.v44.i_min])
+	print("    TABANDA gecen sure   : %.1f yil  (%.0f%%)"
+			% [i_min_yil, 100.0 * i_min_yil / maxf(yil, 1e-9)])
+	print("    ortalama enflasyon   : %.4f  (hedef %.4f)"
+			% [pi_top / maxf(yil, 1e-9), cekirdek.P.v44.pi_hedef])
 
 
 static func kos() -> int:
