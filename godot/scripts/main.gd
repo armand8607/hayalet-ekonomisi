@@ -38,6 +38,10 @@ func _ready() -> void:
 			"--v2-olcek":
 				# v2 kriz cekirdeginin olcek degismezligi. v4.4'e DOKUNMAZ.
 				cikis = OlcekTesti.kos()
+			"--v2-dunya":
+				# Dunya katmani: deger akisi korunuyor mu, ve esitsiz
+				# mubadelenin kriz yogunlugundaki imzasi olculebiliyor mu.
+				cikis = DunyaTesti.kos()
 			_ when a.begins_with("--v2-iz"):
 				# --v2-iz[=YIL[:baslangic[:donem_yil]]] -- cekirdegin teshis izi.
 				# donem_yil verilirse o olcekte kosar (olcek ayrismasi avi).

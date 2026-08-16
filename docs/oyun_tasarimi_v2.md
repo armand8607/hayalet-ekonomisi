@@ -512,9 +512,50 @@ Bu yüzden B1b'nin ölçütü **çıkışların çalıştığını** göstermeli
 Üçüncüsü en önemlisi, çünkü yalnızca dünya katmanı varken anlamlıdır ve
 bugün geçmesi imkânsızdır — iyi bir kapının taşıması gereken özellik.
 
-Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 18/18,
-`--v2-tarih` geçer (B1'den sonra), ve ekran değişmişse `--ss=` ile
-gerçekten çizdirilip bakılmış olur.
+### Değer akışı kuruldu — ve üçüncü madde ölçüldü
+
+`Dunya` (`godot/scripts/v2/core/dunya.gd`) ülkeler arası değer akışını
+**korunumlu** hale getirdi: akım çift üzerinde tanımlı, iki uca ters işaretle
+yazılıyor, dolayısıyla `sum(VT) == 0` bir kalibrasyon değil **özdeşlik**.
+Ölçülen korunum hatası tam olarak `0.0`. Kapı: `--v2-dunya`.
+
+> **v4.4'ün L bloğu korunmuyordu ve bu yüzden port edilmedi, düzeltildi.**
+> Orada transfer her ülke için bağımsız hesaplanıyor (`motor.py:2162`),
+> sapmalar `Y` ile çarpıldığı için ağırlıklı toplam sıfır çıkmıyor, ağırlıklar
+> ülke tipine göre değişiyor ve `disa` tek taraflı kırpıyor. Ölçüldü (tohum 42,
+> 20 ülke): **tur 25'te 20 ülkenin yirmisi de negatif**; tur 1000'de toplam
+> **+14964**, korunum hatası **%57**. Değer önce dünyadan sızıp yok oluyor,
+> sonra yoktan yaratılıyor. "Transfer" adı yanlıştı — varış yeri hiç
+> modellenmemiş bir sızıntıydı.
+>
+> Merkez/çevre artık **formüle girmiyor**. v4.4 ağırlıkları `tip == "cevre"`
+> ile seçiyordu; burada ülke tipi diye bir girdi yok. Kimin alıcı kimin verici
+> olduğu organik bileşim farkından doğar — konum bir sonuçtur.
+
+**Üçüncü maddenin ölçümü (6 tohum, 5 ülke, 1836–2034, medyan, /100 kapitalist
+yıl):**
+
+| | ALAN | VEREN |
+|---|---|---|
+| aşırı üretim | 13.6 | 14.1 |
+| **bunalım** | **2.4** | **5.6** |
+| toplam | 34.7 | 34.6 |
+
+> **Bulgu: değer girişi kriz SIKLIĞINI düşürmüyor, kriz DERİNLİĞİNİ düşürüyor.**
+> Alan ülkede bunalım yoğunluğu verenin **yarısından az** ve bu altı tohumun
+> altısında da aynı yönde. Toplam sayı ise ayırt etmiyor (34.7 ↔ 34.6) —
+> çünkü toplam resesyon baskın ve alan ülke yüksek organik bileşimi yüzünden
+> zaten daha sık kârlılık sıkışması yaşıyor. Değer girişi o sıkışmaların
+> **bunalıma dönüşmesini** engelliyor.
+>
+> Yani ölçütün 3. maddesi bugünkü haliyle (**"kriz yoğunluğu düşük olmalı"**)
+> yanlış büyüklüğü soruyor: mekanizma derinlikte çalışıyor, sıklıkta değil.
+> Maddenin **derinlik cinsinden** yeniden yazılması gerekiyor — bu bir karar,
+> ölçüm değil, o yüzden burada yalnızca kaydedildi.
+
+Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
+(B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran
+değişmişse `--ss=` ile gerçekten çizdirilip bakılmış olur.
 
 ---
 
