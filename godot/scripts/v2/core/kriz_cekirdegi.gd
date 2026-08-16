@@ -502,13 +502,28 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 			* (1.0 - (P.v44.delev_yatirim_soku if d.delev > 0 else 0.0)))
 	var G := _kamu_maliyesi(d, donem_yil, Y_pot)
 
-	var D_talep := C + I + G + maxf(VT_net_yil, 0.0)
+	# DEGER TRANSFERI TALEBE ISARETIYLE GIRER.
+	#
+	# v4.4 burada `max(VT_net, 0)` yaziyordu (`motor.py:1930`): gelen deger
+	# talebe EKLENIYOR, giden deger hicbir yerden DUSULMUYORDU. Muhasebe tek
+	# yonluydu -- bir ulke deger kaybederken satin alma gucu kaybetmiyordu.
+	#
+	# Olculdu: bu haliyle transferin verici uzerindeki etkisi SIFIR. Alti
+	# tohumun altisinda da veren ulkenin bunalim yogunlugu transfer acikken ve
+	# kapaliyken BIREBIR ayni cikiyordu (degisim +0.0), cunku negatif VT'nin
+	# tek kanali `r_ef` idi ve orada da VT/K ~ 0.0006 mertebesinde kaliyordu.
+	#
+	# Oysa esitsiz mubadelede giden sey GERCEKLESMIS SATIN ALMA GUCUDUR: cevre
+	# ulke kendi urununu satin alamaz hale gelir. Gerceklesme krizinin
+	# emperyalizm uzerinden cevreye tasinma kanali tam olarak budur, ve tek
+	# yonlu muhasebeyle o kanal kapalidir.
+	var D_talep := C + I + G + VT_net_yil
 	d.C_yil = C
 	d.I_yil = I
 	d.G_yil = G
 	d.D_yil = D_talep
 
-	_departmanlar(d, donem_yil, Y_pot, C + G + maxf(VT_net_yil, 0.0), I)
+	_departmanlar(d, donem_yil, Y_pot, C + G + VT_net_yil, I)
 	return D_talep
 
 

@@ -40,9 +40,30 @@ extends RefCounted
 ## ticaret buyur, dunya buyudukce tek bir ciftin dunya icindeki payi kuculur.
 var ticaret_yogunlugu: float = 1.0
 
-## Deger transferinin olcek carpani. v4.4'un `vt_siddet`'i; donmus
-## kalibrasyondan OKUNUR, elle yazilmaz.
-var siddet: float = 0.05
+## Deger transferinin olcek carpani.
+##
+## v4.4'un `vt_siddet`'i (0.05) BURAYA UYMAZ: o sabit, ulke basina bagimsiz
+## hesaplanan ve `Y` ile carpilan baska bir formulun kalibrasyonuydu. Buradaki
+## cift-bazli gravite formu bambaska bir geometridir, dolayisiyla ayni sayi
+## ayni AGIRLIGI vermez -- olculdu, 0.05 ile |VT|/Y = 0.0053 cikiyor.
+##
+## Iki bagimsiz olcut ayni degeri gosteriyor (`--v2-dunya-siddet`):
+##
+##   siddet   |VT|/Y    ALAN dogru   VEREN dogru
+##     0.05   0.0053          5/6           6/6
+##     0.10   0.0115          6/6           6/6     <-- secilen
+##     0.20   0.0239          6/6           5/6
+##     0.80   0.1230          6/6           6/6
+##
+##   1. AGIRLIK: v4.4 varsayilan dunyada |VT|/Y ~ 0.01-0.03 uretiyordu
+##      (olculdu). 0.10 o bandin alt ucuna oturuyor. Elimizdeki tek ampirik
+##      capa bu; 0.80 kurali saglar ama hasilanin %12'sini transfer eder.
+##   2. SAGLAMLIK: kuralin alti tohumun ALTISINDA da dogru isaret verdigi EN
+##      DUSUK siddet. Daha yukarisi kurali guclendirmiyor, yalnizca buyutuyor.
+##
+## Kapiyi yesile boyamak icin secilmedi: 0.05 ile de medyanlar dogru isaretli
+## ve test "geciyordu" -- ama alti tohumun yalnizca besinde, yani gurultude.
+var siddet: float = 0.10
 
 var ulkeler: Array[KrizDurumu] = []
 var cekirdekler: Array[KrizCekirdegi] = []
@@ -64,12 +85,17 @@ var toplam_vt: PackedFloat64Array = PackedFloat64Array()
 ## Korunum kaydi: her tikte olculen bagil hata. Testin asil kaniti.
 var en_buyuk_korunum_hatasi: float = 0.0
 
+## Transferin AGIRLIGI: |VT|/Y'nin kosu boyunca ortalamasi. Kural yon olarak
+## dogru olsa bile bu buyukluk kucukse mekanizma olculemez -- gurultuye
+## gomulur. Kalibrasyonun gorunur olmasi icin kaydediliyor.
+var _vt_y_toplam: float = 0.0
+var _vt_y_say: int = 0
+
 var yil: float = 1836.0
 
 
-func _init(p_ornek: KrizParam = null) -> void:
-	var p := p_ornek if p_ornek != null else KrizParam.new()
-	siddet = p.v44.vt_siddet
+func _init(_p_ornek: KrizParam = null) -> void:
+	pass
 
 
 ## Dunyaya bir ulke katar. Her ulkenin KENDI cekirdegi ve KENDI parametre
@@ -144,10 +170,21 @@ func adim(donem_yil: float) -> void:
 	var vt := transferler()
 	_korunumu_kaydet(vt)
 	for i in range(ulkeler.size()):
+		var Y := ulkeler[i].Y_yil
+		if Y > 0.0:
+			_vt_y_toplam += absf(vt[i]) / Y
+			_vt_y_say += 1
 		cekirdekler[i].adim(ulkeler[i], donem_yil, {"VT_net_yil": vt[i]})
 		toplam_vt[i] += vt[i] * donem_yil
 	son_vt = vt
 	yil += donem_yil
+
+
+## Transferin ortalama agirligi: |VT|/Y. v4.4 varsayilan dunyada 0.01-0.03
+## mertebesindeydi (olculdu); bu formul baska bir geometri oldugu icin ayni
+## sabit ayni agirligi vermez.
+func vt_agirligi() -> float:
+	return _vt_y_toplam / maxf(float(_vt_y_say), 1.0)
 
 
 ## Bagil korunum hatasi: |sum(VT)| / sum|VT|. Sifir = tam korunum,

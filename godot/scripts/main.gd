@@ -42,6 +42,10 @@ func _ready() -> void:
 				# Dunya katmani: deger akisi korunuyor mu, ve esitsiz
 				# mubadelenin kriz yogunlugundaki imzasi olculebiliyor mu.
 				cikis = DunyaTesti.kos()
+			"--v2-dunya-siddet":
+				# Transferin agirligi ne kadar olmali ki kural gurultuden
+				# ciksin. Tani kapisi; ana testin dort kati surer.
+				cikis = DunyaTesti.siddet_taramasi()
 			_ when a.begins_with("--v2-iz"):
 				# --v2-iz[=YIL[:baslangic[:donem_yil]]] -- cekirdegin teshis izi.
 				# donem_yil verilirse o olcekte kosar (olcek ayrismasi avi).

@@ -532,26 +532,100 @@ yazılıyor, dolayısıyla `sum(VT) == 0` bir kalibrasyon değil **özdeşlik**.
 > ile seçiyordu; burada ülke tipi diye bir girdi yok. Kimin alıcı kimin verici
 > olduğu organik bileşim farkından doğar — konum bir sonuçtur.
 
-**Üçüncü maddenin ölçümü (6 tohum, 5 ülke, 1836–2034, medyan, /100 kapitalist
-yıl):**
+### Ölçüt derinlik cinsinden yeniden yazıldı — ve karşı-olgusal olarak
 
-| | ALAN | VEREN |
+Ölçütün 3. maddesi artık şudur:
+
+> **Değer ALAN ülkede bunalım yoğunluğu azalır, VEREN ülkede artar.**
+
+İki değişiklik var, ikisi de zorunluydu.
+
+**1. Sıklık değil derinlik.** Toplam kriz sayısı ayırt etmiyor (ALAN 34.7 ↔
+VEREN 34.6): toplam resesyon baskın ve alan ülke yüksek organik bileşimi
+yüzünden zaten daha sık kârlılık sıkışması yaşıyor. Değer girişi krizi
+seyreltmiyor, **bunalıma dönüşmesini** engelliyor.
+
+**2. Kesitsel değil karşı-olgusal.** "Azalır/artar" bir *değişim* iddiasıdır;
+alan ve vereni yan yana koymak transferin etkisiyle bileşim farkının etkisini
+karıştırır. Doğru tasarım aynı dünyayı aynı tohumla transfer **açık** ve
+**kapalı** koşup her ülkeyi kendi kapalı hâliyle karşılaştırmaktır.
+
+> **Bu ayrım bir yanlış sonucu yakaladı.** Kesitsel ölçüm ALAN 2.4 ↔ VEREN 5.6
+> veriyordu ve bu "giriş derinliği düşürüyor" diye okunmuştu. Karşı-olgusal kol
+> gösterdi ki o fark transferin eseri **değil**: kapalı koşuda da neredeyse
+> aynı yerde duruyor. Transferin gerçek etkisi o noktada sıfırdı — VEREN'de
+> altı tohumun altısında da değişim tam olarak **+0.0**.
+
+### İki yönlü muhasebe — çekirdekteki tek yönlü hesap düzeltildi
+
+Sebebi çekirdekte bulundu. `_efektif_talep` v4.4'ü izleyerek
+`D_talep = C + I + G + max(VT, 0)` yazıyordu (`motor.py:1930`): **gelen değer
+talebe ekleniyor, giden değer hiçbir yerden düşülmüyordu.** Bir ülke değer
+kaybederken satın alma gücü kaybetmiyordu; negatif VT'nin tek kanalı `r_ef`
+idi, o da VT/K ≈ 0.0006 mertebesinde kalıyordu.
+
+Oysa eşitsiz mübadelede giden şey **gerçekleşmiş satın alma gücüdür** — çevre
+ülke kendi ürününü satın alamaz hale gelir. Gerçekleşme krizinin emperyalizm
+üzerinden çevreye taşınma kanalı tam olarak budur ve tek yönlü muhasebeyle
+kapalıydı. Artık `D_talep = C + I + G + VT` (işaretiyle).
+
+Yan etki: `--v2-tarih`'in VT taraması da düzlüğünü kaybetti (toplam 34 → 37,
+bunalım 4 → 5). O düzlük bir zamanlar "krizler ülke-içidir"in ek kanıtı
+sayılmıştı; kapalı ekonominin kriz ürettiği doğru, ama **transferin etkisiz
+olduğu yanlıştı.**
+
+### Şiddet kalibre edildi — görünür biçimde
+
+Yön doğru olsa bile ağırlık küçükse mekanizma gürültüye gömülür. `--v2-dunya-siddet`
+altı tohumun kaçında işaretin doğru çıktığını tarar (medyan değil **tutarlılık**):
+
+| şiddet | \|VT\|/Y | ALAN doğru | VEREN doğru |
+|---|---|---|---|
+| 0.05 | 0.0053 | 5/6 | 6/6 |
+| **0.10** | **0.0115** | **6/6** | **6/6** |
+| 0.20 | 0.0239 | 6/6 | 5/6 |
+| 0.80 | 0.1230 | 6/6 | 6/6 |
+
+`siddet = 0.10` seçildi, iki bağımsız gerekçeyle: v4.4'ün varsayılan dünyada
+ürettiği |VT|/Y ~ 0.01–0.03 bandının alt ucuna oturuyor (elimizdeki tek ampirik
+çapa), ve kuralın altı tohumun altısında da tuttuğu **en düşük** şiddet. v4.4'ün
+`vt_siddet = 0.05` sabiti buraya uymaz: o, ülke başına bağımsız hesaplanan
+başka bir formülün kalibrasyonuydu, bu ise çift bazlı gravite — aynı sayı aynı
+ağırlığı vermiyor.
+
+**Sonuç (6 tohum, medyan, bunalım/100 kapitalist yıl):** ALAN **−0.65** (altı
+tohumun altısında da negatif), VEREN **+0.10** (altısında da pozitif). Kural
+çalışıyor.
+
+### Toplam kriz dinamiği — kural çalışınca ne oldu
+
+| | kapalı | açık | değişim |
+|---|---|---|---|
+| toplam kriz/100y | 35.4 | 35.1 | −0.3 |
+| bunalım/100y | 4.3 | 4.3 | −0.0 |
+
+> **Transfer krizi yok etmiyor, taşıyor.** Dünya neti −0.01 iken tek tek ülkeler
+> çok daha fazla oynuyor. Marx'ta emperyalizm krizi çözmez, erteler ve taşır;
+> ölçülen tam olarak bu.
+
+Yükün nereye gittiği ise beklenmedik:
+
+| ülke | Δ bunalım/100y | |
 |---|---|---|
-| aşırı üretim | 13.6 | 14.1 |
-| **bunalım** | **2.4** | **5.6** |
-| toplam | 34.7 | 34.6 |
+| Yuksek | −0.65 | rahatlıyor |
+| Orta-üst | −0.02 | rahatlıyor |
+| Orta | +0.01 | yükleniyor |
+| **Orta-alt** | **+1.00** | yükleniyor |
+| Düşük | +0.10 | yükleniyor |
 
-> **Bulgu: değer girişi kriz SIKLIĞINI düşürmüyor, kriz DERİNLİĞİNİ düşürüyor.**
-> Alan ülkede bunalım yoğunluğu verenin **yarısından az** ve bu altı tohumun
-> altısında da aynı yönde. Toplam sayı ise ayırt etmiyor (34.7 ↔ 34.6) —
-> çünkü toplam resesyon baskın ve alan ülke yüksek organik bileşimi yüzünden
-> zaten daha sık kârlılık sıkışması yaşıyor. Değer girişi o sıkışmaların
-> **bunalıma dönüşmesini** engelliyor.
->
-> Yani ölçütün 3. maddesi bugünkü haliyle (**"kriz yoğunluğu düşük olmalı"**)
-> yanlış büyüklüğü soruyor: mekanizma derinlikte çalışıyor, sıklıkta değil.
-> Maddenin **derinlik cinsinden** yeniden yazılması gerekiyor — bu bir karar,
-> ölçüm değil, o yüzden burada yalnızca kaydedildi.
+> **En ağır bedeli en çok veren ödemiyor.** Düşük ülke net transferin en
+> büyüğünü veriyor (−4769) ama bunalım yükü yalnızca +0.10 artıyor; sarsılan
+> **Orta-alt** (+1.00). Sebebi taban etkisi: Düşük zaten bunalıma doymuş
+> (5.6/100y), yükselecek yeri yok. Marjinal kurban en yoksul olan değil,
+> **eşiğe en yakın olan** — yani yarı-çevre.
+
+Bu, B3'ün (bölünme ve karşı hareket) hangi ülkelerde en sert oynayacağını da
+söylüyor ve savaş/ittifak katmanı (B4) için doğal bir gerilim kaynağı.
 
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
 (B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran
