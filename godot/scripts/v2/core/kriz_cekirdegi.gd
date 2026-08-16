@@ -696,7 +696,26 @@ func _minsky(d: KrizDurumu, donem_yil: float) -> void:
 		#     olcude arti deger finansa kayar. Kayan sey yalnizca AKIM degil
 		#     atil duran SERMAYE STOKUDUR -- karlilik dustukce finansallasmanin
 		#     ARTMASI beklenir.
-		var makas := maxf(0.0, (d.i_spec_yil - d.r_yil) / maxf(d.i_spec_yil, 1e-6))
+		# "URETIME DONMEMEK ICIN SEBEP" iki kaynaktan gelir; finansa kayis
+		# ikisinin de sonucudur, o yuzden ayri bir akim degil AYNI sinyalin
+		# iki bileseni olarak kurulur (doygunluk ve sonum aynen gecerli kalir).
+		#
+		# (a) KAR SIKISMASI: uretken getiri spekulatif getiriyi yenemiyor.
+		var makas_kar := maxf(0.0, (d.i_spec_yil - d.r_yil) / maxf(d.i_spec_yil, 1e-6))
+		# (b) GERCEKLESME ENGELI: mal satilamiyor. Kar orani faizin USTUNDE
+		#     olsa bile satilamayan urun yiginlari varken uretimi genisletmenin
+		#     anlami yoktur -- sermaye o zaman uretime degil PARA SERMAYEYE
+		#     doner. Marx buna "sermaye bollugu" der (Kapital III, bol. 15 §3
+		#     ve 30-32): degerlenemeyen sermaye yok olmaz, para piyasasina akar.
+		#
+		# Bu kanal v2'de HIC YOKTU. `talep_acigi` yalnizca kriz tesciline
+		# gidiyordu; finansallasmanin tek surukleyicisi (a) idi ve o da koşunun
+		# 198 yilinin 178'inde NEGATIFTI. Olculdu: varlik/Y butun kosu boyunca
+		# 0.000, yani balon hic sismiyor ve Minsky hic atesle(n)miyordu.
+		# Uretim kapasitesinin tuketim kapasitesini asmasi, asiri
+		# finansallasmanin sebebidir; zincir artik motorda kurulu.
+		var makas_gerc := minf(1.0, d.talep_acigi / maxf(P.fin_tikanma_ref, 1e-6))
+		var makas := minf(1.0, maxf(makas_kar, makas_gerc))
 		var kayan := P.fin_pay_yil * maxf(d.s_yil, 0.0) * makas
 		kayan += P.fin_stok_yil * d.K * makas
 		# (ii) Kaldiracli spekulasyon: balon kendi beklentisini besler.

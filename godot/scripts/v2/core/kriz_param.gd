@@ -56,6 +56,15 @@ var yenileme_duyarlilik: float = 4.0
 ## ayni mertebeyi veriyor -- 1825-1938 arasi 14 kriz, ortalama 8.1 yilda bir.
 var yenileme_omru_yil: float = 10.0
 
+## GERCEKLESME ENGELININ DOYUM OLCEGI. `talep_acigi` bu duzeye ulastiginda
+## "uretime donmemek icin sebep" sinyali tam guce cikar.
+##
+## Kar sikismasi kanali (r < i_spec) ile AYNI sinyale beslenir, cunku ikisi de
+## ayni soruya cevap verir: arti deger uretime mi doner, para sermayeye mi?
+## `au_esik` (0.10) asiri uretim krizinin TESCIL esigidir; finansa kayis ondan
+## once baslar ve daha derin bir tikanmada doyar, o yuzden ayri bir olcek.
+var fin_tikanma_ref: float = 0.25
+
 ## DEPARTMAN I / II -- Marx'in yeniden uretim semalari.
 ##
 ## Tek mallik bir modelde gerceklesme krizi YAPISAL OLARAK IMKANSIZDIR:
