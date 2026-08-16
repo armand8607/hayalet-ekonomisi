@@ -70,11 +70,22 @@ const BITIS := 2023.0
 ## tesciller TEK OLAY sayilir. Pencere keyfi degil, tablonun kendi cozunurlugu
 ## kadardir -- tablodaki olaylar 1-6 yil surer ve ardisik olaylar en az 2-3
 ## yil arayla gelir (1936-1938, sonra 1948; 1953-54, sonra 1957-58).
-static func _olay_sayisi(s: KrizDurumu, pencere: float) -> int:
+static func _olay_sayisi(s: KrizDurumu, pencere: float,
+		yalnizca_kapitalist := false) -> int:
+	# DEVRIM BIR KUSUR DEGILDIR. Cekirdek TEK ULKE kosar ve ulke olceginde
+	# sosyalist devrim tarihsel olarak gerceklesmis bir sonuctur (Rusya 1917,
+	# Cin 1949, Vietnam, Kuba). Oyunun kendi karari da boyle (§9.8: "Devrim
+	# bir kayip degil, oyuncunun elindeki politika setinin degismesidir").
+	#
+	# Sorun devrimin OLMASI degil, KARSILASTIRMANIN paydasidir: devrim sonrasi
+	# asiri uretim tescili kapanir, dolayisiyla kapitalist donem kendi
+	# suresiyle olculmelidir.
+	var sinir := s.devrim_yil if (yalnizca_kapitalist and s.devrim_yil > 0.0) else INF
 	var yillar: Array[float] = []
 	for liste in [s.asiri_uretim_krizleri, s.resesyonlar, s.bunalimlar]:
 		for kayit in liste:
-			yillar.append(float(kayit[0]))
+			if float(kayit[0]) <= sinir:
+				yillar.append(float(kayit[0]))
 	if yillar.is_empty():
 		return 0
 	yillar.sort()
@@ -250,22 +261,30 @@ static func kos() -> int:
 	# "model erken devrim yapiyor" ayirt edilemez -- ve olculdu, olan ikincisi.
 	print("")
 	print("--- kapitalist sureye gore yogunluk ---")
-	print("  %6s %8s %10s %14s" % ["tohum", "devrim", "kap. yil", "asiri/100 yil"])
+	print("  %6s %8s %10s %14s %14s"
+			% ["tohum", "devrim", "kap. yil", "asiri/100 yil", "olay/100 yil"])
 	var yogunluk: Array[float] = []
+	var olay_yog: Array[float] = []
 	for tohum in [1, 2, 3, 4, 5, 6]:
 		var s := _kos(0.0, tohum)
 		var kap := (s.devrim_yil - BAS) if s.devrim_yil > 0.0 else (BITIS - BAS)
 		var yog := 100.0 * float(s.asiri_uretim_krizleri.size()) / maxf(kap, 1.0)
+		# AYRIK OLAY yogunlugu: tarihsel tablo da olay sayar, tescil degil.
+		var oy := 100.0 * float(_olay_sayisi(s, 2.0, true)) / maxf(kap, 1.0)
 		yogunluk.append(yog)
-		print("  %6d %8s %10.0f %14.1f"
+		olay_yog.append(oy)
+		print("  %6d %8s %10.0f %14.1f %14.1f"
 				% [tohum, ("%d" % int(s.devrim_yil)) if s.devrim_yil > 0.0 else "yok",
-					kap, yog])
+					kap, yog, oy])
 	var ys := yogunluk.duplicate()
 	ys.sort()
-	print("  model medyani  : %.1f asiri uretim krizi / 100 kapitalist yil"
-			% [0.5 * (ys[2] + ys[3])])
-	print("  tarihsel        : %.1f  (14 kriz / 198 yil)"
-			% [100.0 * 14.0 / (BITIS - BAS)])
+	var os_yog := olay_yog.duplicate()
+	os_yog.sort()
+	print("  model medyani : %.1f asiri uretim tescili, %.1f AYRIK OLAY / 100 kapitalist yil"
+			% [0.5 * (ys[2] + ys[3]), 0.5 * (os_yog[2] + os_yog[3])])
+	print("  tarihsel      : %.1f asiri uretim baskin, %.1f AYRIK OLAY / 100 yil"
+			% [100.0 * 14.0 / (BITIS - BAS),
+				100.0 * float(_tarihsel_olay(2.0)) / (BITIS - BAS)])
 
 	# --- Olcut ---
 	print("")
