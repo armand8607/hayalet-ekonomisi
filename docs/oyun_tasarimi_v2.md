@@ -806,13 +806,39 @@ kalibrasyona bağlıdır ve tek yönlü bir kapı taşıyamaz.
 `--v2-dunya` **15/17**. Kalan ikisi de aynı olgunun sonucu — dış kanal sayısı
 birden beşe çıktı:
 
-1. **"Dış değer konumu bunalımı belirliyor"** −0.006'ya indi (tek kanal varken
-   −0.80'di). Artık bunalımı belirleyen tek şey dış konum değil: borç yükü,
-   temerrüt, döviz krizi ve ani duruş da aynı sonucu sürüklüyor. Ölçüt
-   muhtemelen tek bir dış değişkene değil, **bileşik dış konuma** karşı
-   yazılmalı — ama bu bir tasarım kararı.
+1. **"Dış değer konumu bunalımı belirliyor"** — bileşik konumla ölçüldü,
+   **düz çıktı.** Ayrıntı aşağıda.
 2. **"Negatif toplam"** −0.03'e döndü, yani kavganın dünya toplamındaki etkisi
    D/E/F eklenince kayboldu. Borç kanalı kavganın etkisini yutuyor olabilir.
+
+### Bileşik dış konum ölçüldü — ve borç çevrimi üstünlüğü nötrlüyor
+
+Bileşik konum dört korunumlu kanalın kümülatif toplamıdır (ticaret dengesi +
+eşitsiz mübadele + dış faiz + temerrüt), hasılaya oranlanmış. Bu aynı zamanda
+**dördüncü korunum özdeşliğidir**: `sum(toplam_dis) == 0`.
+
+Dört bağımsız tahminci denendi:
+
+| tasarım | sonuç |
+|---|---|
+| `NX + VT` (mutlak), karşı-olgusal | −0.006 |
+| bileşik/Y, karşı-olgusal, bunalım | −0.100 |
+| bileşik/Y, karşı-olgusal, toplam kriz | +0.014 |
+| bileşik/Y, **ülke içi zaman serisi** | +0.032 |
+
+Sonuncusu, §7'de aynı kurulumla −0.124 … −0.240 verdiği için tasarım
+çalışır durumda. Yani sonuç gerçekten düz — ölçüm kusuru değil.
+
+> **Bulgu: borç çevrimi ticaret üstünlüğünü geri alıyor.** Tek kanal varken aynı
+> ölçüm **−0.80** veriyordu. Aradaki farkı yapan D/E/F: fazla veren ülke
+> fazlasını borç olarak veriyor, faiz alıyor, sonra temerrütle onu geri
+> kaybediyor; açık veren borçlanıyor, faiz ödüyor, sonra borcunu siliyor. Dış
+> konumun kazandırdığı üstünlük çevrimde nötrleniyor.
+
+Bu tutarlı bir okuma ama **gerçekle örtüşüp örtüşmediği ayrı bir soru**: gerçek
+dünyada merkezin konumu nötrleşmez, birikir. En güçlü şüpheli temerrüt
+sıklığı — 198 yılda 64 moratoryum, 105 döviz krizi. Bir kalibrasyon meselesi
+olabilir; kapı bunu görünür tutmak için kırmızı bırakıldı.
 
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
 (B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran

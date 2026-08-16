@@ -95,11 +95,27 @@ var toplam_vt: PackedFloat64Array = PackedFloat64Array()
 var toplam_nx: PackedFloat64Array = PackedFloat64Array()
 
 
-## Bir ulkenin TOPLAM dis deger konumu: ticaret dengesi + esitsiz mubadele.
-## Kuralin dogru degiskeni budur -- VT tek basina, ticaret varken ikinci
-## derecede kalir (olculdu: NX/Y ~ %6, VT/Y ~ %0.5).
+## Kampanya boyunca disaridan alinan NET DEGERIN TOPLAMI -- DORT KANAL.
+##
+##     ticaret dengesi + esitsiz mubadele + dis faiz + temerrut
+##
+## Dordu de korunumlu oldugu icin `sum(toplam_dis) == 0`; bu, dorduncu
+## korunum ozdesligidir ve kapida ayrica sinanir.
+var toplam_dis: PackedFloat64Array = PackedFloat64Array()
+
+
+## BILESIK DIS KONUM -- hasilaya oranlanmis.
+##
+## Once yalnizca `NX + VT` idi ve gradyan -0.006'ya dusmustu. Sebep: dis
+## kanal sayisi BIRDEN BESE cikti. Bunalimi artik ticaret dengesi tek basina
+## surüklemiyor; borc servisi, temerrut ve doviz krizi de ayni sonuca
+## bastiriyor. Iki kanali olcup besini birden sormak, gradyani seyreltir.
+##
+## HASILAYA BOLUNUR. Mutlak akim ulke buyuklugu ile olceklenir; buyuk ulkenin
+## buyuk akimi "daha cok deger aldi" demek degildir. Ulkeler arasi
+## karsilastirma yogunluk cinsinden yapilmali.
 func dis_konum(i: int) -> float:
-	return toplam_nx[i] + toplam_vt[i]
+	return toplam_dis[i] / maxf(ulkeler[i].Y_yil, 1e-9)
 
 ## Korunum kaydi: her tikte olculen bagil hata. Testin asil kaniti.
 var en_buyuk_korunum_hatasi: float = 0.0
@@ -179,6 +195,7 @@ func ekle(d: KrizDurumu, ad: String, tohum: int = 42, ulke_acikligi: float = 1.0
 	son_vt.append(0.0)
 	toplam_vt.append(0.0)
 	toplam_nx.append(0.0)
+	toplam_dis.append(0.0)
 	son_itki.append(1.0)
 	_mor_bekleyen.append(0.0)
 	if ulkeler.size() == 1:
@@ -581,6 +598,9 @@ func adim(donem_yil: float) -> void:
 				{"VT_net_yil": vt[i] + ulkeler[i].faiz_dis_yil + mor_akim})
 		toplam_vt[i] += vt[i] * donem_yil
 		toplam_nx[i] += ulkeler[i].NX_yil * donem_yil
+		# Bilesik konum: dort kanalin toplami.
+		toplam_dis[i] += (ulkeler[i].NX_yil + vt[i] + ulkeler[i].faiz_dis_yil
+				+ mor_akim) * donem_yil
 	son_vt = vt
 	yil += donem_yil
 

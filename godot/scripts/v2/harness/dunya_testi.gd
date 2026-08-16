@@ -175,7 +175,14 @@ static func _kos_ornekli(w: Dunya, yil_sayisi: float,
 			var satir: Array = []
 			for i in range(w.ulkeler.size()):
 				var d := w.ulkeler[i]
-				satir.append([d.NX_yil / maxf(d.Y_yil, 1e-9), d.talep_acigi])
+				# [0] NX/Y  [1] talep acigi  [2] BILESIK dis akim / Y
+				# [3] o ana kadarki kumulatif kriz sayisi
+				satir.append([
+					d.NX_yil / maxf(d.Y_yil, 1e-9),
+					d.talep_acigi,
+					(d.NX_yil + w.son_vt[i] + d.faiz_dis_yil + d.mor_akim_yil)
+							/ maxf(d.Y_yil, 1e-9),
+					float(w.kriz_sayisi(i))])
 			ornekler.append(satir)
 	return ornekler
 
@@ -633,6 +640,7 @@ static func kos() -> int:
 	var h2_yapisal := PackedFloat64Array()
 	var h2_ham := PackedFloat64Array()
 	var h2_bunalim := PackedFloat64Array()
+	var h2_toplam := PackedFloat64Array()
 	var au_fazla := PackedFloat64Array()
 	var au_acik := PackedFloat64Array()
 	var h3_baski := PackedFloat64Array()
@@ -661,6 +669,8 @@ static func kos() -> int:
 			h2_ham.append(tam.dis_konum(i))
 			h2_bunalim.append(_bunalim_yogunlugu(tam, i, sure)
 					- _bunalim_yogunlugu(yalitik, i, sure))
+			h2_toplam.append(_toplam_yogunluk(tam, i, sure)
+					- _toplam_yogunluk(yalitik, i, sure))
 			h3_baski.append(itkisiz.ulkeler[i].talep_acigi)
 			h3_dnx.append(tam.toplam_nx[i] - itkisiz.toplam_nx[i])
 			h3_dau.append(_au_yogunlugu(tam, i, sure)
@@ -687,9 +697,12 @@ static func kos() -> int:
 	# Cozum ARAC DEGISKEN: konumun YAPISAL bileseni, yani ulkenin itki
 	# KAPALIYKEN tasidigi dis konum. O buyukluk sikismadan bagimsizdir ve
 	# nedensel gradyani geri verir. Ham konum da basiliyor ki fark gorunsun.
-	print("  DIS KONUM (NX + VT) <-> bunalim degisimi, %d gozlem" % h2_ham.size())
-	print("    YAPISAL konum (itki kapali kolda olculen) : %+.3f" % g2)
-	print("    ham konum (itki acik kolda olculen)       : %+.3f  <- icsel" % g2_ham)
+	var g2_top := _korelasyon(h2_yapisal, h2_toplam)
+	print("  BILESIK DIS KONUM (ticaret + mubadele + faiz + temerrut, /Y)")
+	print("  %d gozlem" % h2_ham.size())
+	print("    -> BUNALIM degisimi, yapisal konum : %+.3f" % g2)
+	print("    -> BUNALIM degisimi, ham konum     : %+.3f  (icsel)" % g2_ham)
+	print("    -> TOPLAM KRIZ degisimi            : %+.3f" % g2_top)
 	print("")
 	# ILK YAZIMDA BU DENETIM "dis pazar asiri uretimi AZALTIR" diyordu ve
 	# kirmizi kaliyordu. Yanlis olan olcum degil IDDIAYDI: §3.1 dis pazari bir
@@ -703,9 +716,80 @@ static func kos() -> int:
 	_dogrula(m_fazla >= 0.0 or m_acik >= 0.0,
 			"dis pazar asiri uretimi dunya olceginde COZMUYOR (§3.1 bir cikis degil, erteleme)",
 			"(fazla %+.2f, acik %+.2f)" % [m_fazla, m_acik])
-	_dogrula(g2 < -0.36,
-			"dis deger konumu bunalimi belirliyor (gradyan anlamli ve negatif)",
-			"(%+.3f < -0.36)" % g2)
+	# HANGI CIKTI? Bunalim yogunlugu ulke basina 1-6 OLAY tasir, yani ~1.0'lik
+	# adimlarla ziplar; zayif bir etki niceleme gurultusune gomulur (ayni
+	# sorun 8. bolumde de cikti ve orada toplam yogunluga gecince cozuldu).
+	# Toplam tescil ~35 olay tasir. Ikisi de raporlanir, kapi TOPLAM uzerine
+	# kurulur -- olcum hassasiyeti meselesi, iddia degisikligi degil.
+	# KARSI-OLGUSAL TASARIM BURADA CALISMIYOR ve sebebi olculdu.
+	#
+	# `yalitik` kolu dis dunyasi OLMAYAN bambaska bir ekonomidir; 198 yil
+	# boyunca kaotik olarak ayrisir. `tam - yalitik` farki bu yuzden agirlikli
+	# olarak yorunge ayrismasini tasir, deger konumunu degil. Uc degisken de
+	# denendi ve hicbiri toparlamadi:
+	#
+	#     NX + VT (mutlak)                 -0.006
+	#     bilesik / Y  -> bunalim          -0.100
+	#     bilesik / Y  -> toplam kriz      +0.014
+	#
+	# Tek kanal varken ayni tasarim -0.80 veriyordu; kanal sayisi bese cikinca
+	# tanimlanabilirligini yitirdi.
+	#
+	# ULKE ICI ZAMAN SERISI ise tanimli kaliyor: karsi-olgusal kol gerekmez,
+	# her ulke KENDI donemleriyle karsilastirilir ve yorunge ayrismasi diye
+	# bir sorun dogmaz. 7. bolumdeki "gecicilik" olcumu de bu tasarimla
+	# calismisti. Kapi oraya kuruluyor.
+	print("  ULKE ICI ZAMAN SERISI (karsi-olgusal yok, sabit etkiler)")
+	var zc := _dunya_kur(42)
+	var zo := _kos_ornekli(zc, sure)
+	var zx := PackedFloat64Array()
+	var zy := PackedFloat64Array()
+	for i in range(zc.ulkeler.size()):
+		var xs := PackedFloat64Array()
+		var ys := PackedFloat64Array()
+		for sN in range(zo.size() - 1):
+			xs.append(zo[sN][i][2])                          # bilesik dis akim / Y
+			ys.append(zo[sN + 1][i][3] - zo[sN][i][3])       # sonraki donemde kriz
+		var mx := 0.0
+		var my := 0.0
+		for v in xs:
+			mx += v
+		for v in ys:
+			my += v
+		mx /= maxf(float(xs.size()), 1.0)
+		my /= maxf(float(ys.size()), 1.0)
+		for k in range(xs.size()):
+			zx.append(xs[k] - mx)
+			zy.append(ys[k] - my)
+	var g_zaman := _korelasyon(zx, zy)
+	print("    bilesik dis akim -> SONRAKI donemde kriz tescili")
+	print("    korelasyon (%d gozlem) : %+.3f   (negatif olmali)"
+			% [zx.size(), g_zaman])
+	print("")
+	# DORT TASARIM, DORDU DE DUZ -- bu artik olcum sorunu degil, BULGU.
+	#
+	#     NX + VT (mutlak), karsi-olgusal              -0.006
+	#     bilesik/Y, karsi-olgusal, bunalim            -0.100
+	#     bilesik/Y, karsi-olgusal, toplam kriz        +0.014
+	#     bilesik/Y, ULKE ICI zaman serisi             +0.032
+	#
+	# Sonuncusu 7. bolumde ayni kurulumla -0.124...-0.240 verdigi icin
+	# tasarimin kendisi calisir durumda; sonuc gercekten duz.
+	#
+	# TEK KANAL VARKEN AYNI OLCUM -0.80 VERIYORDU. Aradaki fark borc
+	# cevrimidir: fazla veren ulke fazlasini borc olarak veriyor, faiz
+	# aliyor, sonra temerrutle onu geri kaybediyor; acik veren borcleniyor,
+	# faiz oduyor, sonra borcunu siliyor. Dis konumun kazandirdigi ustunluk
+	# borc cevriminde GERI ALINIYOR.
+	#
+	# Bu tutarli bir okuma ama gercekle ortusup ortusmedigi ayri bir soru:
+	# gercek dunyada merkezin konumu notrlesmez, BIRIKIR. Supheli, temerrut
+	# sikligi -- 198 yilda 64 moratoryum, 105 doviz krizi. Kalibrasyon
+	# meselesi olabilir; kapi bunu gorunur tutmak icin KIRMIZI birakiliyor.
+	_dogrula(g_zaman < -0.05,
+			"bilesik dis konum kriz dinamigini belirliyor (ulke ici)"
+			+ " [ACIK: borc cevrimi ticaret ustunlugunu notrluyor]",
+			"(%+.3f)" % g_zaman)
 
 	# -----------------------------------------------------------------
 	# 7. PAZAR KAVGASI  --  zorlama, yeniden dagitim, sifir toplam
