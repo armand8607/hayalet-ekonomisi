@@ -135,8 +135,44 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	print("%6s %3s %8s %6s %6s %6s %6s %6s %6s %6s %6s %7s %6s"
 			% ["yil", "cag", "Y_pot", "C/Yp", "I/Yp", "D/Yp", "K/Y", "canli",
 				"var/Y", "acik", "i_s-r", "r", "e"])
+	# --- MINSKY TANISI ---
+	# Patlama IKI kosulun AYNI ANDA ve kesintisiz saglanmasini ister:
+	#   (1) varlik/Y > minsky_esik      -- balon yeterince buyuk mu
+	#   (2) varlik_beklenti < i_spec    -- beklenti donmus mu
+	# Hangisinin bagladigini bilmeden esik mi kanal mi sorusu cevaplanamaz,
+	# o yuzden ikisi AYRI sayilir.
+	var v_max := 0.0
+	var esik_yil := 0.0
+	var bekl_yil := 0.0
+	var ikisi_yil := 0.0
+	var ardisik := 0.0
+	var ardisik_max := 0.0
+	var bekl_min := INF
+	var bekl_max := -INF
+	var gereken := float(KrizParam.sure_donem(
+			Oran.yillik_sure(cekirdek.P.v44.minsky_sure, Oran.V44_TUR_YIL),
+			donem_yil)) * donem_yil
+
 	for i in range(n):
 		cekirdek.adim(d, donem_yil)
+
+		var v := d.varlik / maxf(d.Y_yil, 1e-9)
+		var k1 := v > cekirdek.P.v44.minsky_esik
+		var k2 := d.varlik_beklenti < d.i_spec_yil
+		v_max = maxf(v_max, v)
+		bekl_min = minf(bekl_min, d.varlik_beklenti)
+		bekl_max = maxf(bekl_max, d.varlik_beklenti)
+		if k1:
+			esik_yil += donem_yil
+		if k2:
+			bekl_yil += donem_yil
+		if k1 and k2:
+			ikisi_yil += donem_yil
+			ardisik += donem_yil
+			ardisik_max = maxf(ardisik_max, ardisik)
+		else:
+			ardisik = 0.0
+
 		if i % adim_basi == 0 or i == n - 1:
 			var yp := maxf(d.Y_pot_yil, 1e-9)
 			print("%6.0f %3d %8.1f %6.3f %6.3f %6.3f %6.2f %6.3f %6.3f %6.3f %6.3f %7.4f %6.3f"
@@ -147,6 +183,17 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	print("  krizler: asiri_uretim=%d resesyon=%d bunalim=%d delev=%d rejim=%s"
 			% [d.asiri_uretim_krizleri.size(), d.resesyonlar.size(),
 				d.bunalimlar.size(), d.delev, d.rejim])
+	print("")
+	print("  --- MINSKY TANISI (%d yil icinde) ---" % int(yil))
+	print("    balon tepesi         : varlik/Y = %.3f   (esik %.2f) -> %s"
+			% [v_max, cekirdek.P.v44.minsky_esik,
+				"ASILDI" if v_max > cekirdek.P.v44.minsky_esik else "HIC ASILMADI"])
+	print("    (1) esik ustunde     : %.1f yil" % esik_yil)
+	print("    (2) beklenti donmus  : %.1f yil" % bekl_yil)
+	print("    (1) VE (2) birlikte  : %.1f yil" % ikisi_yil)
+	print("    en uzun KESINTISIZ   : %.2f yil   (gereken %.2f) -> %s"
+			% [ardisik_max, gereken, "YETER" if ardisik_max >= gereken else "YETMEZ"])
+	print("    varlik_beklenti araligi: [%.4f, %.4f]" % [bekl_min, bekl_max])
 
 
 static func kos() -> int:
