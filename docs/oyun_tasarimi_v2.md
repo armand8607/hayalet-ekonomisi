@@ -476,7 +476,7 @@ yok" bulmak demekti.
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
 | ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
-| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ⬜ | **KISMEN** — C/L ve B kuruldu, `--v2-dunya` 13/13; D, E, F duruyor |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ✅ | **KURULDU** — beş kanal da yerinde, `--v2-dunya` 15/17 (iki açık kırmızı) |
 | **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -755,6 +755,64 @@ dünya aşırı üretimi **13.61 → 13.96** çıkıyor ve üç itki değerinde 
 > ekleniyor. Kavga yalnızca yeniden dağıtmıyor — **dünyayı biraz daha
 > kötüleştiriyor.** Teorinin iddiası zaten "toplam sabit kalır" değil, "kavga
 > rahatlama üretmez"di; yükselmesi bunun daha güçlü hâli.
+
+### D / E / F — ve borcun alacaklısı
+
+Ani duruş, moratoryum ve döviz krizi kuruldu. **Üçüncü korunum yasası** buradan
+doğdu: dış borç `Dunya.borc` matrisinde, `borc[i][j]` = i'nin j'ye borcu, ve
+
+```
+sum(net dış varlık) == 0
+```
+
+özdeşlikle sağlanıyor (ölçülen hata `0.0`). v4.4'te `dis_borc` **alacaklısız bir
+skalerdi** ve moratoryum onu çarpıp buharlaştırıyordu (`motor.py:1806`) — kimse
+zarar etmiyordu, yani temerrüt bir kriz *kanalı* değil bir *muafiyetti*.
+
+**Cari denge de proxy olmaktan çıkıp özdeşlik oldu.** v4.4 onu ülke başına
+`-kats·Y·bop_asim·4 + 0.30·VT` diye hesaplıyordu; toplamı sıfır değildi.
+Ölçüldü: o formülle bütün ülkeler aynı anda açık veriyor, açığı finanse edecek
+fazla hiç oluşmuyor ve **borç matrisi kampanya boyunca boş kalıyordu** — D/E/F
+ölü koddu. Artık `cari = NX + dış faiz + VT`, üçü de korunumlu, dolayısıyla
+`sum(cari) == 0` kendiliğinden.
+
+İki tuzak daha ölçümle yakalandı:
+
+- **Çifte sayım.** Açık hem borçla finanse ediliyor hem rezervden düşülüyordu;
+  rezerv hasılanın −5 katına inip döviz krizi neredeyse sürekli ateşleniyordu
+  (198 yılda 173 kriz). Finanse edilen açık rezervi azaltmaz — borca döner.
+  Rezerve yalnızca **kapatılamayan** kısım iner, ve bu D ile F'yi doğru sırayla
+  bağlar: finansman kesilir → açık rezervi eritir → döviz krizi.
+- **Borç geri ödenmiyordu.** Fazla veren bir borçlu, borcunu kapatacağına
+  başkasına borç veriyordu; alt üç ülke tavana yapışıp **kalıcı** ani duruşta
+  kalıyor ve sabit bir itki çarpanı taşıyordu. Zorlama sinyali bu yüzden işaret
+  değiştirmişti (+0.383 → −0.154). Ani duruş bir epizot olmalı, bir kader değil.
+
+### Temerrüt merkeze döner — artık ölçülüyor
+
+Geri ödeme bağlanınca asıl iddia da tuttu. Karşı-olgusal (moratoryum
+açık/kapalı, aynı tohum), toplam kriz yoğunluğu değişimi:
+
+> **ALACAKLI ülkede +1.32.** Çevrenin ödeyememesi merkezin bilançosuna
+> yazılıyor. v4.4'te bu ölçülemezdi çünkü alacaklı diye bir şey yoktu.
+
+Borçlu için **yön iddia edilmiyor**: moratoryum borcu hafifletir ama `mor_ceza`
+ülkeyi sermaye piyasasından atar (`BoP_R` +0.55). Meksika '82 ve Arjantin
+'01'de olduğu gibi temerrüdü derin bir kriz izler; hangi etkinin bastığı
+kalibrasyona bağlıdır ve tek yönlü bir kapı taşıyamaz.
+
+### İki açık kırmızı
+
+`--v2-dunya` **15/17**. Kalan ikisi de aynı olgunun sonucu — dış kanal sayısı
+birden beşe çıktı:
+
+1. **"Dış değer konumu bunalımı belirliyor"** −0.006'ya indi (tek kanal varken
+   −0.80'di). Artık bunalımı belirleyen tek şey dış konum değil: borç yükü,
+   temerrüt, döviz krizi ve ani duruş da aynı sonucu sürüklüyor. Ölçüt
+   muhtemelen tek bir dış değişkene değil, **bileşik dış konuma** karşı
+   yazılmalı — ama bu bir tasarım kararı.
+2. **"Negatif toplam"** −0.03'e döndü, yani kavganın dünya toplamındaki etkisi
+   D/E/F eklenince kayboldu. Borç kanalı kavganın etkisini yutuyor olabilir.
 
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
 (B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran

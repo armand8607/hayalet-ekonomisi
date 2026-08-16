@@ -78,6 +78,17 @@ var yenileme_taban: float = 0.30
 ## tersi degil.
 var ihracat_itkisi: float = 0.50
 
+## ANI DURUSUN ihracat itkisine ek carpani (D blogu).
+##
+## Dis finansmani kesilen ulke ithalatini ihracatiyla odemek ZORUNDADIR --
+## kredi kapaninca cari denge bir tercih olmaktan cikar. Bu, borc krizini
+## pazar kavgasina baglayan yerdir: temerrut esigine gelen ulke, kavgaya
+## en sert giren ulkeye donusur.
+##
+## Itkinin kendisiyle ayni olcuye tabi (yapisal orani ezmemeli): 0.50 ile
+## ani durustaki bir ulkenin carpani en fazla 2.5 * 1.5 = 3.75 olur.
+var ani_durus_itkisi: float = 0.50
+
 ## Yenilemenin kar orani-faiz makasina duyarliligi. Buyudukce yatirim daha
 ## sert kesilir, konjonktur dalgasi derinlesir.
 var yenileme_duyarlilik: float = 4.0

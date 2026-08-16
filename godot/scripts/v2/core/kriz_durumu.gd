@@ -69,7 +69,29 @@ var bop_asim: float = 0.0
 ## Odemeler dengesi risk primi. Politika faizini CARPARAK yukseltir.
 var BoP_R: float = 0.0
 var cari_yil: float = 0.0          ## cari denge (YILLIK)
-var FX: float = 0.0                ## rezerv (STOK) -- D/E/F bunun uzerine kurulacak
+var FX: float = 0.0                ## rezerv (STOK)
+
+# ---------------------------------------------------------------------------
+# D / E / F  --  ani durus, moratoryum, doviz krizi
+#
+# `dis_borc` burada YALNIZCA TANIDIR: gercek borc `Dunya.borc` matrisinde,
+# alacaklisiyla birlikte durur. v4.4'te borc alacaklisiz bir skalerdi ve
+# moratoryum onu buharlastiriyordu (`dis_borc *= 1-kesinti`) -- kimse zarar
+# etmiyordu. Borcun kime borclu olundugu modellenmedikce temerrut bir kriz
+# KANALI olamaz, yalnizca bir muafiyet olur.
+# ---------------------------------------------------------------------------
+var dis_borc: float = 0.0          ## toplam dis borc / hasila (TANI)
+var dis_varlik: float = 0.0        ## net dis varlik konumu / hasila (TANI)
+var faiz_dis_yil: float = 0.0      ## net dis faiz akimi (YILLIK, + = alacakli)
+## Sindirilen temerrut zarari/kazanci (YILLIK). Alacakliya eksi, borcluya arti.
+var mor_akim_yil: float = 0.0
+var deval: float = 0.0             ## devaluasyon etkisi, sonumlenir
+var fx_baski: int = 0              ## rezerv baskisi sayaci (DONEM)
+var fx_kriz: int = 0               ## doviz krizi sayaci (DONEM)
+var mor_ceza: int = 0              ## moratoryum cezasi sayaci (DONEM)
+var ani_durus: bool = false        ## dis finansman kesildi mi
+var moratoryumlar: Array = []
+var fx_krizleri: Array = []
 
 # ---------------------------------------------------------------------------
 # FINANS

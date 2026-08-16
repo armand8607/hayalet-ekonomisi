@@ -125,6 +125,36 @@ var en_buyuk_ticaret_hatasi: float = 0.0
 ## yukselmesi pazar kavgasinin kizistigi anlamina gelir.
 var son_itki: PackedFloat64Array = PackedFloat64Array()
 
+## DIS BORC MATRISI, duz dizi: `borc[i*n + j]` = i'nin j'ye borcu.
+## Ozdeslik: `sum(net_dis_varlik) == 0` -- her borcun bir alacaklisi var.
+var borc: PackedFloat64Array = PackedFloat64Array()
+
+## Borc/kriz kapilarinin RNG'si. Ulke cekirdeklerininkinden AYRI: moratoryum
+## dunya katmaninin karari, ulkenin degil.
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
+## Dis varlik korunum kaydi.
+var en_buyuk_borc_hatasi: float = 0.0
+
+## Moratoryum kapisi. Karsi-olgusal icin kapatilabilir: temerrudun ALACAKLIYA
+## ne yaptigini olcmenin tek yolu, temerrudun olmadigi bir kolla karsilastirmak.
+var moratoryum_acik: bool = true
+
+## TEMERRUT ZARARININ HENUZ SINDIRILMEMIS KISMI, ulke basina.
+##
+## Silinen borc bir STOK kaybidir ve tek basina reel ekonomiye degmez -- ilk
+## yazimda oyleydi ve alacaklinin bunalim yogunlugu hic kipirdamadi (-0.01).
+## Oysa temerrut alacaklinin saydigi degerin GELMEMESIDIR; motorda bunun
+## karsiligi transferle ayni kanaldir (talep ve `r_ef`).
+##
+## TEK TIKTA degil, `mor_ceza_sure` boyunca sindirilir: 1.6 katlik bir borcun
+## %45'i tek haftaya yazilsaydi yillik olcekte hasilanin 37 kati bir sok
+## olurdu. Gercekte de zarar karsilik ayirarak zamana yayilir.
+##
+## Dizi toplami HER AN sifirdir (alacaklinin eksisi = borclunun artisi),
+## dolayisiyla korunum bozulmaz.
+var _mor_bekleyen: PackedFloat64Array = PackedFloat64Array()
+
 var P: KrizParam
 
 
@@ -150,6 +180,25 @@ func ekle(d: KrizDurumu, ad: String, tohum: int = 42, ulke_acikligi: float = 1.0
 	toplam_vt.append(0.0)
 	toplam_nx.append(0.0)
 	son_itki.append(1.0)
+	_mor_bekleyen.append(0.0)
+	if ulkeler.size() == 1:
+		rng.seed = tohum
+	_borc_matrisini_buyut()
+
+
+## Borc matrisini n x n'e buyutur, MEVCUT girdileri koruyarak. Duz dizi
+## oldugu icin satir uzunlugu degisince yeniden yerlestirmek gerekir; naif
+## `resize` butun alacaklari kaydirirdi.
+func _borc_matrisini_buyut() -> void:
+	var n := ulkeler.size()
+	var yeni := PackedFloat64Array()
+	yeni.resize(n * n)
+	yeni.fill(0.0)
+	var eski_n := n - 1
+	for i in range(eski_n):
+		for j in range(eski_n):
+			yeni[i * n + j] = borc[i * eski_n + j]
+	borc = yeni
 
 
 ## DIS TICARET (B bloku) -- cift bazli, korunumlu.
@@ -184,7 +233,10 @@ func ticaret() -> void:
 	for i in range(n):
 		var d := ulkeler[i]
 		var q_rel := d.q / maxf(q_ort, 1e-6)
+		# Devaluasyon ihracati ucuzlatir (v4.4 `motor.py:1769`): doviz krizi
+		# ulkeyi ihracata mahkum eder, F blogu B blogunu boyle besler.
 		d.eps = (P.v44.eps0 * (0.45 + P.v44.eps_q * minf(q_rel, 2.2))
+				* (1.0 + d.deval)
 				* (1.0 - P.v44.eps_lumpen * d.lumpen_pay))
 		d.pi_m = maxf(0.35, P.v44.pi0 * (1.45 - P.v44.pi_q * minf(q_rel, 2.0))
 				* (1.0 + P.v44.pi_lumpen * d.lumpen_pay))
@@ -241,10 +293,192 @@ func ticaret() -> void:
 ## dogmasin diye. `son_itki` tani icin saklanir -- kampanya boyunca yukselmesi
 ## "pazar kavgasi kiziisiyor" demektir.
 func _itki(i: int) -> float:
-	var baski := ulkeler[i].talep_acigi / maxf(P.v44.au_esik, 1e-6)
+	var d := ulkeler[i]
+	var baski := d.talep_acigi / maxf(P.v44.au_esik, 1e-6)
 	var it := 1.0 + P.ihracat_itkisi * clampf(baski, 0.0, 3.0)
+	# ANI DURUS (D blogu) ZORLAMAYI ARTIRIR. Dis finansmani kesilen ulke
+	# ithalatini ihracatiyla odemek ZORUNDADIR -- kredi kapaninca cari denge
+	# bir tercih olmaktan cikar. D blogunun B bloguna bagli oldugu yer burasi:
+	# borc krizi, pazar kavgasina bir katilimci daha sokar.
+	if d.ani_durus:
+		it *= (1.0 + P.ani_durus_itkisi)
 	son_itki[i] = it
 	return it
+
+
+## DIS BORC -- CIFT BAZLI. `borc[i*n+j]` = i'nin j'ye borcu.
+##
+## v4.4'te `dis_borc` alacaklisiz bir skalerdi ve moratoryum onu carpip
+## buharlastiriyordu (`motor.py:1806`). Kimse zarar etmiyordu, dolayisiyla
+## temerrut bir kriz KANALI degil bir MUAFIYETTI. Oysa cevrenin odeyememesi
+## merkezin bilancosuna yazilir; krizin merkeze DONDUGU yol budur.
+##
+## Ozdeslik: `sum(net dis varlik) == 0`. Her borcun bir alacaklisi var.
+func net_dis_varlik(i: int) -> float:
+	var n := ulkeler.size()
+	var net := 0.0
+	for j in range(n):
+		net += borc[j * n + i] - borc[i * n + j]
+	return net
+
+
+## Cari fazla/acigi dis borca cevirir; acigi FAZLA VEREN ulkeler finanse eder.
+##
+## Kim borc verir sorusu kendiliginden cevaplaniyor: fazla veren ulkenin
+## elinde baskasinin satin almadigi deger birikir ve o deger bir yerde alacak
+## olarak durmak zorundadir. Sermaye ihraci bir tercih degil, fazlanin
+## KACINILMAZ bicimidir.
+## Donen: ulke basina REZERVE dokunan artik akim.
+##
+## CIFTE SAYIM TUZAGI. Ilk yazimda cari akimin TAMAMI rezerve yaziliyordu ve
+## ayrica borcla finanse ediliyordu; ayni acik iki kez sayilinca rezerv
+## hasilanin -5 katina iniyor ve doviz krizi neredeyse SUREKLI atesleniyordu
+## (olculdu: 198 yilda 173 kriz). Oysa finanse edilen bir acik rezervi
+## azaltmaz -- borca donusur. Rezerve YALNIZCA finanse EDILEMEYEN kisim iner.
+##
+## Bunun sonucu D ile F'yi birbirine baglar ve dogru sirayla: once dis
+## finansman kesilir (ani durus), sonra kapatilamayan acik rezervi eritir,
+## sonra doviz krizi gelir. Once kriz, sonra sebep degil.
+func _dis_finansman(donem_yil: float) -> PackedFloat64Array:
+	var n := ulkeler.size()
+	var artik := PackedFloat64Array()
+	artik.resize(n)
+	for i in range(n):
+		artik[i] = ulkeler[i].cari_yil * donem_yil
+
+	# GERI ODEME ONCE. Fazla veren bir BORCLU once kendi borcunu kapatir,
+	# ancak artani baskasina borc verir.
+	#
+	# Ilk yazimda bu yoktu ve borc hic azalmiyordu: alt uc ulke tavana
+	# yapisip KALICI ani durusa giriyor, kalici bir itki carpani tasiyor ve
+	# `ZORLAMA` sinyalini boguyordu (olculdu: +0.383 -> -0.154, isaret
+	# donmesi). Ani durus bir EPIZOT olmali, bir kader degil -- kisit zaten
+	# ulkeyi fazlaya zorluyor, o fazlanin borcu eritmesi gerekir.
+	for i in range(n):
+		var d := ulkeler[i]
+		if d.cari_yil <= 0.0:
+			continue
+		var odenecek := d.cari_yil * donem_yil
+		var brut := 0.0
+		for j in range(n):
+			brut += borc[i * n + j]
+		if brut <= 0.0:
+			continue
+		var oran := minf(1.0, odenecek / brut)
+		for j in range(n):
+			var odenen := borc[i * n + j] * oran
+			borc[i * n + j] -= odenen
+			# Odeme borcludan cikar, alacakliya girer -- toplami sifir.
+			artik[i] -= odenen
+			artik[j] += odenen
+
+	var fazla_toplam := 0.0
+	for i in range(n):
+		# Borcunu kapattiktan SONRA elinde kalan, baskasina verilebilecek fazla.
+		if artik[i] > 0.0:
+			fazla_toplam += artik[i] / maxf(donem_yil, 1e-9)
+	if fazla_toplam <= 0.0:
+		return artik
+
+	for i in range(n):
+		var d := ulkeler[i]
+		if artik[i] >= 0.0:
+			continue
+		# ANI DURUS (D): borc tavani asilmissa yeni kredi YOK. Ulke acigini
+		# kapatamaz, ithalati sikistirmak zorunda kalir -- ve kapatamadigi
+		# kisim rezervinden cikar.
+		if d.ani_durus:
+			continue
+		var ihtiyac := -artik[i]
+		for j in range(n):
+			if i == j or artik[j] <= 0.0:
+				continue
+			var pay := (artik[j] / maxf(donem_yil, 1e-9)) / fazla_toplam
+			var kredi := ihtiyac * pay
+			borc[i * n + j] += kredi
+			# Borclanan acigini kapatir, alacakli fazlasini krediye baglar.
+			# Ikisi ayni sayi oldugu icin toplam korunur.
+			artik[i] += kredi
+			artik[j] -= kredi
+	return artik
+
+
+## D / E / F -- ani durus, moratoryum, doviz krizi.
+func borc_ve_krizler(donem_yil: float) -> void:
+	var n := ulkeler.size()
+
+	# FAIZ ve CARI DENGE once; finansman sonra (acik ne kadarsa o kadar borc).
+	for i in range(n):
+		var d := ulkeler[i]
+		var Y := maxf(d.Y_yil, 1e-6)
+		var brut := 0.0
+		for j in range(n):
+			brut += borc[i * n + j]
+		d.dis_borc = brut / Y
+		d.dis_varlik = net_dis_varlik(i) / Y
+
+		# FAIZ: borclu odur, alacakli alir. CIFT uzerinde tanimli oldugu icin
+		# toplami sifirdir -- faiz de bir deger akimidir ve korunur.
+		var net_faiz := 0.0
+		for j in range(n):
+			net_faiz += borc[j * n + i] * ulkeler[j].i_yil
+			net_faiz -= borc[i * n + j] * d.i_yil
+		d.faiz_dis_yil = net_faiz
+
+		# CARI DENGE BIR OZDESLIKTIR, bir proxy DEGIL.
+		#
+		# v4.4 onu ulke basina bagimsiz hesapliyordu (`motor.py:1789`):
+		# `cari = -kats * Y * bop_asim * 4 + 0.30*VT`. Ticaret diye bir akim
+		# olmadigi icin baska caresi yoktu, ama sonucu ayni kusurdu -- toplami
+		# sifir degil. Olculdu: o formulle butun ulkeler ayni anda acik
+		# veriyor, dolayisiyla acigi finanse edecek FAZLA hic olusmuyor ve
+		# borc matrisi kampanya boyunca BOS kaliyordu; D/E/F hic atesli.
+		#
+		# Artik ucu de gercek ve korunumlu oldugu icin cari denge tanimindan
+		# yazilabiliyor ve `sum(cari) == 0` kendiliginden saglaniyor.
+		d.cari_yil = d.NX_yil + d.faiz_dis_yil + son_vt[i]
+
+	# Rezerve YALNIZCA finanse edilemeyen artik iner (bkz. `_dis_finansman`).
+	var artik := _dis_finansman(donem_yil)
+
+	for i in range(n):
+		var d := ulkeler[i]
+		var Y := maxf(d.Y_yil, 1e-6)
+		d.FX += artik[i]
+
+		# D. ANI DURUS -- borc tavani asilinca dis finansman kesilir.
+		d.ani_durus = d.dis_borc > P.v44.dis_borc_tavani or d.mor_ceza > 0
+
+		# F. DOVIZ KRIZI -- rezerv erimesi.
+		d.fx_baski = d.fx_baski + 1 if d.FX < -0.04 * Y else 0
+		if d.fx_baski >= 8 and d.fx_kriz == 0 and d.rejim == "kapitalist":
+			d.fx_kriz = P.v44.fx_kriz_sure
+			d.FX = 0.06 * Y
+			d.deval = P.v44.devaluasyon
+			d.borc *= 1.12
+			d.fx_krizleri.append(d.yil)
+			d.fx_baski = 0
+		if d.fx_kriz > 0:
+			d.fx_kriz -= 1
+		d.deval = maxf(0.0, d.deval - P.v44.deval_sonum)
+
+		# E. MORATORYUM -- ve ZARARI ALACAKLIYA YAZILIR.
+		if (moratoryum_acik and d.dis_borc > P.v44.mor_borc_esigi and d.fx_kriz > 0
+				and d.mor_ceza == 0 and d.rejim == "kapitalist"
+				and rng.randf() < 0.20 * donem_yil * 52.0 / 30.0):
+			for j in range(n):
+				# Silinen borc alacaklinin VARLIGINDAN dusulur. v4.4 bu
+				# satiri hic yazmamisti; borc yoktan siliniyordu.
+				var silinen := borc[i * n + j] * P.v44.mor_kesinti
+				borc[i * n + j] -= silinen
+				# Zarar alacakliya, kurtulus borcluya -- toplami sifir.
+				_mor_bekleyen[j] -= silinen
+				_mor_bekleyen[i] += silinen
+			d.mor_ceza = P.v44.mor_ceza_sure
+			d.moratoryumlar.append(d.yil)
+		if d.mor_ceza > 0:
+			d.mor_ceza -= 1
+			d.BoP_R = minf(1.0, d.BoP_R + P.v44.mor_ceza_prim)
 
 
 ## THIRLWALL KISITI. Odemeler dengesiyle uyumlu azami buyume `eps*z/pi_m`'dir;
@@ -265,11 +499,6 @@ func thirlwall(donem_yil: float) -> void:
 		d.y_max = d.eps * maxf(z, 0.0) / maxf(d.pi_m, 0.2)
 		d.bop_asim = d.y_buyume - d.y_max
 		d.BoP_R = Formulas.sg(P.v44.kappa_B * d.bop_asim * 8.0)
-		# Cari denge: asim kadar acik verilir, deger transferi de buraya
-		# akar (v4.4 `motor.py:1789` ile ayni bicim).
-		d.cari_yil = (-P.v44.cari_kats * d.Y_yil * d.bop_asim * 4.0
-				+ 0.30 * son_vt[i])
-		d.FX += d.cari_yil * donem_yil
 
 
 ## Ulkeler arasi net deger transferini hesaplar (YILLIK akim).
@@ -332,12 +561,24 @@ func adim(donem_yil: float) -> void:
 	_korunumu_kaydet(vt)
 	son_vt = vt
 	thirlwall(donem_yil)
+	# D/E/F Thirlwall'dan SONRA: cari denge orada kuruluyor, borc ondan dogar.
+	borc_ve_krizler(donem_yil)
+	_borc_korunumunu_kaydet()
 	for i in range(ulkeler.size()):
 		var Y := ulkeler[i].Y_yil
 		if Y > 0.0:
 			_vt_y_toplam += absf(vt[i]) / Y
 			_vt_y_say += 1
-		cekirdekler[i].adim(ulkeler[i], donem_yil, {"VT_net_yil": vt[i]})
+		# DIS FAIZ ve SINDIRILEN TEMERRUT ZARARI da birer deger akimidir ve
+		# transferle ayni kanallardan girer (talep ve `r_ef`). Ayri anahtar
+		# acilmadi cunku cekirdek icin ucu de "disaridan gelen/giden net
+		# deger"; bilesenleri `KrizDurumu`da tani olarak ayri duruyor.
+		var mor_pay := 1.0 / maxf(float(P.v44.mor_ceza_sure), 1.0)
+		var mor_akim := _mor_bekleyen[i] * mor_pay / maxf(donem_yil, 1e-9)
+		_mor_bekleyen[i] -= _mor_bekleyen[i] * mor_pay
+		ulkeler[i].mor_akim_yil = mor_akim
+		cekirdekler[i].adim(ulkeler[i], donem_yil,
+				{"VT_net_yil": vt[i] + ulkeler[i].faiz_dis_yil + mor_akim})
 		toplam_vt[i] += vt[i] * donem_yil
 		toplam_nx[i] += ulkeler[i].NX_yil * donem_yil
 	son_vt = vt
@@ -370,6 +611,14 @@ func _korunumu_kaydet(vt: PackedFloat64Array) -> void:
 
 ## Ticaret de ayni disipline tabidir: bir ulkenin ihracati baskasinin
 ## ithalatidir, dolayisiyla sum(NX) == 0. Dunya kendine ihracat yapamaz.
+## Her borcun bir alacaklisi var: net dis varlik konumlarinin toplami sifir.
+func _borc_korunumunu_kaydet() -> void:
+	var net := PackedFloat64Array()
+	for i in range(ulkeler.size()):
+		net.append(net_dis_varlik(i))
+	en_buyuk_borc_hatasi = maxf(en_buyuk_borc_hatasi, korunum_hatasi(net))
+
+
 func _ticaret_korunumunu_kaydet() -> void:
 	var nx := PackedFloat64Array()
 	for d in ulkeler:

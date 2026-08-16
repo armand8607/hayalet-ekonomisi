@@ -42,6 +42,13 @@ static func _au_yogunlugu(w: Dunya, i: int, sure: float) -> float:
 	return d.asiri_uretim_krizleri.size() * 100.0 / maxf(kap, 1.0)
 
 
+## Bir ulkenin TOPLAM kriz yogunlugu -- /100 kapitalist yil.
+static func _toplam_yogunluk(w: Dunya, i: int, sure: float) -> float:
+	var d := w.ulkeler[i]
+	var kap: float = (d.devrim_yil - BAS) if d.devrim_yil > 0.0 else sure
+	return w.kriz_sayisi(i) * 100.0 / maxf(kap, 1.0)
+
+
 ## Dunya geneli ASIRI URETIM yogunlugu -- havuzlanmis payda.
 static func _dunya_yogunlugu_au(w: Dunya, sure: float) -> float:
 	var say := 0
@@ -318,6 +325,37 @@ static func kos() -> int:
 	print("  en buyuk bagil hata : %s" % str(t_hata))
 	_dogrula(t_hata < 1e-12, "sum(NX) == 0 -- dunya kendine ihracat yapamiyor",
 			"(%s < 1e-12)" % str(t_hata))
+
+	# -----------------------------------------------------------------
+	# 1c. DIS BORC KORUNUMU  (D/E/F)
+	# -----------------------------------------------------------------
+	print("")
+	print("--- 1c. dis borc korunumu (her borcun bir alacaklisi var) ---")
+	var b_hata := w.en_buyuk_borc_hatasi
+	print("  en buyuk bagil hata : %s" % str(b_hata))
+	print("  (v4.4'te dis borc alacaklisiz bir skalerdi; moratoryum onu")
+	print("   buharlastiriyordu -- kimse zarar etmiyordu)")
+	_dogrula(b_hata < 1e-12, "sum(net dis varlik) == 0",
+			"(%s < 1e-12)" % str(b_hata))
+	print("")
+	print("  %-10s %9s %11s %8s %8s %9s %8s"
+			% ["ulke", "dis_borc", "net_varlik", "morator", "fx_kriz", "ani_durus", "FX/Y"])
+	var mor_top := 0
+	var fx_top := 0
+	for i in range(w.ulkeler.size()):
+		var dd := w.ulkeler[i]
+		mor_top += dd.moratoryumlar.size()
+		fx_top += dd.fx_krizleri.size()
+		print("  %-10s %9.3f %11.3f %8d %8d %9s %8.3f"
+				% [w.adlar[i], dd.dis_borc, dd.dis_varlik,
+				dd.moratoryumlar.size(), dd.fx_krizleri.size(),
+				str(dd.ani_durus), dd.FX / maxf(dd.Y_yil, 1e-9)])
+	print("  toplam: %d moratoryum, %d doviz krizi" % [mor_top, fx_top])
+	# Mekanizma tanimli olsun yetmez, ATESLENSIN. Sifir cikiyorsa D/E/F
+	# yazilmis ama olu koddur ve bunu ancak boyle bir sayac gosterir.
+	_dogrula(mor_top + fx_top > 0,
+			"D/E/F olu kod degil: borc/doviz krizleri tesciL ediliyor",
+			"(%d moratoryum, %d doviz krizi)" % [mor_top, fx_top])
 
 	# -----------------------------------------------------------------
 	# 2. DEJENERE DURUM
@@ -803,6 +841,83 @@ static func kos() -> int:
 			"NEGATIF TOPLAM: kavga dunya olceginde rahatlama uretmiyor, artiriyor",
 			"(%.2f -> %.2f, %+.2f)"
 			% [m_itkisiz, m_itkili, m_itkili - m_itkisiz])
+
+	# -----------------------------------------------------------------
+	# 8. TEMERRUT MERKEZE DONER  (E blogu)
+	# -----------------------------------------------------------------
+	#
+	# v4.4'te moratoryum borcu buharlastiriyordu ve kimse zarar etmiyordu;
+	# temerrut bir kriz KANALI degil bir MUAFIYETTI. Alacakli modellenince
+	# iddia sinanabilir hale geliyor:
+	#
+	#   Cevrenin odeyememesi merkezin bilancosuna yazilir.
+	#
+	# Kol: `moratoryum_acik = false`. Borclular ayni sikintiyi yasar ama
+	# borcu silemez; aradaki fark TEMERRUDUN kendi etkisidir.
+	print("")
+	print("--- 8. temerrut merkeze doner mi (moratoryum acik/kapali) ---")
+	print("")
+	var alacakli_d := PackedFloat64Array()
+	var borclu_d := PackedFloat64Array()
+	var mor_say := 0
+	for tohum in [1, 2, 3, 4, 5, 6]:
+		var mor := _dunya_kur(tohum)
+		_kos(mor, sure)
+		var mors := _dunya_kur(tohum)
+		mors.moratoryum_acik = false
+		_kos(mors, sure)
+		# Alacakli / borclu, TEMERRUTSUZ kolda belirlenir: temerrudun kendisi
+		# kimin alacakli oldugunu degistirmesin.
+		var al := 0
+		var bo := 0
+		for i in range(mors.ulkeler.size()):
+			if mors.ulkeler[i].dis_varlik > mors.ulkeler[al].dis_varlik:
+				al = i
+			if mors.ulkeler[i].dis_varlik < mors.ulkeler[bo].dis_varlik:
+				bo = i
+		for i in range(mor.ulkeler.size()):
+			mor_say += mor.ulkeler[i].moratoryumlar.size()
+		# TOPLAM kriz yogunlugu kullaniliyor, bunalim degil. Alacakli ulke
+		# kampanya boyunca yalnizca 1-3 bunalim gorur; yogunlugu ~1.0'lik
+		# adimlarla ziplar ve kucuk bir etki NICELEME GURULTUSUNE gomulur
+		# (olculdu: medyan -0.04, yani tohumlarin cogunda tam sifir). Toplam
+		# tescil ~35 olay tasidigi icin ayni etki gorunur hale gelir.
+		alacakli_d.append(_toplam_yogunluk(mor, al, sure)
+				- _toplam_yogunluk(mors, al, sure))
+		borclu_d.append(_toplam_yogunluk(mor, bo, sure)
+				- _toplam_yogunluk(mors, bo, sure))
+	var m_al := _medyan(alacakli_d)
+	var m_bo := _medyan(borclu_d)
+	print("  %d moratoryum tescil edildi (6 tohum toplami)" % mor_say)
+	print("  TOPLAM kriz yogunlugu degisimi (medyan, temerrutlu - temerrutsuz):")
+	print("    ALACAKLI ulkede : %+.2f   (artmali -- zarar ona yazilir)" % m_al)
+	print("    BORCLU ulkede   : %+.2f" % m_bo)
+	print("")
+	_dogrula(mor_say > 0, "moratoryum ateslendi", "(%d)" % mor_say)
+	# KIRMIZI VE OYLE KALMALI -- bu bir MODEL BOSLUGU, yanlis bir iddia degil.
+	#
+	# Olculdu: alacaklinin kriz yogunlugu temerrutle DUSUYOR (-0.66). Sebep
+	# mekanik ve izlenebilir: silinen alacak alacaklinin gelirini azaltiyor,
+	# az gelir `r_ef` uzerinden az birikim, az birikim de az asiri uretim
+	# demek. Model temerrudu merkeze bir SOGUTMA olarak tasiyor.
+	#
+	# Gercek kanal ise FINANSAL: temerrut alacaklinin bilancosunu vurur,
+	# kredi daralir, de-leveraging baslar. Motorda bunun karsiligi `varlik`
+	# cokusu ve `delev` sayacidir (J/K bloklari) ve temerrut oraya HIC
+	# BAGLANMADI -- zarar yalnizca gelir kanalindan giriyor.
+	#
+	# Iddia standart ve dogrudur (cevrenin odeyememesi merkezin bilancosuna
+	# yazilir); eksik olan mekanizmadir. Yesile boyamak icin ne esik
+	# gevsetildi ne isaret cevrildi: kapi, kurulmamis kanali gosteriyor.
+	_dogrula(m_al > 0.0,
+			"TEMERRUT MERKEZE DONER: alacaklinin kriz yogunlugu artiyor"
+			+ " [ACIK BOSLUK: temerrut J/K finansal kanalina bagli degil]",
+			"(%+.2f)" % m_al)
+	# BORCLU ICIN YON IDDIA EDILMIYOR ve sebebi teorik. Moratoryum borcu
+	# hafifletir ama `mor_ceza` ulkeyi sermaye piyasasindan disari atar
+	# (`BoP_R` +0.55) -- Meksika '82 ve Arjantin '01'de oldugu gibi temerrudu
+	# derin bir kriz izler. Hangi etkinin bastigi kalibrasyona baglidir ve
+	# tek yonlu bir iddia tasiyamaz; sayi raporlanir, kapi kurulmaz.
 
 	print("")
 	print("------------------------------------------------------------------")
