@@ -69,6 +69,37 @@ func _kur(d: KrizDurumu, alan: String, varsayilan: float = 1.0) -> float:
 	return float(Tables.KURUMLAR[d.kurum].get(alan, varsayilan))
 
 
+## YENI DEGERIN TOPLAM URUN DEGERINDEKI PAYI --  W = c + v + s  icinde (v+s).
+##
+## `c` OLU emektir: urune aktarilir ama YENIDEN yaratilmaz. Dolayisiyla
+## fiziksel hasila buyurken satinalma gucu ayni hizda buyumez, cunku hasilanin
+## giderek buyuyen bir kismi yalnizca AKTARILAN degerdir.
+##
+##     canli = (v+s) / (c+v+s) = (1 + s/v) / (c/v + 1 + s/v)
+##
+## Iki girdisi de motorda ZATEN VAR, yeni parametre gerekmez: `cv` organik
+## bilesim, `pay` ise yeni degerin ucret payi oldugu icin s/v = (1-pay)/pay.
+##
+## NEDEN EKLENDI. Bu makas -- uretim kapasitesinin tuketim kapasitesinden
+## HIZLI buyumesi -- oyunun ilan edilmis teziydi ama motorda YALNIZCA robot
+## orani uzerinden kuruluydu, o da `era >= 5` kapisinin arkasindaydi ve cag
+## 5'in `yil_alt`'i 2000. Olculdu: `canli_pay` 1825-2003 arasi tam 1.000,
+## yani 198 yilin 178'inde model "fiziksel urunun TAMAMI yeni degerdir"
+## diyordu -- bu da c = 0 demektir, W = c+v+s ile celisir.
+##
+## Marx'ta bu asinma dokuma tezgahindan itibaren SUREKLIDIR; otomasyon onun
+## 21. yuzyila ozgu siddetlenmesidir, baslangici degil. Kanal artik c/v'den
+## dogar, yani 1825'ten itibaren ve teknolojik gelisme hizlandikca hizlanarak
+## acilir. `oto` bunun UZERINE binen ikinci kanaldir.
+##
+## Artik oran yukseldikce (ucret payi dustukce) `canli` YUKSELIR: ayni c/v
+## icin daha cok arti deger, yani (v+s) c'ye gore daha buyuk. Somuru
+## yogunlasmasi Kapital III bol. 14'un ikinci karsi-egilimidir.
+func _yeni_deger_payi(cv: float, pay: float) -> float:
+	var artik_oran := (1.0 - pay) / maxf(pay, 1e-6)
+	return (1.0 + artik_oran) / maxf(cv + 1.0 + artik_oran, 1e-9)
+
+
 func kappa_v(cv: float, q: float) -> float:
 	var L := maxf(0.0, log(maxf(q, 0.05) / 0.5))
 	var ucuz := P.v44.ucuzlama_max * L / (L + P.v44.ucuzlama_h)
@@ -110,6 +141,10 @@ func baslat(d: KrizDurumu, hedef_istihdam: float = 0.90) -> void:
 	d.e = hedef_istihdam
 	d.e_norm = hedef_istihdam
 	d.u = P.v44.u_normal
+	# Baslangicta da deger bilesimi kanali gecerli: `V_onceki` ilk adimin
+	# tuketim tabanini kurar, 1.0 birakilirsa ilk adim yapay bir talep siciramasi
+	# gorur.
+	d.canli_pay = maxf(P.v44.oto_canli_taban, _yeni_deger_payi(d.cv, d.pay))
 	d.V_yil = d.Y_yil * d.canli_pay
 
 
@@ -279,12 +314,17 @@ func _arz_kapasitesi(d: KrizDurumu, donem_yil: float) -> float:
 		d.oto += Oran.donem_uyum(P.oto_hiz_yil, donem_yil) * (hedef - d.oto)
 	d.oto = clampf(d.oto, 0.0, P.v44.oto_tavan)
 
-	# Robotlar FIZIKSEL uretime katilir ama DEGER uretmezler. Bu ayrim oyunun
-	# butun tezidir.
+	# Satinalma gucu iki AYRI kanaldan asinir; ikisi zincirin ayri
+	# noktalarinda oturur, o yuzden carpilirlar:
+	#   (1) toplam urun degerinin ne kadari YENI degerdir  -> `_yeni_deger_payi`
+	#   (2) o yeni degerin uretiminde canli emegin payi     -> robot orani
 	var canli_emek := d.l_etkin() * d.hafta_saati
 	var robot := P.v44.oto_verim * d.oto * d.K / maxf(d.q, 1e-6)
 	var emek_esdeger := canli_emek + robot
-	d.canli_pay = maxf(P.v44.oto_canli_taban, canli_emek / maxf(emek_esdeger, 1e-9))
+	# Robotlar FIZIKSEL uretime katilir ama DEGER uretmezler.
+	var robot_pay := canli_emek / maxf(emek_esdeger, 1e-9)
+	d.canli_pay = maxf(P.v44.oto_canli_taban,
+			_yeni_deger_payi(d.cv, d.pay) * robot_pay)
 
 	# TUZAK -- `kv` ZAMAN BIRIMI TASIR. `kappa_v` v4.4'ten geldigi icin TUR
 	# basina sermaye/hasila oranidir: kodda kv~22 gormek YILLIK K/Y~5.9
@@ -379,7 +419,23 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	var yenileme := (P.yenileme_taban + (1.0 - P.yenileme_taban)
 			* Formulas.sg(P.yenileme_duyarlilik * marj))
 	d.yenileme_orani = yenileme
-	var I := (maxf(0.0, (d.g_yil + yenileme * P.v44.delta_K / Oran.V44_TUR_YIL) * d.K)
+
+	# --- SEMA KAPANIR: TUKETILEN SABIT SERMAYE DE TALEPTIR ---
+	#
+	# Urun degeri W = c + v + s. Satinalma gucu olarak yalnizca (v+s) sayilirsa
+	# `c` hicbir yerde talep olarak GORUNMEZ ve talep yapay olarak coker.
+	# Marx'ta oyle degildir: `c` Departman I'in urunune yonelen taleptir --
+	# tuketilen uretim araci YERINE KONMAK zorundadir.
+	#
+	# Olculdu: `c` talep tarafina eklenmeden `canli_pay` c/v'ye baglandiginda
+	# yatirim tam SIFIRA, istihdam 0.27'ye iniyor ve yirmi yilda bir 1929'dan
+	# agir bir cokus tekrarliyordu. Sema kapanmadigi icin.
+	#
+	# `delta_K * K` ARTIK YOK: tuketilen sabit sermayenin karsiligi c'nin
+	# kendisidir, ikisini birden saymak amortismani cift sayardi.
+	var c_akim := d.Y_yil * (1.0 - d.canli_pay)
+	# Karlilik kayboldugunda kapitalist eskiyeni yenilemez; fren c'ye biner.
+	var I := (maxf(0.0, d.g_yil * d.K + yenileme * c_akim)
 			* (1.0 - (P.v44.delev_yatirim_soku if d.delev > 0 else 0.0)))
 	var G := _kamu_maliyesi(d, donem_yil, Y_pot)
 

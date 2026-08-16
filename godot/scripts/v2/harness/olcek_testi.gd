@@ -103,7 +103,7 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	print("   kapasitesi ile TUKETIM kapasitesi arasindaki makas budur.)")
 	print("%6s %3s %8s %6s %6s %6s %6s %6s %6s %6s %6s %7s %6s"
 			% ["yil", "cag", "Y_pot", "C/Yp", "I/Yp", "D/Yp", "K/Y", "canli",
-				"oto", "acik", "C/V", "r", "e"])
+				"oto", "acik", "pay", "r", "e"])
 	for i in range(n):
 		cekirdek.adim(d, donem_yil)
 		if i % adim_basi == 0 or i == n - 1:
@@ -111,8 +111,7 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 			print("%6.0f %3d %8.1f %6.3f %6.3f %6.3f %6.2f %6.3f %6.3f %6.3f %6.3f %7.4f %6.3f"
 					% [d.yil, d.era, d.Y_pot_yil, d.C_yil / yp, d.I_yil / yp,
 						d.D_yil / yp, d.K / maxf(d.Y_yil, 1e-9), d.canli_pay,
-						d.oto, d.talep_acigi, d.C_yil / maxf(d.V_yil, 1e-9),
-						d.r_yil, d.e])
+						d.oto, d.talep_acigi, d.pay, d.r_yil, d.e])
 	print("  krizler: asiri_uretim=%d resesyon=%d bunalim=%d delev=%d rejim=%s"
 			% [d.asiri_uretim_krizleri.size(), d.resesyonlar.size(),
 				d.bunalimlar.size(), d.delev, d.rejim])
