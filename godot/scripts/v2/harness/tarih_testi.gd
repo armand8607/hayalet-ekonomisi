@@ -58,6 +58,51 @@ const BAS := 1825.0
 const BITIS := 2023.0
 
 
+## AYRIK KRIZ OLAYI SAYISI.
+##
+## Model uc AYRI sicile yazar (asiri uretim, resesyon, bunalim) ve bunlar
+## BIRBIRINI DISLAMAZ: 1929 gibi tek bir tarihsel olay ucune birden girer.
+## Tarihsel kayit ise 27 AYRI OLAY sayar ve her birine yalnizca BASKIN turunu
+## etiketler. Uc sicilin toplamini 27'yle karsilastirmak bu yuzden ayni olayi
+## uc kez saymaktir.
+##
+## Burada kayitlar zaman ekseninde birlestirilir: `pencere` yilindan yakin
+## tesciller TEK OLAY sayilir. Pencere keyfi degil, tablonun kendi cozunurlugu
+## kadardir -- tablodaki olaylar 1-6 yil surer ve ardisik olaylar en az 2-3
+## yil arayla gelir (1936-1938, sonra 1948; 1953-54, sonra 1957-58).
+static func _olay_sayisi(s: KrizDurumu, pencere: float) -> int:
+	var yillar: Array[float] = []
+	for liste in [s.asiri_uretim_krizleri, s.resesyonlar, s.bunalimlar]:
+		for kayit in liste:
+			yillar.append(float(kayit[0]))
+	if yillar.is_empty():
+		return 0
+	yillar.sort()
+	var olay := 1
+	var son := yillar[0]
+	for y in yillar:
+		if y - son > pencere:
+			olay += 1
+		son = y
+	return olay
+
+
+## Tarihsel kaydin AYNI pencereyle kumelenmis olay sayisi.
+##
+## Sart: modeli kumeleyip tarihi kumelememek elmayi armutla karsilastirmaktir.
+## Tablodaki olaylar [bas, bitis] araligidir; iki olay, birinin bitisi ile
+## digerinin baslangici arasindaki bosluk `pencere`den kucukse birlesir.
+static func _tarihsel_olay(pencere: float) -> int:
+	var olay := 1
+	var son_bitis := float(KAYIT[0][1])
+	for i in range(1, KAYIT.size()):
+		var bas := float(KAYIT[i][0])
+		if bas - son_bitis > pencere:
+			olay += 1
+		son_bitis = maxf(son_bitis, float(KAYIT[i][1]))
+	return olay
+
+
 static func _ozet() -> Dictionary:
 	var d := {}
 	for k in KAYIT:
@@ -165,22 +210,66 @@ static func kos() -> int:
 	print("  aralik %d-%d, medyan %.1f  (tarihsel %d)"
 			% [sirali[0], sirali[5], medyan, KAYIT.size()])
 
+	# --- AYRIK OLAY SAYISI: ELMA ELMAYA ---
+	#
+	# Ustteki TOPLAM sutunu uc sicilin toplamidir ve ayni krizi birden cok
+	# kez sayar. Tarihsel 27 ise ayrik olay sayisidir. Karsilastirma ancak
+	# model tarafi da olaya indirgenince anlamli olur. Pencere duyarliligi
+	# gizlenmiyor, iki degerde birden basiliyor.
+	print("")
+	print("--- ayrik olay sayisi (tesciller zamanda birlestirilerek) ---")
+	print("  %6s %14s %14s %10s" % ["tohum", "olay (2 yil)", "olay (3 yil)", "ham toplam"])
+	var olaylar3: Array[int] = []
+	var olaylar2: Array[int] = []
+	for tohum in [1, 2, 3, 4, 5, 6]:
+		var s := _kos(0.0, tohum)
+		var o2 := _olay_sayisi(s, 2.0)
+		var o3 := _olay_sayisi(s, 3.0)
+		olaylar3.append(o3)
+		olaylar2.append(o2)
+		print("  %6d %14d %14d %10d"
+				% [tohum, o2, o3, s.asiri_uretim_krizleri.size()
+					+ s.resesyonlar.size() + s.bunalimlar.size()])
+	var os := olaylar3.duplicate()
+	os.sort()
+	var olay_medyan := 0.5 * float(os[2] + os[3])
+	var os2 := olaylar2.duplicate()
+	os2.sort()
+	var olay_medyan2 := 0.5 * float(os2[2] + os2[3])
+	print("  ayni pencereyle TARIHSEL kayit: %d olay (2 yil), %d olay (3 yil)"
+			% [_tarihsel_olay(2.0), _tarihsel_olay(3.0)])
+	print("  model medyani               : %.1f olay (2 yil), %.1f olay (3 yil)"
+			% [olay_medyan2, olay_medyan])
+
 	# --- Olcut ---
 	print("")
 	print("--- olcut ---")
 	var gecti := true
 	# (1) Kriz sikligi ayni mertebede olmali: tarihsel 27, kabul bandi 10-60.
 	#
-	# OLCUT TOHUM MEDYANIDIR, VT taramasinin EN IYISI DEGIL. Onceki hali
-	# `maxi()` ile taramanin en yuksek degerini aliyordu; bu, bes VT
-	# degerinden HERHANGI BIRI banda dustugunde testi gecirir, yani en iyi
-	# ornegi secer. Belgenin kendi kurali da (§10) tek kosudan okumaya karsi:
-	# "en az uc tohum gerekir".
-	var bant := medyan >= 10.0 and medyan <= 60.0
+	# OLCUT AYRIK OLAY SAYISIDIR, ham sicil toplami DEGIL -- ve tohum
+	# medyanidir, VT taramasinin en iyisi degil.
+	#
+	# Ham toplam uc sicilin (asiri uretim + resesyon + bunalim) toplamiydi ve
+	# bunlar birbirini dislamaz: 1929 gibi tek bir olay ucune birden girer.
+	# Tarihsel 27 ise ayrik olay sayisidir. Ikisini karsilastirmak ayni krizi
+	# uc kez saymakti, ve modelin tarihten %30 FAZLA kriz urettigi izlenimini
+	# veriyordu. Olculdu -- ayni pencereyle kumelenince tablo tersine doner:
+	#
+	#     pencere    tarihsel    model medyani
+	#      2 yil        24           21.0
+	#      3 yil        21           15.0
+	#
+	# Model tarihten FAZLA degil AZ olay uretiyor. Ayrica pencereye duyarliligi
+	# tarihinkinden yuksek (21->15'e karsi 24->21), yani modelin krizleri
+	# zamanda daha SIKISIK kumeleniyor -- gevseme salinimi karakterinin izi.
+	var bant := olay_medyan2 >= 10.0 and olay_medyan2 <= 60.0
 	# TEK dize: GDScript'te `%` operatoru `+`'dan once baglar, yani parcali
 	# yazilirsa bicimlendirme yalnizca SON parcaya uygulanir ve argumanlar kayar.
-	print("  [%s] kriz sayisi bandi 10-60 icinde (tohum medyani %.1f, VT en yuksek %d, tarihsel %d)"
-			% ["gecti" if bant else "KALDI", medyan, model, KAYIT.size()])
+	print("  [%s] kriz sayisi bandi 10-60 icinde (ayrik olay medyani %.1f, ayni pencerede tarihsel %d)"
+			% ["gecti" if bant else "KALDI", olay_medyan2, _tarihsel_olay(2.0)])
+	print("       (ham sicil toplami %.1f, VT en yuksek %d -- KARSILASTIRILABILIR DEGIL)"
+			% [medyan, model])
 	gecti = gecti and bant
 	# (2) Asiri uretim krizi HIC olmamasi kabul edilemez: tablonun yarisindan
 	#     fazlasi asiri uretim baskinli.

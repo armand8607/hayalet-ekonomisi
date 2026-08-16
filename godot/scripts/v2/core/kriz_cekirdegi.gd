@@ -933,7 +933,7 @@ func _kriz_tescili(d: KrizDurumu, donem_yil: float) -> void:
 	if d.rejim == "kapitalist" and d.talep_acigi > P.v44.au_esik:
 		d.au_ici += 1
 		if d.au_ici >= KrizParam.sure_donem(P.au_sure_yil, donem_yil) and d.au_bekle == 0:
-			d.asiri_uretim_krizleri.append(d.talep_acigi)
+			d.asiri_uretim_krizleri.append([d.yil, d.talep_acigi])
 			d.au_bekle = KrizParam.sure_donem(P.au_bekleme_yil, donem_yil)
 			d.Omega = minf(1.0, d.Omega + P.v44.au_omega)
 	else:
@@ -944,7 +944,7 @@ func _kriz_tescili(d: KrizDurumu, donem_yil: float) -> void:
 	if d.y_buyume < P.res_daralma_yil:
 		d.res_ici += 1
 		if d.res_ici >= KrizParam.sure_donem(P.res_sure_yil, donem_yil) and d.res_bekle == 0:
-			d.resesyonlar.append(d.y_buyume)
+			d.resesyonlar.append([d.yil, d.y_buyume])
 			d.res_bekle = KrizParam.sure_donem(P.res_bekleme_yil, donem_yil)
 	else:
 		d.res_ici = 0
@@ -954,7 +954,7 @@ func _kriz_tescili(d: KrizDurumu, donem_yil: float) -> void:
 		d.bun_ici += 1
 		if d.bun_ici == KrizParam.sure_donem(P.bun_sure_yil, donem_yil):
 			d.deger_carpani = maxf(P.v44.dev_taban, d.deger_carpani * (1.0 - P.v44.dev_bunalim))
-			d.bunalimlar.append(derinlik)
+			d.bunalimlar.append([d.yil, derinlik])
 	else:
 		d.bun_ici = 0
 
