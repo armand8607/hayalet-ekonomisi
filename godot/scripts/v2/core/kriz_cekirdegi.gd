@@ -364,7 +364,13 @@ func _merkez_bankasi(d: KrizDurumu, donem_yil: float) -> void:
 
 	# Efektif borclanma maliyeti: politika faizi + risk marji. Kar oraninin
 	# ustune cikabilir -- LTRPF'nin birikimi bogdugu kanal budur.
-	d.i_yil = d.i_pol_yil + P.v44.faiz_taban_marj
+	#
+	# ODEMELER DENGESI PRIMI (Thirlwall, B bloku). Odeyebileceginden hizli
+	# buyuyen ulke dis finansmani daha pahaliya bulur; prim politika faizini
+	# CARPAR (v4.4 `motor.py:1779` ile ayni bicim). Kisitin birikimi bogdugu
+	# kanal budur: `g = g_taban + g_duy*(r_ef - i) + ...` icinde `i` yukselir.
+	# `Dunya` yazmazsa `BoP_R = 0` kalir ve kapali ekonomi etkilenmez.
+	d.i_yil = d.i_pol_yil * (1.0 + d.BoP_R) + P.v44.faiz_taban_marj
 	# Spekulatif finansman maliyeti TAVANSIZ.
 	d.i_spec_yil = d.i_yil + P.v44.borc_faizi_marj
 
@@ -520,13 +526,26 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	# ulke kendi urununu satin alamaz hale gelir. Gerceklesme krizinin
 	# emperyalizm uzerinden cevreye tasinma kanali tam olarak budur, ve tek
 	# yonlu muhasebeyle o kanal kapalidir.
-	var D_talep := C + I + G + VT_net_yil
+	# NET IHRACAT -- gerceklesmenin DIS cikisi.
+	#
+	# Asiri uretim krizinin ilk cikisi yeni pazardir (tasarim belgesi §3.1):
+	# iceride satilamayan mal disarida alici bulur. Bu yuzden `NX` talebe
+	# dogrudan girer -- ihracat yerli urune talep, ithalat ise yerli talebin
+	# disariya kacan kismidir.
+	#
+	# `Dunya` yazmazsa sifirdir; kapali ekonomi testleri etkilenmez.
+	var D_talep := C + I + G + VT_net_yil + d.NX_yil
 	d.C_yil = C
 	d.I_yil = I
 	d.G_yil = G
 	d.D_yil = D_talep
 
-	_departmanlar(d, donem_yil, Y_pot, C + G + VT_net_yil, I)
+	# Ihracat tuketim mali da uretim araci da olabilir; departman ayriminda
+	# Departman II'ye yazmak yerine ikiye BOLUNUR, yoksa dis pazar yalnizca
+	# tuketim mali sikisikligini cozer ve Departman I orantisizligi yapay
+	# olarak agirlasir.
+	_departmanlar(d, donem_yil, Y_pot,
+			C + G + VT_net_yil + 0.5 * d.NX_yil, I + 0.5 * d.NX_yil)
 	return D_talep
 
 

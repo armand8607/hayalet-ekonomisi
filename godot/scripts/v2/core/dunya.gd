@@ -38,7 +38,10 @@ extends RefCounted
 ## Ticaret yogunlugu. Cift basina hacim gravite formundadir:
 ## `yogunluk * Y_i * Y_j / Y_dunya`. Iki ekonomi de buyudukce aralarindaki
 ## ticaret buyur, dunya buyudukce tek bir ciftin dunya icindeki payi kuculur.
-var ticaret_yogunlugu: float = 1.0
+##
+## Varsayilani v4.4'un `ticaret_aciklik`'idir (0.22): gravite toplami kabaca
+## `Y_i` verdigi icin bu carpan dogrudan TICARET/HASILA oranini kurar.
+var ticaret_yogunlugu: float = 0.22
 
 ## Deger transferinin olcek carpani.
 ##
@@ -47,23 +50,28 @@ var ticaret_yogunlugu: float = 1.0
 ## cift-bazli gravite formu bambaska bir geometridir, dolayisiyla ayni sayi
 ## ayni AGIRLIGI vermez -- olculdu, 0.05 ile |VT|/Y = 0.0053 cikiyor.
 ##
-## Iki bagimsiz olcut ayni degeri gosteriyor (`--v2-dunya-siddet`):
+## TICARET EKLENINCE BU KALIBRASYON ZAYIF BELIRLENIR HALE GELDI. Once iki
+## bagimsiz olcut (v4.4'un olculen |VT|/Y bandi ve kuralin saglamligi) ayni
+## sayiyi gosteriyordu. Artik gostermiyor, cunku VT tek basina IKINCI
+## DERECEDE kaldi: NX/Y ~ %6 iken VT/Y ~ %0.5, ticaret transferi bir mertebe
+## bastiriyor. Havuzlanmis gradyan (`--v2-dunya-siddet`):
 ##
-##   siddet   |VT|/Y    ALAN dogru   VEREN dogru
-##     0.05   0.0053          5/6           6/6
-##     0.10   0.0115          6/6           6/6     <-- secilen
-##     0.20   0.0239          6/6           5/6
-##     0.80   0.1230          6/6           6/6
+##   siddet   |VT|/Y   gradyan(30 gozlem)
+##     0.10   0.0027              -0.125
+##     0.20   0.0054              -0.160
+##     0.40   0.0108              -0.058   <-- secilen
+##     0.60   0.0163              +0.005
+##     0.80   0.0219              +0.030
 ##
-##   1. AGIRLIK: v4.4 varsayilan dunyada |VT|/Y ~ 0.01-0.03 uretiyordu
-##      (olculdu). 0.10 o bandin alt ucuna oturuyor. Elimizdeki tek ampirik
-##      capa bu; 0.80 kurali saglar ama hasilanin %12'sini transfer eder.
-##   2. SAGLAMLIK: kuralin alti tohumun ALTISINDA da dogru isaret verdigi EN
-##      DUSUK siddet. Daha yukarisi kurali guclendirmiyor, yalnizca buyutuyor.
+## Hicbir agirlikta -0.16'yi gecmiyor, yani saglamlik olcutu artik AYIRT
+## ETMIYOR -- aralarindaki fark 30 gozlemde gurultu. Geriye tek dayanak
+## ampirik capa kaliyor: v4.4 varsayilan dunyada |VT|/Y ~ 0.01-0.03
+## uretiyordu ve 0.40 o bandin icine dusen en dusuk degerdir.
 ##
-## Kapiyi yesile boyamak icin secilmedi: 0.05 ile de medyanlar dogru isaretli
-## ve test "geciyordu" -- ama alti tohumun yalnizca besinde, yani gurultude.
-var siddet: float = 0.10
+## Yuksek siddette isaretin donmesi (0.60'tan sonra) ACIK BIR SORUDUR.
+## Devrim zamanlamasi degil (olculdu: her agirlikta 30/30 devrim, ortalama
+## 1932), yani payda kaymasi degil. B/D/E/F tamamlanmadan kovalanmamali.
+var siddet: float = 0.40
 
 var ulkeler: Array[KrizDurumu] = []
 var cekirdekler: Array[KrizCekirdegi] = []
@@ -82,6 +90,17 @@ var son_vt: PackedFloat64Array = PackedFloat64Array()
 ## sorusunun cevabi; olcut bunu okur.
 var toplam_vt: PackedFloat64Array = PackedFloat64Array()
 
+## Kampanya boyunca birikmis net ihracat. Ticaret fazlasi da GELEN degerdir:
+## "birinden eksilen digerine gider" kurali iki akima da ayni sekilde uygulanir.
+var toplam_nx: PackedFloat64Array = PackedFloat64Array()
+
+
+## Bir ulkenin TOPLAM dis deger konumu: ticaret dengesi + esitsiz mubadele.
+## Kuralin dogru degiskeni budur -- VT tek basina, ticaret varken ikinci
+## derecede kalir (olculdu: NX/Y ~ %6, VT/Y ~ %0.5).
+func dis_konum(i: int) -> float:
+	return toplam_nx[i] + toplam_vt[i]
+
 ## Korunum kaydi: her tikte olculen bagil hata. Testin asil kaniti.
 var en_buyuk_korunum_hatasi: float = 0.0
 
@@ -93,9 +112,21 @@ var _vt_y_say: int = 0
 
 var yil: float = 1836.0
 
+## Cift basina gerceklesen ticaret hacmi (i*n+j, yalnizca i<j dolu).
+## `ticaret()` yazar, `transferler()` okur -- deger transferi bu hacmin
+## uzerinde yurur.
+var _son_hacim: PackedFloat64Array = PackedFloat64Array()
+var _onceki_Y_dunya: float = 0.0
 
-func _init(_p_ornek: KrizParam = null) -> void:
-	pass
+## Ticaret korunum kaydi: sum(NX) / sum|NX|. VT ile ayni disiplin.
+var en_buyuk_ticaret_hatasi: float = 0.0
+
+var P: KrizParam
+
+
+func _init(p_ornek: KrizParam = null) -> void:
+	P = p_ornek if p_ornek != null else KrizParam.new()
+	ticaret_yogunlugu = P.v44.ticaret_aciklik
 
 
 ## Dunyaya bir ulke katar. Her ulkenin KENDI cekirdegi ve KENDI parametre
@@ -113,6 +144,107 @@ func ekle(d: KrizDurumu, ad: String, tohum: int = 42, ulke_acikligi: float = 1.0
 	aciklik.append(ulke_acikligi)
 	son_vt.append(0.0)
 	toplam_vt.append(0.0)
+	toplam_nx.append(0.0)
+
+
+## DIS TICARET (B bloku) -- cift bazli, korunumlu.
+##
+## v4.4'te ticaret diye bir AKIM yoktu: `eps` ve `pi_m` her ulke icin dunya
+## ortalamasindan hesaplaniyor, `y_max` oradan cikiyordu (`motor.py:1762`).
+## Kimse kimsenin ithalatcisi degildi -- bir ulkenin ihracati baska hicbir
+## ulkenin ithalati olarak gorunmuyordu. Deger transferindeki kusurun aynisi.
+##
+## Burada akim yine CIFT uzerinde tanimli: `X_ij` hem i'nin ihracati hem
+## j'nin ithalatidir, ayni sayi iki deftere yazilir. Dolayisiyla
+##
+##     sum(NX) == 0
+##
+## ozdeslikle saglanir; dunya kendi kendine ihracat fazlasi veremez.
+##
+## YON REKABETTEN GELIR. Ciftin toplam hacmi gravite ile belirlenir, ikiye
+## bolunusu ise Thirlwall oraniyla: `k = eps / pi_m`. Yuksek uretkenlikli
+## ulke hem daha kolay ihrac eder (`eps` yuksek) hem daha az ithal eder
+## (`pi_m` dusuk), dolayisiyla ciftin buyuk yarisini alir. Ticaret fazlasi
+## bir GIRDI degil, uretkenlik farkinin SONUCUDUR.
+func ticaret() -> void:
+	var n := ulkeler.size()
+	var Y_dunya := 0.0
+	var q_toplam := 0.0
+	for d in ulkeler:
+		Y_dunya += maxf(d.Y_yil, 0.0)
+		q_toplam += d.q
+	var q_ort := q_toplam / maxf(float(n), 1.0)
+
+	# Esneklikler -- v4.4'un B blogundan (`motor.py:1768`), ayni bicim.
+	for i in range(n):
+		var d := ulkeler[i]
+		var q_rel := d.q / maxf(q_ort, 1e-6)
+		d.eps = (P.v44.eps0 * (0.45 + P.v44.eps_q * minf(q_rel, 2.2))
+				* (1.0 - P.v44.eps_lumpen * d.lumpen_pay))
+		d.pi_m = maxf(0.35, P.v44.pi0 * (1.45 - P.v44.pi_q * minf(q_rel, 2.0))
+				* (1.0 + P.v44.pi_lumpen * d.lumpen_pay))
+		if d.rejim == "sosyalist":
+			d.pi_m *= 0.85          # sosyalist ithal ikamesi
+		d.X_yil = 0.0
+		d.M_yil = 0.0
+
+	if n < 2 or Y_dunya <= 0.0:
+		for d in ulkeler:
+			d.NX_yil = 0.0
+		return
+
+	_son_hacim.clear()
+	_son_hacim.resize(n * n)
+	for i in range(n):
+		for j in range(i + 1, n):
+			var a := ulkeler[i]
+			var b := ulkeler[j]
+			var hacim := (ticaret_yogunlugu
+					* maxf(a.Y_yil, 0.0) * maxf(b.Y_yil, 0.0) / Y_dunya)
+			hacim *= minf(aciklik[i], aciklik[j])
+			if hacim <= 0.0:
+				continue
+			# Thirlwall orani: rekabet gucu.
+			var ka := a.eps / maxf(a.pi_m, 1e-6)
+			var kb := b.eps / maxf(b.pi_m, 1e-6)
+			var pay := ka / maxf(ka + kb, 1e-9)
+			var X_ab := hacim * pay              # a -> b
+			var X_ba := hacim * (1.0 - pay)      # b -> a
+			a.X_yil += X_ab
+			b.M_yil += X_ab
+			b.X_yil += X_ba
+			a.M_yil += X_ba
+			# Deger transferi GERCEKLESEN ticaretin uzerinde yurur; ayri bir
+			# vekil buyukluk degil. Esitsiz mubadele mubadelede olur.
+			_son_hacim[i * n + j] = hacim
+
+	for d in ulkeler:
+		d.NX_yil = d.X_yil - d.M_yil
+
+
+## THIRLWALL KISITI. Odemeler dengesiyle uyumlu azami buyume `eps*z/pi_m`'dir;
+## bunu asan ulke dis finansmani daha pahaliya bulur. Kisit SERT DEGILDIR --
+## buyumeyi kesmez, pahalilastirir; birikimi bogan sey faizin yukselmesidir.
+func thirlwall(donem_yil: float) -> void:
+	# Dunya buyumesi: hasila agirlikli, gecen tikin toplamina gore.
+	var Y_dunya := 0.0
+	for d in ulkeler:
+		Y_dunya += maxf(d.Y_yil, 0.0)
+	var z := 0.0
+	if _onceki_Y_dunya > 0.0:
+		z = (Y_dunya - _onceki_Y_dunya) / _onceki_Y_dunya / maxf(donem_yil, 1e-9)
+	_onceki_Y_dunya = Y_dunya
+
+	for i in range(ulkeler.size()):
+		var d := ulkeler[i]
+		d.y_max = d.eps * maxf(z, 0.0) / maxf(d.pi_m, 0.2)
+		d.bop_asim = d.y_buyume - d.y_max
+		d.BoP_R = Formulas.sg(P.v44.kappa_B * d.bop_asim * 8.0)
+		# Cari denge: asim kadar acik verilir, deger transferi de buraya
+		# akar (v4.4 `motor.py:1789` ile ayni bicim).
+		d.cari_yil = (-P.v44.cari_kats * d.Y_yil * d.bop_asim * 4.0
+				+ 0.30 * son_vt[i])
+		d.FX += d.cari_yil * donem_yil
 
 
 ## Ulkeler arasi net deger transferini hesaplar (YILLIK akim).
@@ -141,16 +273,15 @@ func transferler() -> PackedFloat64Array:
 	if Y_dunya <= 0.0:
 		return vt
 
+	if _son_hacim.size() != n * n:
+		return vt
 	for i in range(n):
 		for j in range(i + 1, n):
 			var a := ulkeler[i]
 			var b := ulkeler[j]
-			# Gravite hacmi -- SIMETRIK, yani ciftin iki ucu icin ayni sayi.
-			var hacim := (ticaret_yogunlugu
-					* maxf(a.Y_yil, 0.0) * maxf(b.Y_yil, 0.0) / Y_dunya)
-			# Aciklik ZAYIF HALKA ile girer: ticaret iki tarafin da razi
-			# olmasini ister. Simetrik oldugu icin antisimetri bozulmaz.
-			hacim *= minf(aciklik[i], aciklik[j])
+			# GERCEKLESEN ticaret hacmi. `ticaret()` yazdi; esitsiz mubadele
+			# mubadelede olur, ayri bir vekil buyuklukte degil.
+			var hacim := _son_hacim[i * n + j]
 			var toplam_cv := a.cv + b.cv
 			if toplam_cv <= 0.0 or hacim <= 0.0:
 				continue
@@ -167,8 +298,15 @@ func transferler() -> PackedFloat64Array:
 ## birinci ulkenin guncellenmis `cv`'si ikincinin transferine girer, sonuc
 ## ULKE SIRASINA bagli olurdu -- fizikte karsiligi olmayan bir esitsizlik.
 func adim(donem_yil: float) -> void:
+	# SIRA ONEMLI. Ticaret once kurulur cunku deger transferi GERCEKLESEN
+	# ticaretin uzerinde yurur; Thirlwall primi ise transferi bilmek zorunda
+	# (cari denge onu tasir). Ucu de tikin BASINDAKI duruma bakar.
+	ticaret()
+	_ticaret_korunumunu_kaydet()
 	var vt := transferler()
 	_korunumu_kaydet(vt)
+	son_vt = vt
+	thirlwall(donem_yil)
 	for i in range(ulkeler.size()):
 		var Y := ulkeler[i].Y_yil
 		if Y > 0.0:
@@ -176,6 +314,7 @@ func adim(donem_yil: float) -> void:
 			_vt_y_say += 1
 		cekirdekler[i].adim(ulkeler[i], donem_yil, {"VT_net_yil": vt[i]})
 		toplam_vt[i] += vt[i] * donem_yil
+		toplam_nx[i] += ulkeler[i].NX_yil * donem_yil
 	son_vt = vt
 	yil += donem_yil
 
@@ -202,6 +341,15 @@ func korunum_hatasi(vt: PackedFloat64Array) -> float:
 
 func _korunumu_kaydet(vt: PackedFloat64Array) -> void:
 	en_buyuk_korunum_hatasi = maxf(en_buyuk_korunum_hatasi, korunum_hatasi(vt))
+
+
+## Ticaret de ayni disipline tabidir: bir ulkenin ihracati baskasinin
+## ithalatidir, dolayisiyla sum(NX) == 0. Dunya kendine ihracat yapamaz.
+func _ticaret_korunumunu_kaydet() -> void:
+	var nx := PackedFloat64Array()
+	for d in ulkeler:
+		nx.append(d.NX_yil)
+	en_buyuk_ticaret_hatasi = maxf(en_buyuk_ticaret_hatasi, korunum_hatasi(nx))
 
 
 ## Bir ulkenin kriz tescillerinin toplami.

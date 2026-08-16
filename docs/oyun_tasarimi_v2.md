@@ -476,7 +476,7 @@ yok" bulmak demekti.
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
 | ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
-| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ⬜, ani duruş / moratoryum / döviz krizi (D, E, F) ⬜ | **KISMEN** — C/L kuruldu ve ölçüt geçiyor (`--v2-dunya` 6/6); B, D, E, F duruyor |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ⬜ | **KISMEN** — C/L ve B kuruldu, `--v2-dunya` 8/9 (bir kırmızı: §3.1 çelişkisi); D, E, F duruyor |
 | **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -638,6 +638,48 @@ Yükün nereye gittiği ise beklenmedik:
 
 Bu, B3'ün (bölünme ve karşı hareket) hangi ülkelerde en sert oynayacağını da
 söylüyor ve savaş/ittifak katmanı (B4) için doğal bir gerilim kaynağı.
+
+### B bloğu: dış ticaret kuruldu — ve iki şeyi değiştirdi
+
+Ticaret de **çift bazlı ve korunumlu**: `X_ij` hem i'nin ihracatı hem j'nin
+ithalatıdır, dolayısıyla `sum(NX) == 0` özdeşlikle sağlanır (ölçülen hata
+`0.0`). v4.4'te ticaret diye bir akım yoktu — `eps` ve `pi_m` her ülke için
+dünya ortalamasından hesaplanıyordu, kimse kimsenin ithalatçısı değildi.
+
+Yön rekabetten gelir: çiftin hacmi gravite, ikiye bölünüşü **Thirlwall oranı**
+`eps/pi_m`. Yüksek üretkenlik hem ihracat esnekliğini yükseltir hem ithalat
+esnekliğini düşürür, o yüzden ticaret fazlası bir girdi değil **üretkenlik
+farkının sonucudur**. Ölçülen: NX/Y +%6.1 (Yuksek) … −%5.8 (Dusuk).
+
+**1. Kuralın doğru değişkeni değişti.** Ticaret varken değer transferi tek
+başına **ikinci derecede** kalıyor: NX/Y ~%6 iken VT/Y ~%0.5. Havuzlanmış
+gradyan (30 gözlem) VT için −0.06…−0.16 arasında, yani gürültüden ayırt
+edilemez. Ama kural yanlış değil — **eksik değişkenle** ölçülüyordu. Ticaret
+fazlası da gelen değerdir; kural **toplam dış konuma** (NX + VT) uygulanınca:
+
+> **gradyan −0.80 (30 gözlem).** Dış değer konumu bunalım dinamiğini
+> belirliyor. "Birinden eksilen diğerine gider" kuralı, bütün akımlar
+> sayıldığında güçlü biçimde tutuyor.
+
+**2. §3.1'in "yeni pazar" iddiası ölçümle çelişiyor.**
+
+> Belge diyor ki: aşırı üretim krizinin ilk çıkışı yeni pazar açmaktır.
+> Ölçüm bunu **doğrulamıyor**. Ticaret açılınca aşırı üretim yoğunluğu ticaret
+> **fazlası veren** ülkede bile artıyor (+0.39 / 100 kapitalist yıl); açık
+> veren ülkede sıfır civarı. Yani dış pazar gerçekleşme sorununu hafifletmiyor.
+>
+> Olası okuma — ve Luxemburg'un kendi savı: ihracat talebi kapasite
+> kullanımını yükseltir, hızlandırıcı üzerinden birikimi hızlandırır ve
+> gerçekleşme sorununu **çözmez, daha büyük ölçekte tekrarlatır**. Dış pazar
+> bir çıkış değil, bir erteleme olabilir.
+>
+> `--v2-dunya`'da bu denetim **kırmızı bırakıldı**. Yeşile boyamak için
+> ne eşik gevşetildi ne mekanizma zorlandı: çelişki gerçek ve hangi tarafın
+> yanlış olduğu (model mi, §3.1 mi) henüz belli değil. Kapı 8/9.
+
+**Açık soru:** transfer şiddeti 0.60'ı geçince gradyanın işareti dönüyor.
+Devrim zamanlaması değil (her ağırlıkta 30/30 devrim, ortalama 1932). B/D/E/F
+tamamlanmadan kovalanmamalı.
 
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
 (B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran

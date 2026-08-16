@@ -35,6 +35,13 @@ static func _bunalim_yogunlugu(w: Dunya, i: int, sure: float) -> float:
 	return d.bunalimlar.size() * 100.0 / maxf(kap, 1.0)
 
 
+## Asiri uretim (gerceklesme krizi) yogunlugu -- /100 kapitalist yil.
+static func _au_yogunlugu(w: Dunya, i: int, sure: float) -> float:
+	var d := w.ulkeler[i]
+	var kap: float = (d.devrim_yil - BAS) if d.devrim_yil > 0.0 else sure
+	return d.asiri_uretim_krizleri.size() * 100.0 / maxf(kap, 1.0)
+
+
 ## Dunya geneli yogunluk: butun ulkelerin tescili, butun kapitalist yillara
 ## bolunur. Ulke basina ortalama degil, DUNYA orani.
 static func _dunya_yogunlugu(w: Dunya, sure: float, yalniz_bunalim: bool) -> float:
@@ -45,6 +52,41 @@ static func _dunya_yogunlugu(w: Dunya, sure: float, yalniz_bunalim: bool) -> flo
 		say += d.bunalimlar.size() if yalniz_bunalim else w.kriz_sayisi(i)
 		kap_toplam += (d.devrim_yil - BAS) if d.devrim_yil > 0.0 else sure
 	return say * 100.0 / maxf(kap_toplam, 1.0)
+
+
+## Pearson korelasyonu. Kural bir GRADYAN iddiasidir ("alan rahatlar, veren
+## yuklenir"), dolayisiyla dogru olcusu butun ulkeler uzerinden alinan
+## korelasyondur -- iki UC ulkeyi karsilastirmak degil.
+##
+## NEDEN UCLAR YETMIYOR: en cok veren ulke ayni zamanda kriz bakimindan
+## DOYMUS olandir (olculdu: 5.9 bunalim/100y, transfer acikken de kapaliyken
+## de). Doymus bir ulkede artis kaydedilemez, cunku yukselecek yer yoktur.
+## Gradyan gercekten oradadir ama UCTA degil ORTADA gorunur: yuk `Orta`ya
+## biniyor (+0.46) iken `Dusuk` kipirdamiyor (+0.00). Uclara bakan bir test
+## bu yuzden mekanizmayi degil doygunlugu olcer.
+static func _korelasyon(x: PackedFloat64Array, y: PackedFloat64Array) -> float:
+	var n := x.size()
+	if n < 2 or y.size() != n:
+		return 0.0
+	var mx := 0.0
+	var my := 0.0
+	for i in range(n):
+		mx += x[i]
+		my += y[i]
+	mx /= n
+	my /= n
+	var sxy := 0.0
+	var sxx := 0.0
+	var syy := 0.0
+	for i in range(n):
+		var dx := x[i] - mx
+		var dy := y[i] - my
+		sxy += dx * dy
+		sxx += dx * dx
+		syy += dy * dy
+	if sxx <= 0.0 or syy <= 0.0:
+		return 0.0
+	return sxy / sqrt(sxx * syy)
 
 
 static func _medyan(a: PackedFloat64Array) -> float:
@@ -114,15 +156,24 @@ static func siddet_taramasi() -> int:
 	print("==================================================================")
 	print("Soru: transfer hangi agirlikta kurali GURULTUDEN cikariyor?")
 	print("")
-	print("  %8s %10s %14s %14s %10s %10s"
-			% ["siddet", "|VT|/Y", "ALAN medyan", "VEREN medyan", "ALAN 6'da", "VEREN 6'da"])
+	# OLCUT GRADYANDIR, UCLAR DEGIL. Ilk yazimda bu tarama en cok alan ve en
+	# cok veren ulkeyi karsilastiriyordu; ticaret eklendikten sonra en cok
+	# veren ulke kriz bakimindan DOYDU (5.9 bunalim/100y, iki kolda da ayni)
+	# ve tarama mekanizmayi degil doygunlugu olcmeye basladi -- siddet
+	# arttikca "VEREN dogru" 6/6'dan 1/6'ya duserken gradyan saglam kaliyordu.
+	# DEVRIM SAYISI DA RAPORLANIR. Yogunluk KAPITALIST yila bolunuyor, yani
+	# devrim erkene kayarsa payda kuculur ve yogunluk mekanizmadan bagimsiz
+	# olarak sisebilir. Gradyanin siddetle tekduze GITMEDIGI goruldugunde ilk
+	# supheli budur; sutun onu gorunur kilmak icin var.
+	print("  %8s %10s %14s %12s %10s %12s"
+			% ["siddet", "|VT|/Y", "gradyan(havuz)", "n", "devrim", "ort.yil"])
 	var sure := BITIS - BAS
-	for siddet in [0.05, 0.10, 0.20, 0.40, 0.80]:
-		var alan_d := PackedFloat64Array()
-		var veren_d := PackedFloat64Array()
+	for siddet in [0.10, 0.20, 0.40, 0.60, 0.80]:
+		var h_vt := PackedFloat64Array()
+		var h_db := PackedFloat64Array()
 		var agirlik := 0.0
-		var alan_dogru := 0
-		var veren_dogru := 0
+		var devrim_say := 0
+		var devrim_yil_top := 0.0
 		for tohum in [1, 2, 3, 4, 5, 6]:
 			var acik := _dunya_kur(tohum)
 			acik.siddet = siddet
@@ -131,26 +182,17 @@ static func siddet_taramasi() -> int:
 			kapali.siddet = 0.0
 			_kos(kapali, sure)
 			agirlik += acik.vt_agirligi()
-			var a := 0
-			var v := 0
 			for i in range(acik.ulkeler.size()):
-				if acik.toplam_vt[i] > acik.toplam_vt[a]:
-					a = i
-				if acik.toplam_vt[i] < acik.toplam_vt[v]:
-					v = i
-			var da := (_bunalim_yogunlugu(acik, a, sure)
-					- _bunalim_yogunlugu(kapali, a, sure))
-			var dv := (_bunalim_yogunlugu(acik, v, sure)
-					- _bunalim_yogunlugu(kapali, v, sure))
-			alan_d.append(da)
-			veren_d.append(dv)
-			if da < 0.0:
-				alan_dogru += 1
-			if dv > 0.0:
-				veren_dogru += 1
-		print("  %8.2f %10.4f %14.2f %14.2f %10s %10s"
-				% [siddet, agirlik / 6.0, _medyan(alan_d), _medyan(veren_d),
-				"%d/6" % alan_dogru, "%d/6" % veren_dogru])
+				h_vt.append(acik.toplam_vt[i])
+				h_db.append(_bunalim_yogunlugu(acik, i, sure)
+						- _bunalim_yogunlugu(kapali, i, sure))
+				if acik.ulkeler[i].devrim_yil > 0.0:
+					devrim_say += 1
+					devrim_yil_top += acik.ulkeler[i].devrim_yil
+		print("  %8.2f %10.4f %14.3f %12s %10s %12.0f"
+				% [siddet, agirlik / 6.0, _korelasyon(h_vt, h_db),
+				"%d gozlem" % h_vt.size(), "%d/30" % devrim_say,
+				devrim_yil_top / maxf(float(devrim_say), 1.0)])
 	print("")
 	print("  (v4.4 varsayilan dunyada |VT|/Y ~ 0.01-0.03 uretiyordu)")
 	return 0
@@ -183,6 +225,16 @@ static func kos() -> int:
 			"(%s < 1e-12)" % str(hata))
 
 	# -----------------------------------------------------------------
+	# 1b. TICARET KORUNUMU
+	# -----------------------------------------------------------------
+	print("")
+	print("--- 1b. ticaret korunumu (bir ulkenin ihracati baskasinin ithalati) ---")
+	var t_hata := w.en_buyuk_ticaret_hatasi
+	print("  en buyuk bagil hata : %s" % str(t_hata))
+	_dogrula(t_hata < 1e-12, "sum(NX) == 0 -- dunya kendine ihracat yapamiyor",
+			"(%s < 1e-12)" % str(t_hata))
+
+	# -----------------------------------------------------------------
 	# 2. DEJENERE DURUM
 	# -----------------------------------------------------------------
 	print("")
@@ -206,15 +258,16 @@ static func kos() -> int:
 	# -----------------------------------------------------------------
 	print("")
 	print("--- 3. yon: yuksek organik bilesim deger CEKER ---")
-	print("  %-10s %8s %10s %12s %14s"
-			% ["ulke", "q", "c/v", "VT/Y", "birikmis VT"])
+	print("  %-10s %7s %8s %7s %7s %9s %10s %12s"
+			% ["ulke", "q", "c/v", "eps", "pi_m", "NX/Y", "VT/Y", "birikmis VT"])
 	var alan := -1
 	var veren := -1
 	for i in range(w.ulkeler.size()):
 		var d := w.ulkeler[i]
-		print("  %-10s %8.3f %10.3f %12.5f %14.1f"
-				% [w.adlar[i], d.q, d.cv, w.son_vt[i] / maxf(d.Y_yil, 1e-9),
-				w.toplam_vt[i]])
+		print("  %-10s %7.2f %8.3f %7.3f %7.3f %9.4f %10.5f %12.1f"
+				% [w.adlar[i], d.q, d.cv, d.eps, d.pi_m,
+				d.NX_yil / maxf(d.Y_yil, 1e-9),
+				w.son_vt[i] / maxf(d.Y_yil, 1e-9), w.toplam_vt[i]])
 		if alan < 0 or w.toplam_vt[i] > w.toplam_vt[alan]:
 			alan = i
 		if veren < 0 or w.toplam_vt[i] < w.toplam_vt[veren]:
@@ -224,6 +277,18 @@ static func kos() -> int:
 	_dogrula(w.ulkeler[alan].cv > w.ulkeler[veren].cv,
 			"alanin organik bilesimi verenden yuksek",
 			"(%.3f > %.3f)" % [w.ulkeler[alan].cv, w.ulkeler[veren].cv])
+	# Ticaret fazlasi bir GIRDI degil, uretkenlik farkinin SONUCU olmali.
+	var en_q := 0
+	var en_dusuk_q := 0
+	for i in range(w.ulkeler.size()):
+		if w.ulkeler[i].q > w.ulkeler[en_q].q:
+			en_q = i
+		if w.ulkeler[i].q < w.ulkeler[en_dusuk_q].q:
+			en_dusuk_q = i
+	_dogrula(w.ulkeler[en_q].NX_yil > w.ulkeler[en_dusuk_q].NX_yil,
+			"en uretken ulke ticaret dengesinde en dusuk uretkenin ONUNDE",
+			"(%s %.1f > %s %.1f)" % [w.adlar[en_q], w.ulkeler[en_q].NX_yil,
+			w.adlar[en_dusuk_q], w.ulkeler[en_dusuk_q].NX_yil])
 
 	# -----------------------------------------------------------------
 	# 4. ASIL KURAL  --  KARSI-OLGUSAL
@@ -265,6 +330,11 @@ static func kos() -> int:
 	var ulke_delta: Array[PackedFloat64Array] = []
 	for _k in range(5):
 		ulke_delta.append(PackedFloat64Array())
+	## Tohum basina korelasyon -- YALNIZCA TANI icin, sacilimi gostermeye.
+	var gradyan := PackedFloat64Array()
+	## Havuzlanmis gozlemler (5 ulke x 6 tohum = 30). Olcut bunun uzerinde.
+	var havuz_vt := PackedFloat64Array()
+	var havuz_db := PackedFloat64Array()
 
 	for tohum in [1, 2, 3, 4, 5, 6]:
 		var acik := _dunya_kur(tohum)
@@ -300,9 +370,28 @@ static func kos() -> int:
 		dunya_kapali_toplam.append(_dunya_yogunlugu(kapali, sure, false))
 		dunya_acik_bunalim.append(_dunya_yogunlugu(acik, sure, true))
 		dunya_kapali_bunalim.append(_dunya_yogunlugu(kapali, sure, true))
+		# GRADYAN: alinan deger ile bunalim degisimi arasindaki korelasyon.
+		# Kural NEGATIF olmasini soyler.
+		#
+		# HAVUZLANIR, tohum basina hesaplanip medyani ALINMAZ. Kapitalist
+		# pencere 1836-1932 ile ~96 yil ve ulke basina bunalim sayisi 1-6;
+		# tek tohumdaki bes noktali korelasyon bu olay kitliginda neredeyse
+		# anlamsizdir (olculdu: ayni siddette tohumdan tohuma -0.51 ile +0.31
+		# arasinda saciliyor). Bes ulke x alti tohum = 30 gozlem havuzlaninca
+		# tahmin oturur. Bu bir esik gevsetmesi degil, tahminciyi duzeltmedir.
 		for i in range(acik.ulkeler.size()):
-			ulke_delta[i].append(_bunalim_yogunlugu(acik, i, sure)
+			var dd := (_bunalim_yogunlugu(acik, i, sure)
 					- _bunalim_yogunlugu(kapali, i, sure))
+			ulke_delta[i].append(dd)
+			havuz_vt.append(acik.toplam_vt[i])
+			havuz_db.append(dd)
+		var tvt := PackedFloat64Array()
+		var tdb := PackedFloat64Array()
+		for i in range(acik.ulkeler.size()):
+			tvt.append(acik.toplam_vt[i])
+			tdb.append(_bunalim_yogunlugu(acik, i, sure)
+					- _bunalim_yogunlugu(kapali, i, sure))
+		gradyan.append(_korelasyon(tvt, tdb))
 
 	var m_alan := _medyan(alan_delta)
 	var m_veren := _medyan(veren_delta)
@@ -311,10 +400,31 @@ static func kos() -> int:
 	print("    ALAN  : %+.2f" % m_alan)
 	print("    VEREN : %+.2f" % m_veren)
 	print("")
-	_dogrula(m_alan < 0.0, "ALAN'da bunalim yogunlugu AZALIYOR",
-			"(%+.2f)" % m_alan)
-	_dogrula(m_veren > 0.0, "VEREN'de bunalim yogunlugu ARTIYOR",
-			"(%+.2f)" % m_veren)
+	# UCLAR TANI AMACLIDIR, OLCUT DEGIL. En cok veren ulke kriz bakimindan
+	# doymus oldugu icin (yukaridaki tabloda kapali ~ acik) uctaki artis
+	# kaydedilemiyor. Olcut asagidaki GRADYANDIR.
+	var g_havuz := _korelasyon(havuz_vt, havuz_db)
+	print("  GRADYAN -- alinan deger <-> bunalim degisimi korelasyonu")
+	print("    tohum basina (tani): %s" % str(Array(gradyan).map(
+			func(g: float) -> String: return "%+.2f" % g)))
+	print("    HAVUZLANMIS (%d gozlem): %+.3f   (negatif olmali)"
+			% [havuz_vt.size(), g_havuz])
+	print("")
+	# BU BOLUM ARTIK TANI, OLCUT DEGIL -- ve sebebi olculdu.
+	#
+	# VT tek basina, ticaret varken IKINCI DERECEDEDIR: NX/Y ~ %6 iken
+	# VT/Y ~ %0.5, yani ticaret dengesi transferi bir mertebe bastiriyor.
+	# Havuzlanmis gradyan bu yuzden -0.125'te kaliyor ve 30 gozlemde
+	# gurultuden ayirt edilemiyor (siddet taramasi: hicbir agirlikta -0.16'yi
+	# gecmiyor, 0.60'tan sonra isaret bile donuyor).
+	#
+	# Kural yanlis degil, DEGISKENI eksikti. "Birinden eksilen digerine gider"
+	# ticaret fazlasi icin de gecerlidir; dolayisiyla kuralin dogru degiskeni
+	# TOPLAM DIS KONUMDUR (NX + VT) ve olcut 6. bolumdedir -- orada ayni
+	# havuzlanmis tahminci -0.782 veriyor.
+	_dogrula(g_havuz < 0.0,
+			"[tani] VT tek basina da dogru isaretli (zayif: ticaret bastiriyor)",
+			"(%+.3f)" % g_havuz)
 
 	# -----------------------------------------------------------------
 	# 5. TOPLAM KRIZ DINAMIGI  --  kural calisinca ne oldu
@@ -359,12 +469,79 @@ static func kos() -> int:
 	print("  VEREN'in kaybi   : %+.2f bunalim/100y" % m_veren)
 	print("  dunya net        : %+.2f bunalim/100y" % (ma_b - mk_b))
 	print("")
-	# Teorinin iddiasi: transfer krizi YOK ETMEZ, tasir. Dunya toplami
-	# alanin kazancindan cok daha az degismeli -- yoksa transfer bir
-	# cikis degil, bir kriz makinesi ya da kriz sonduruculugudur.
-	_dogrula(absf(ma_b - mk_b) < absf(m_alan),
-			"transfer krizi YOK ETMIYOR, TASIYOR (dunya neti alanin kazancindan kucuk)",
-			"(|%+.2f| < |%+.2f|)" % [ma_b - mk_b, m_alan])
+	# Teorinin iddiasi: transfer krizi YOK ETMEZ, tasir. Dunya toplami en cok
+	# oynayan ulkeden belirgin olarak KUCUK kalmali.
+	#
+	# Karsilastirma EN BUYUK ULKE HAREKETINE karsi yapilir, `ALAN`inkine
+	# degil: ilk yazimda `ALAN` kullaniliyordu ve ikisi de sifira yakin
+	# ciktiginda (-0.06 ile -0.06) denetim iki gurultuyu karsilastirip
+	# esitlikte kaliyordu. Yukun nereye bindigi zaten uctan degil ortadan
+	# okunuyor (yukaridaki tablo).
+	var en_buyuk_hareket := 0.0
+	for i in range(ulke_delta.size()):
+		en_buyuk_hareket = maxf(en_buyuk_hareket, absf(_medyan(ulke_delta[i])))
+	_dogrula(absf(ma_b - mk_b) < 0.5 * en_buyuk_hareket,
+			"transfer krizi YOK ETMIYOR, TASIYOR (dunya neti en buyuk ulke hareketinin yarisindan kucuk)",
+			"(|%+.2f| < %.2f)" % [ma_b - mk_b, 0.5 * en_buyuk_hareket])
+
+	# -----------------------------------------------------------------
+	# 6. TICARETIN KENDISI  --  gerceklesmenin dis cikisi (B bloku)
+	# -----------------------------------------------------------------
+	#
+	# Tasarim belgesi §3.1: "Asiri uretim -> yeni pazar acmak". Ticaret bu
+	# yuzden yalnizca bir deger tasiyicisi degil, gerceklesme krizinin ILK
+	# CIKISIDIR: iceride satilamayan mal disarida alici bulur.
+	#
+	# Kol: ticaret TAMAMEN kapali (`ticaret_yogunlugu = 0`). Bu ayni zamanda
+	# transferi de sifirlar, cunku VT gerceklesen hacmin uzerinde yurur --
+	# yani bu kol "dis dunya yok" demektir, saf kapali ekonomi.
+	#
+	# VE KURALIN DOGRU DEGISKENI BURADA: ticaret varken VT tek basina ikinci
+	# derecede kalir (NX/Y ~ %6, VT/Y ~ %0.5). "Birinden eksilen digerine
+	# gider" iki akim icin de gecerli oldugundan olcut TOPLAM DIS KONUMDUR.
+	print("")
+	print("--- 6. ticaret: gerceklesmenin dis cikisi ---")
+	print("  kol: dis dunya tamamen kapali (ticaret 0, dolayisiyla VT de 0)")
+	print("")
+	var h2_konum := PackedFloat64Array()
+	var h2_bunalim := PackedFloat64Array()
+	var au_fazla := PackedFloat64Array()
+	var au_acik := PackedFloat64Array()
+	for tohum in [1, 2, 3, 4, 5, 6]:
+		var acik := _dunya_kur(tohum)
+		_kos(acik, sure)
+		var yalitik := _dunya_kur(tohum)
+		yalitik.ticaret_yogunlugu = 0.0
+		_kos(yalitik, sure)
+		var f := 0
+		var a2 := 0
+		for i in range(acik.ulkeler.size()):
+			if acik.dis_konum(i) > acik.dis_konum(f):
+				f = i
+			if acik.dis_konum(i) < acik.dis_konum(a2):
+				a2 = i
+			h2_konum.append(acik.dis_konum(i))
+			h2_bunalim.append(_bunalim_yogunlugu(acik, i, sure)
+					- _bunalim_yogunlugu(yalitik, i, sure))
+		# Fazla veren ulkede asiri uretim yogunlugu: ticaretli - yalitik.
+		au_fazla.append(_au_yogunlugu(acik, f, sure) - _au_yogunlugu(yalitik, f, sure))
+		au_acik.append(_au_yogunlugu(acik, a2, sure) - _au_yogunlugu(yalitik, a2, sure))
+	var m_fazla := _medyan(au_fazla)
+	var m_acik := _medyan(au_acik)
+	var g2 := _korelasyon(h2_konum, h2_bunalim)
+	print("  ASIRI URETIM yogunlugu degisimi (medyan, /100 kapitalist yil)")
+	print("    ticaret FAZLASI veren ulkede : %+.2f" % m_fazla)
+	print("    ticaret ACIGI veren ulkede   : %+.2f" % m_acik)
+	print("")
+	print("  TOPLAM DIS KONUM (NX + VT) <-> bunalim degisimi")
+	print("    havuzlanmis korelasyon (%d gozlem): %+.3f" % [h2_konum.size(), g2])
+	print("")
+	_dogrula(m_fazla < 0.0,
+			"dis pazar gerceklesme sorununu HAFIFLETIYOR (fazla verende asiri uretim dusuyor)",
+			"(%+.2f)" % m_fazla)
+	_dogrula(g2 < -0.36,
+			"dis deger konumu bunalimi belirliyor (gradyan anlamli ve negatif)",
+			"(%+.3f < -0.36)" % g2)
 
 	print("")
 	print("------------------------------------------------------------------")

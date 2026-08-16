@@ -51,6 +51,27 @@ var katilim: float = 1.0
 var norm: float = 0.72             ## tuketim normu (hareketli)
 
 # ---------------------------------------------------------------------------
+# DIS TICARET VE ODEMELER DENGESI  (B bloku -- `Dunya` yazar, cekirdek okur)
+# ---------------------------------------------------------------------------
+## Ihracat gelir esnekligi. Goreli uretkenlikle YUKSELIR.
+var eps: float = 1.0
+## Ithalat gelir esnekligi. Goreli uretkenlikle DUSER (sanayilesme ithal
+## ikamesi yaratir). Thirlwall orani `eps / pi_m`'dir.
+var pi_m: float = 1.0
+var X_yil: float = 0.0             ## ihracat (YILLIK)
+var M_yil: float = 0.0             ## ithalat (YILLIK)
+var NX_yil: float = 0.0            ## net ihracat = X - M (YILLIK)
+## BoP-kisitli azami buyume (Thirlwall): `eps * y_dunya / pi_m`.
+var y_max: float = 0.0
+## Kisitin asilma miktari: `y_buyume - y_max`. Pozitifse ulke odeyebileceginden
+## hizli buyuyor demektir.
+var bop_asim: float = 0.0
+## Odemeler dengesi risk primi. Politika faizini CARPARAK yukseltir.
+var BoP_R: float = 0.0
+var cari_yil: float = 0.0          ## cari denge (YILLIK)
+var FX: float = 0.0                ## rezerv (STOK) -- D/E/F bunun uzerine kurulacak
+
+# ---------------------------------------------------------------------------
 # FINANS
 # ---------------------------------------------------------------------------
 var borc: float = 0.0              ## hanehalki borcu (STOK)
