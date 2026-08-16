@@ -476,7 +476,7 @@ yok" bulmak demekti.
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
 | ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
-| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ⬜ | **KISMEN** — C/L ve B kuruldu, `--v2-dunya` 11/13; D, E, F duruyor |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ⬜ | **KISMEN** — C/L ve B kuruldu, `--v2-dunya` 13/13; D, E, F duruyor |
 | **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -718,16 +718,43 @@ tablosundan değil, `sum(NX) == 0` özdeşliğinden geliyor.
 > ABD geri almaya çalışıyor; dünya toplamında rahatlama yok. Kampanya
 > ortalamasının rahatlama göstermemesinin sebebi budur — sönme değil, çekişme.
 
-**Bunun bir bedeli oldu ve kaydedilmeli.** Zorlama eklenince "dış değer konumu
-bunalımı belirliyor" gradyanı **−0.80'den −0.11'e** çöktü; değer transferinin
-kendi gradyanı ise işaret değiştirdi (−0.06 → +0.21). Sebep tek: itki açıkken
-**ticaret fazlası artık "güçlü ülke" demek değil, "çaresiz ihracatçı" da
-olabilir.** `NX` yapısal gücü ve sıkışmayı birbirine karıştıran bir değişkene
-dönüştü.
+**İtki kalibre edildi — tahmin edilen değer iki eksende birden yanlıştı.**
 
-> Sonraki adım için: gradyan muhtemelen toplam dış konuma değil, konumun
-> **yapısal bileşenine** (itkisiz koşuda ülkenin ihraç edeceği miktar) karşı
-> ölçülmeli. `--v2-dunya` şu an 11/13; iki kırmızının ikisi de bu tek kökten.
+`ihracat_itkisi` önce 1.5 diye tahminle konmuştu. Eklendiğinde "dış değer konumu
+bunalımı belirliyor" gradyanı **−0.80'den −0.11'e** çöktü. İlk teşhisim
+içsellikti (sıkışan ülke çok ihraç eder → ters nedensellik) ve **yanlıştı**:
+konumun yapısal bileşeniyle araç değişken kurunca da düzelmedi (−0.094).
+
+Asıl sebep ölçekti. Ortalama itki **5.39**'a çıkıyordu, oysa yapısal rekabet
+oranı `eps/pi_m` en fazla 3.58. **Zorlama üretkenlik yapısını eziyordu.**
+Tarama (`--v2-dunya-siddet`, ikinci tablo):
+
+| itki | ort. itki | ZORLAMA | YAPI gradyanı |
+|---|---|---|---|
+| 0.00 | 1.00 | 0.000 | −0.836 |
+| 0.25 | 1.73 | 0.106 | −0.784 |
+| **0.50** | **2.46** | **0.423** | **−0.551** |
+| 1.00 | 3.93 | 0.536 | −0.418 |
+| 1.50 | 5.38 | 0.371 | −0.218 |
+
+1.5'te **zorlama bile düşüyor** (0.536 → 0.371): herkes doyuma ulaşıyor, paylar
+sabitleniyor. Yani tahmin edilen değer hem yapıyı siliyor hem kendi mekanizmasını
+boğuyordu. Ölçüt: itki yapısal oranı **ezmemeli, module etmeli** — 0.50'de itki
+çarpanı 1.0–2.5 ile yapısal 3.2 katın altında kalır.
+
+Kalibrasyondan sonra gradyan **−0.456**'ya döndü, zorlama **+0.573**'e çıktı.
+`--v2-dunya` **13/13**.
+
+### Kavga sıfır toplamlı değil, negatif toplamlı
+
+Son ölçüm bir adı da düzeltti. "Dünya toplamı kıpırdamamalı" diye sınamıştım;
+dünya aşırı üretimi **13.61 → 13.96** çıkıyor ve üç itki değerinde de pozitif.
+
+> Sıfır toplamlı olan **paylardır** (`sum(NX) == 0`), sonuç değil. Payı kapan
+> ülke kapasitesini genişletiyor, o kapasite sonra dünya gerçekleşme sorununa
+> ekleniyor. Kavga yalnızca yeniden dağıtmıyor — **dünyayı biraz daha
+> kötüleştiriyor.** Teorinin iddiası zaten "toplam sabit kalır" değil, "kavga
+> rahatlama üretmez"di; yükselmesi bunun daha güçlü hâli.
 
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
 (B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran

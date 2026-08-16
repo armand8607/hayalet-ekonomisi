@@ -56,7 +56,27 @@ var yenileme_taban: float = 0.30
 ## itince kimse kazanmaz. Cin-ABD tipi bir pazar kavgasinin biciminde
 ## olmasinin sebebi budur ve bir olay tablosundan degil, `sum(NX) == 0`
 ## ozdesliginden gelir: dunya kendine ihracat yapamaz.
-var ihracat_itkisi: float = 1.5
+##
+## KALIBRE EDILDI (`--v2-dunya-siddet`, ikinci tablo). Once 1.5 ile tahmin
+## edilmisti ve olculdugunde iki eksende birden kotu cikti:
+##
+##   itki   ort.itki   ZORLAMA   YAPI gradyani
+##   0.00       1.00     0.000          -0.836
+##   0.25       1.73     0.106          -0.784
+##   0.50       2.46     0.423          -0.551   <-- secilen
+##   1.00       3.93     0.536          -0.418
+##   1.50       5.38     0.371          -0.218
+##
+## Odunlesme acik: itki buyudukce zorlama beliriyor ama altindaki YAPIYI
+## siliyor -- "dis konum bunalimi belirler" gradyani asiniyor. 1.5'te zorlama
+## bile DUSUYOR (0.536 -> 0.371), cunku herkes doyuma ulasip paylar sabitleniyor.
+##
+## Olcut: itki yapisal rekabet oranini EZMEMELI, MODULE ETMELI. `eps/pi_m`
+## ulkeler arasi ~1.13-3.58 araliginda, yani 3.2 kat. 0.50'de itki carpani
+## 1.0-2.5 (2.5 kat) ile bunun ALTINDA kalir; 1.0'da 1.0-4.0 ile asar.
+## Uretkenlik kimin ne ihrac edecegini belirler, sikisma onu module eder --
+## tersi degil.
+var ihracat_itkisi: float = 0.50
 
 ## Yenilemenin kar orani-faiz makasina duyarliligi. Buyudukce yatirim daha
 ## sert kesilir, konjonktur dalgasi derinlesir.
