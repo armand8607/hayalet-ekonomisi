@@ -136,9 +136,11 @@ static func _kos(vt_pay: float, tohum: int = 42) -> KrizDurumu:
 	cekirdek.baslat(d)
 	var n := Oran.donem_sayisi(BITIS - BAS, OlcekTesti.HAFTA)
 	for _i in range(n):
-		# Deger transferi: C ve L bloklari B2'de dunya katmanindan gelecek.
-		# Burada tek parametreyle taklit ediliyor -- amac dunyayi kurmak degil,
-		# KRIZLERIN KAYNAGININ dis mi ic mi oldugunu olcmek.
+		# Deger transferi burada TEK PARAMETREYLE taklit ediliyor: amac dunyayi
+		# kurmak degil, KRIZLERIN KAYNAGININ dis mi ic mi oldugunu olcmek.
+		# Gercek C/L bloklari artik `Dunya`da ve korunumlu (`--v2-dunya`);
+		# oradaki akim iki uclu, buradaki ise tek uclu bir SURUCUDUR -- bu test
+		# ulke-ici mekanizmayi yalitmak icin oyle olmasini ister.
 		cekirdek.adim(d, OlcekTesti.HAFTA, {"VT_net_yil": vt_pay * d.Y_yil})
 	return d
 

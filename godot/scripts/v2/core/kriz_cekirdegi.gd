@@ -31,11 +31,14 @@ extends RefCounted
 ##   R (kriz tescili), S (orgutlenme), T (protesto ve devrim),
 ##   Tonak deger gasbi, ETG, Marksist politik ozne.
 ##
-## DIS bloklar (B Thirlwall, C/L deger transferi, D ani durus, E moratoryum,
-## F doviz krizi) BURADA YOKTUR: hepsi ticaret ortagi ve dunya ortalamasi
-## ister, o da B2'de mikro katman kurulunca dogar. Yerlerine `dis` sozlugu
-## uzerinden disaridan deger alinir; boylece cekirdek tek basina test
-## edilebilir kalir.
+## DIS bloklar BURADA YOKTUR; hepsi ticaret ortagi ister. Yerlerine `dis`
+## sozlugu uzerinden disaridan deger alinir, boylece cekirdek tek basina test
+## edilebilir kalir. Durumlari:
+##
+##   C/L deger transferi -- KURULDU. `Dunya` hesaplar, `dis.VT_net_yil` ile
+##                          girer. Korunumlu: sum(VT) == 0 ozdeslikle.
+##   B Thirlwall, D ani durus, E moratoryum, F doviz krizi -- HENUZ YOK.
+##                          B1b'nin kalan isi (bkz. tasarim belgesi §6).
 
 var P: KrizParam
 

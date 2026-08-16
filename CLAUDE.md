@@ -1,18 +1,32 @@
 # CLAUDE.md
 
 Bu depoda çalışan Claude Code oturumları için kılavuz. Önce bunu oku — koddan
-anlaşılmayanları anlatır. Modelin kendi tam dokümantasyonu
-[docs/hayalet_ekonomisi_v44_frozen.md](docs/hayalet_ekonomisi_v44_frozen.md)
-içindedir; burada tekrarlama.
+anlaşılmayanları anlatır. İki referans belge var, ikisi de burada tekrarlanmaz:
+
+| belge | ne |
+|---|---|
+| [hayalet_ekonomisi_v44_frozen.md](docs/hayalet_ekonomisi_v44_frozen.md) | v4.4 motorunun tam dokümantasyonu + iki Python dosyasının kaynağı |
+| [oyun_tasarimi_v2.md](docs/oyun_tasarimi_v2.md) | **v2 oyununun karar kaydı** — mimari, aşamalar, ölçütler |
 
 ## Bu ne
 
 "Hayalet Ekonomisi" — Marksist değer teorisini simüle eden çok ülkeli bir
-makroekonomi oyunu. Motor **v4.4-Frozen**: 20 ülke, 1760–2100 arası 1259 tur,
-LTRPF (kâr oranlarının düşme eğilimi) çekirdekli.
+makroekonomi oyunu. Godot 4.7 + GDScript, GL Compatibility.
 
-Godot 4.7 + GDScript, GL Compatibility. Halihazırda **motorun GDScript portu
-sürüyor**; Python sürümü doğrulama kâhini olarak depoda durur ve oyuna girmez.
+**Depoda iki motor var ve karıştırılmamalı.**
+
+**v4.4-Frozen** — 20 ülke, 1760–2100 arası 1259 tur, LTRPF çekirdekli.
+Portu **bitti**, oyunu oynanabilir ve yayında (Pages + APK). Python sürümü
+doğrulama kâhini olarak durur, oyuna girmez.
+
+**v2** — `godot/scripts/v2/` altında kurulmakta olan **yeni** oyun: Victoria
+biçiminde büyük strateji, haftalık tik, 1836–2100. v4.4'ün denklemlerini
+kullanır ama kalibrasyonunu, tur yapısını ve ülke kümesini kullanmaz. v2 için
+**v4.4 artık otorite değil, denklem kaynağıdır** (bkz. tasarım belgesi §1).
+
+> Aktif geliştirme v2'dedir. v4.4 dondurulmuştur ve öyle kalır — v2'de bir
+> mekanizma değiştirmek v4.4'te değiştirmek anlamına GELMEZ; v2'nin kendi
+> dosyaları vardır ve v4.4'e dokunmadan değişir.
 
 ## Üç katmanlı depo
 
@@ -20,9 +34,9 @@ sürüyor**; Python sürümü doğrulama kâhini olarak depoda durur ve oyuna gi
 
 | klasör | ne |
 |---|---|
-| `docs/` | **Tek doğruluk kaynağı.** `hayalet_ekonomisi_v44_frozen.md` — model dokümantasyonu + iki Python dosyasının tam kaynağı |
+| `docs/` | **Tek doğruluk kaynağı.** `hayalet_ekonomisi_v44_frozen.md` (v4.4 + Python kaynağı) ve `oyun_tasarimi_v2.md` (v2 karar kaydı) |
 | `python/` | Kâhin. Belgeden **türetilmiş** motor + dört kabul testi. Oyuna girmez, export'a dahil değil |
-| `godot/` | Godot projesi. `project.godot`, `scripts/`, `scenes/` burada |
+| `godot/` | Godot projesi. `project.godot`, `scripts/`, `scenes/` burada. `scripts/v2/` **ayrı motordur** — v4.4 dosyalarına dokunmaz |
 | `tools/` | Üretim ve karşılaştırma araçları |
 
 **`python/hayalet_ekonomi_motoru_v43.py` ve `hayalet_ekonomisi_oyunu_v32.py`
@@ -62,10 +76,17 @@ Godot tarafı (doğrulama koşuları). `--` sonrası her şey
 "C:\Program Files\Godot\Godot.exe.exe" --headless --path godot res://scenes/Main.tscn -- --self-test
 ```
 
-Argüman kapıları: `--self-test`, `--dump-rng`, `--dump-crc32`, `--dump-params`,
-`--dump-formulas`, `--dump-agg`, `--dump-init`, `--dump-turn=N[:senaryo]`,
-`--dump-scenario=AD`, `--dump-report=N[:senaryo]`, `--kabul=N`,
-`--yon-testleri=N[:baş[:yalnızca]]`.
+Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
+`--dump-crc32`, `--dump-params`, `--dump-formulas`, `--dump-libm`,
+`--dump-agg`, `--dump-init`, `--dump-turn=N[:senaryo]`, `--dump-scenario=AD`,
+`--dump-report=N[:senaryo]`, `--kabul=N`, `--yon-testleri=N[:baş[:yalnızca]]`.
+
+**Oyun**: `--oyna[=kayıt:tohum:ülke:tur]`, `--menu`, `--ss=DOSYA`.
+
+**v2** (hiçbiri v4.4'e dokunmaz): `--v2-olcek` (ölçek değişmezliği, 23 denetim),
+`--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-dunya` (dünya katmanı, 6 denetim),
+`--v2-dunya-siddet` (transfer ağırlığı taraması — tanı, ana kapının dört katı
+sürer), `--v2-iz[=YIL[:baş[:dönem]]]` (teşhis izi).
 
 **Döküm kapıları yavaştır, motor değil.** Ölçüldü: maliyetin neredeyse tamamı
 stdout'a satır basmaktan geliyor (~3 ms/satır), simülasyondan değil. Gerçek
@@ -258,9 +279,11 @@ Bir iz sapması savaş/ittifak olayında çıkarsa ilk şüpheli budur.
 
 ## Portun durumu
 
-**Motor portu bitti.** `step()`, 13 yardımcısı, `load_scenario`, politika
-API'si ve raporlama katmanı taşındı; doğrulama merdiveninin yedi basamağının
-hepsi geçiyor. Kalan iş oyun katmanıdır (gösterge paneli, kalıcılık, CI).
+**v4.4 bitti — motor da, oyun katmanı da.** `step()`, 13 yardımcısı,
+`load_scenario`, politika API'si ve raporlama katmanı taşındı; doğrulama
+merdiveninin yedi basamağının hepsi geçiyor. Gösterge paneli, menü, rapor
+ekranı, kalıcılık ve CI da yerinde: oyun oynanabiliyor ve iki iş akışıyla
+yayına çıkıyor. **v4.4 tarafında kalan iş yok**; yeni geliştirme v2'dedir.
 
 `Sim` otoload'u oyun katmanının motora **tek kapısıdır** ve kendi duman testi
 vardır (`--sim-test`, 31 denetim). Motorla karşılaştırılacak bir kâhini yok:
@@ -340,6 +363,30 @@ koşuları aynı anda onlarca bağımsız örnek çalıştırır. `Params` de bu
 `History` **sütun deposudur**, satır deposu değil: bir kampanya 20 ülke × 1259
 tur × ~60 alan ≈ 1.5M değer eder. `PackedFloat64Array` kullanılır,
 `Float32` değil — parite karşılaştırması binary64 gerektiriyor.
+
+### v2 — `godot/scripts/v2/`
+
+Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
+`ParamSet`, `Formulas`, `PyRandom` ve `Tables`'ı okur; hiçbirini değiştirmez.
+
+| sınıf | ne |
+|---|---|
+| `KrizParam` | v2 parametreleri. Düzeyler `P.v44`'ten **okunur**, elle yazılmaz |
+| `KrizDurumu` | ülke durumu. **Akımlar YILLIK, stoklar düzey, sayaçlar dönem** |
+| `KrizCekirdegi` | ülke-içi kriz teorisi. `adim(d, donem_yil, dis)` |
+| `Dunya` | ülkeler arası **korunumlu** değer akışı (C/L blokları) |
+| `Oran` | dönem↔yıl dönüşümleri. Tur→hafta tuzağının tek savunması |
+
+**Birim sözleşmesi v4.4'ten en önemli ayrılıktır.** v4.4'te akımlar *tur
+başına* tanımlıydı ve dönem uzunluğu değişince sessizce yanlışlanan tek şey
+buydu. v2'de akımlar yıllık sabitlenmiştir; `P.v44.x` diye okumak "bu büyüklük
+zamana bağlı DEĞİL" iddiasıdır ve yanlışsa motor 14 kat hızlı koşar.
+
+**`Dunya`nın tek kuralı: birinden eksilen diğerine gider.** Akım çift üzerinde
+tanımlıdır ve iki uca ters işaretle yazılır, yani `sum(VT) == 0` bir
+kalibrasyon değil özdeşliktir. Ülke başına çarpan uygulamak (abluka, açıklık)
+**çifte simetrik** olmalıdır — tek tarafa uygulanan çarpan korunumu kırar ve
+v4.4'ün L bloğunu bozan şey tam olarak buydu (ölçüldü: korunum hatası %57).
 
 ## Oyun tasarımı — sabit kararlar
 

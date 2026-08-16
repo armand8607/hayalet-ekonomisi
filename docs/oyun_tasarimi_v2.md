@@ -476,7 +476,7 @@ yok" bulmak demekti.
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
 | ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
-| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L), dış ticaret (B), ani duruş / moratoryum / döviz krizi (D, E, F) | **YENİ ÖLÇÜT GEREKİYOR** — aşağıya bak |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ⬜, ani duruş / moratoryum / döviz krizi (D, E, F) ⬜ | **KISMEN** — C/L kuruldu ve ölçüt geçiyor (`--v2-dunya` 6/6); B, D, E, F duruyor |
 | **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -505,12 +505,24 @@ Bu yüzden B1b'nin ölçütü **çıkışların çalıştığını** göstermeli
    katmanıyla 12.1'e doğru inmeli. Çıkışlar açılınca krizler seyrelir.
 2. **Tür karışımı** tabloya yakınsamalı: kayıttaki 27 olayın 5'i finansal,
    3'ü kârlılık, 2'si aşırı birikim. Kapalı çekirdek bunları ayırt edemiyor.
-3. **Çıkışın kendisi ölçülmeli**: değer transferi alan merkez ülkede kriz
-   yoğunluğu, veren çevre ülkeninkinden DÜŞÜK olmalı. Emperyalizmin motordaki
-   imzası budur ve tek ülkede tanımsızdır.
+3. **Çıkışın kendisi ölçülmeli**: değer transferi **alan** ülkede bunalım
+   yoğunluğu azalmalı, **veren** ülkede artmalı — her ülke kendi kapalı
+   hâliyle karşılaştırılarak. Emperyalizmin motordaki imzası budur ve tek
+   ülkede tanımsızdır.
 
-Üçüncüsü en önemlisi, çünkü yalnızca dünya katmanı varken anlamlıdır ve
-bugün geçmesi imkânsızdır — iyi bir kapının taşıması gereken özellik.
+Üçüncüsü en önemlisi, çünkü yalnızca dünya katmanı varken anlamlıdır.
+
+> **1. madde uyarısı — ölçüldü ve beklenti yanlış çıktı.** "Çıkışlar açılınca
+> krizler seyrelir" cümlesi değer transferi çıkışı için **doğru değil**.
+> Transfer açıkken dünya toplamı kıpırdamıyor (bunalım 4.3 ↔ 4.3, toplam
+> 35.4 → 35.1); tek tek ülkeler ise onlarca kat oynuyor. Yani bu çıkış krizi
+> seyreltmiyor, **yer değiştiriyor** — ve Marksist okumada beklenen de budur:
+> emperyalizm krizi çözmez, erteler ve taşır.
+>
+> Madde 1 yine de yanlışlanmış sayılmaz, çünkü kalan çıkışlar (ihracat pazarı,
+> sermaye ihracı, moratoryum, savaş) henüz yok. Ama artık **hangi çıkışın
+> seyreltmesi beklendiği** ayrıca gerekçelendirilmeli; "çıkış açılınca seyrelir"
+> genel kuralı bu motorda geçerli değil.
 
 ### Değer akışı kuruldu — ve üçüncü madde ölçüldü
 
