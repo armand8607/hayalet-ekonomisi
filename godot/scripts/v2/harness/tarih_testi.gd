@@ -241,6 +241,32 @@ static func kos() -> int:
 	print("  model medyani               : %.1f olay (2 yil), %.1f olay (3 yil)"
 			% [olay_medyan2, olay_medyan])
 
+	# --- KAPITALIST SURE: KARSILASTIRMANIN ASIL PAYDASI ---
+	#
+	# Tarihsel kayit 198 yilin TAMAMINDA kapitalizmi kaydeder. Model ise
+	# devrimden sonra sosyalist olur ve asiri uretim tescili o noktada KAPANIR
+	# (`_kriz_tescili` icinde `rejim == "kapitalist"` kosulu). Iki sayiyi ayni
+	# paydayla bolmek bu yuzden sarttir: yoksa "model az kriz uretiyor" ile
+	# "model erken devrim yapiyor" ayirt edilemez -- ve olculdu, olan ikincisi.
+	print("")
+	print("--- kapitalist sureye gore yogunluk ---")
+	print("  %6s %8s %10s %14s" % ["tohum", "devrim", "kap. yil", "asiri/100 yil"])
+	var yogunluk: Array[float] = []
+	for tohum in [1, 2, 3, 4, 5, 6]:
+		var s := _kos(0.0, tohum)
+		var kap := (s.devrim_yil - BAS) if s.devrim_yil > 0.0 else (BITIS - BAS)
+		var yog := 100.0 * float(s.asiri_uretim_krizleri.size()) / maxf(kap, 1.0)
+		yogunluk.append(yog)
+		print("  %6d %8s %10.0f %14.1f"
+				% [tohum, ("%d" % int(s.devrim_yil)) if s.devrim_yil > 0.0 else "yok",
+					kap, yog])
+	var ys := yogunluk.duplicate()
+	ys.sort()
+	print("  model medyani  : %.1f asiri uretim krizi / 100 kapitalist yil"
+			% [0.5 * (ys[2] + ys[3])])
+	print("  tarihsel        : %.1f  (14 kriz / 198 yil)"
+			% [100.0 * 14.0 / (BITIS - BAS)])
+
 	# --- Olcut ---
 	print("")
 	print("--- olcut ---")

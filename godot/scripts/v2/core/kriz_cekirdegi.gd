@@ -1074,6 +1074,11 @@ func _protesto_ve_devrim(d: KrizDurumu, donem_yil: float, dis: Dictionary) -> vo
 				and d.pr_sayac >= KrizParam.sure_donem(P.pr_sure_yil, donem_yil)
 				and d.Omega >= P.v44.omega_kritik):
 			d.rejim = "sosyalist"
+			# `devrim_yil` tanimliydi ama HIC YAZILMIYORDU. Devrimin ne zaman
+			# oldugunu bilmeden kriz takvimi okunamaz: devrimden sonra asiri
+			# uretim tescili KAPANIR (`rejim == "kapitalist"` kosulu), yani
+			# "kriz uretmiyor" ile "artik kapitalist degil" ayirt edilemez.
+			d.devrim_yil = d.yil
 			d.parti_iktidari = true
 			d.Omega *= 0.35
 			d.pr_sayac = 0

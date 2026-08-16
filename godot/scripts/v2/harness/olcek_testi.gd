@@ -134,7 +134,7 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 	print("   kapasitesi ile TUKETIM kapasitesi arasindaki makas budur.)")
 	print("%6s %3s %8s %6s %6s %6s %6s %6s %6s %6s %6s %7s %6s"
 			% ["yil", "cag", "Y_pot", "C/Yp", "I/Yp", "D/Yp", "K/Y", "canli",
-				"var/Y", "acik", "i_s-r", "r", "e"])
+				"pay_I", "acik", "satI", "satII", "e"])
 	# --- MINSKY TANISI ---
 	# Patlama IKI kosulun AYNI ANDA ve kesintisiz saglanmasini ister:
 	#   (1) varlik/Y > minsky_esik      -- balon yeterince buyuk mu
@@ -200,11 +200,44 @@ static func iz(yil: float = 100.0, donem_yil: float = HAFTA,
 			print("%6.0f %3d %8.1f %6.3f %6.3f %6.3f %6.2f %6.3f %6.3f %6.3f %6.3f %7.4f %6.3f"
 					% [d.yil, d.era, d.Y_pot_yil, d.C_yil / yp, d.I_yil / yp,
 						d.D_yil / yp, d.K / maxf(d.Y_yil, 1e-9), d.canli_pay,
-						d.varlik / maxf(d.Y_yil, 1e-9), d.talep_acigi,
-						d.i_spec_yil - d.r_yil, d.r_yil, d.e])
+						d.pay_I, d.talep_acigi,
+						d.satilamayan_I / maxf(d.Y_pot_yil, 1e-9),
+						d.satilamayan_II / maxf(d.Y_pot_yil, 1e-9), d.e])
 	print("  krizler: asiri_uretim=%d resesyon=%d bunalim=%d delev=%d rejim=%s"
 			% [d.asiri_uretim_krizleri.size(), d.resesyonlar.size(),
 				d.bunalimlar.size(), d.delev, d.rejim])
+	# --- KRIZ TAKVIMI ---
+	# Sayilar krizlerin ZAMANDA NASIL DAGILDIGINI soylemez. Tesciller ayri
+	# ayri mi yayiliyor, yoksa patlamalar halinde mi kumeleniyor?
+	print("")
+	print("  --- KRIZ TAKVIMI (tescil yillari) ---")
+	print("    DEVRIM: %s   (sonrasinda asiri uretim tescili KAPANIR)"
+			% ("%d" % int(d.devrim_yil) if d.devrim_yil > 0.0 else "olmadi"))
+	for c in [["asiri uretim", d.asiri_uretim_krizleri],
+			["resesyon    ", d.resesyonlar],
+			["bunalim     ", d.bunalimlar]]:
+		var satir := ""
+		for kayit in c[1]:
+			satir += "%d " % int(kayit[0])
+		print("    %s: %s" % [c[0], satir if satir != "" else "(yok)"])
+	# Butun tesciller tek eksende: aralarindaki bosluklarin dagilimi.
+	var hepsi: Array[float] = []
+	for liste in [d.asiri_uretim_krizleri, d.resesyonlar, d.bunalimlar]:
+		for kayit in liste:
+			hepsi.append(float(kayit[0]))
+	hepsi.sort()
+	if hepsi.size() > 1:
+		var bosluk := ""
+		var yakin := 0
+		for i in range(1, hepsi.size()):
+			var g := hepsi[i] - hepsi[i - 1]
+			bosluk += "%.0f " % g
+			if g <= 2.0:
+				yakin += 1
+		print("    tescil araliklari: %s" % bosluk)
+		print("    2 yildan yakin arayla gelen: %d / %d"
+				% [yakin, hepsi.size() - 1])
+
 	print("")
 	print("  --- MINSKY TANISI (%d yil icinde) ---" % int(yil))
 	print("    balon tepesi         : varlik/Y = %.3f   (esik %.2f) -> %s"
