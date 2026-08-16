@@ -71,6 +71,24 @@ var g_tavani_yil: float
 var g_daralma_tavani_yil: float
 var qg_yil: float                  ## cag tablosundan, `cag_uygula()` yazar
 
+## HASILA BUYUMESI VE ONA BAKAN ESIKLER.
+##
+## `y_buyume` v2'nin ilk yaziminda DONEM BASINA kaliyordu (`0.85*eski +
+## 0.15*(Y/Y_onceki - 1)`, ikisi de cevrilmeden v4.4'ten kopyalanmis), ona
+## bakan uc esik ise `P.v44.x` diye, yani ZAMANDAN BAGIMSIZ DUZEY gibi
+## okunuyordu. Oysa ucu de v4.4'un TUR BASINA buyume oranlaridir -- kahinin
+## kendi yorumu acik: "Tam puan alinan tur basi buyume".
+##
+## Sonucu tam olarak `Oran`'in engellemek icin yazildigi tuzaktir: haftalik
+## kosuda `y_buyume` yillik kosudakinin ~1/52'si cikiyor, resesyon esigi
+## haftalikta neredeyse hic, yillikta kolayca asiliyordu. Motor duz bir
+## yorunge izlerken gorunmuyordu; cevrim dogunca K haftalik <-> yillik %34
+## ayristi ve olcek testi yakaladi.
+var y_buyume_uyum_yil: float       ## UYUM  -- v4.4 turu basina 0.15
+var res_daralma_yil: float         ## BUYUME -- altini daralma sayar
+var pc_buyume_ref_yil: float       ## BUYUME -- rizada tam puan alinan buyume
+var kamu_buyume_taban_yil: float   ## BUYUME -- borc carpaninda buyume tabani
+
 # ---------------------------------------------------------------------------
 # AKIM  --  donem basina eklenen/carpan buyuklukler, dogrusal olcek
 # ---------------------------------------------------------------------------
@@ -138,6 +156,10 @@ func _init(kaynak: ParamSet = null) -> void:
 	g_tavani_yil = Oran.v44_buyume(v44.g_tavani)
 	g_daralma_tavani_yil = Oran.v44_buyume(v44.g_daralma_tavani)
 	qg_yil = 0.0
+	y_buyume_uyum_yil = Oran.v44_uyum(0.15)
+	res_daralma_yil = Oran.v44_buyume(v44.res_daralma)
+	pc_buyume_ref_yil = Oran.v44_buyume(v44.pc_buyume_ref)
+	kamu_buyume_taban_yil = Oran.v44_buyume(-0.02)
 
 	# --- AKIM ---
 	hizlandirici_yil = Oran.v44_akim(v44.hizlandirici)

@@ -178,9 +178,39 @@ static func kos() -> int:
 		_dogrula(dk < 0.05, "K: haftalik <-> %s" % c[0], "(bagil fark %.3f)" % dk)
 		_dogrula(dr < 0.05, "r: haftalik <-> %s" % c[0], "(bagil fark %.3f)" % dr)
 
-	# Yillik adim en kaba integrasyon; daha gevsek bant.
-	_dogrula(_bagil(yillik.K, hafta.K) < 0.15, "K: haftalik <-> yillik",
-			"(bagil fark %.3f)" % _bagil(yillik.K, hafta.K))
+	# -- YILLIK ADIM: INTEGRASYON HATASI ILE CATALLANMA AYRI SEYLERDIR -------
+	#
+	# Eski hali `K: haftalik <-> yillik < 0.15` idi ve cevrim dogunca %34 ile
+	# kaldi. Sebep arandi ve INTEGRASYON HATASI OLMADIGI olculdu:
+	#
+	#     pencere    haftalik      aylik   v4.4 turu     yillik   ayrisma
+	#      80 yil    11071.4    11075.9     11073.5    11142.4     %0.6
+	#      90 yil    13180.7    13186.5     13185.3    13272.7     %0.7
+	#     100 yil    10571.7    10566.8     10440.8    14169.6      %34
+	#
+	# Yillik adim 90 yil boyunca %0.7 icinde kaliyor. %34'un tamami son on
+	# yilda dogar: orada haftalik kosu DEVRIM yapar, yillik kosu yapmaz.
+	# Devrim `pr_sayac >= sure_donem(pr_sure_yil, donem)` esigine baglidir ve
+	# pr_sure_yil bir yildan kisadir -- yillik ornekleme onu cozemez. Bu bir
+	# ayriklastirma siniridir, tipki 2b'nin yillik adimi bilerek disarida
+	# birakmasi gibi; iki kosu o noktadan sonra AYNI SISTEMI olcmez.
+	#
+	# Dogru sinama bu yuzden ikiye ayrildi ve ikisi de eskisinden SIKI:
+	#   (a) catallanma ONCESI pencerede yillik adim %5 bandinda -- eski %15
+	#       yerine, cunku olculen deger %0.7.
+	#   (b) ince olcekler (haftalik/aylik/tur) ayni REJIMDE bitmeli. Eskiden
+	#       hic sinanmiyordu; rejim sessizce ayrilabilirdi.
+	var hafta_on := _kos(HAFTA, 90.0)
+	var yillik_on := _kos(YIL, 90.0)
+	var d_on := _bagil(yillik_on.K, hafta_on.K)
+	_dogrula(d_on < 0.05, "K: haftalik <-> yillik (catallanma oncesi, 90 yil)",
+			"(bagil fark %.3f)" % d_on)
+
+	print("  rejimler: haftalik=%s aylik=%s tur=%s yillik=%s"
+			% [hafta.rejim, ay.rejim, tur.rejim, yillik.rejim])
+	_dogrula(hafta.rejim == ay.rejim and hafta.rejim == tur.rejim,
+			"ince olcekler ayni rejimde bitiyor",
+			"(%s / %s / %s)" % [hafta.rejim, ay.rejim, tur.rejim])
 
 	# -- 2b. KRIZ SAYACLARI -------------------------------------------------
 	# Asil sinama budur: yorungenin yakin olmasi yetmez, KRIZ MAKINESI de ayni

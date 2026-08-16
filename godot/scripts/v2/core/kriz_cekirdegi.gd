@@ -162,7 +162,7 @@ func adim(d: KrizDurumu, donem_yil: float, dis: Dictionary = {}) -> void:
 	var Y_pot := _arz_kapasitesi(d, donem_yil)
 	_merkez_bankasi(d, donem_yil)
 	var talep := _efektif_talep(d, donem_yil, Y_pot, VT_net_yil)
-	_hasila_ve_istihdam(d, Y_pot, talep, Y_onceki)
+	_hasila_ve_istihdam(d, donem_yil, Y_pot, talep, Y_onceki)
 	_etg(d, donem_yil)
 	_arti_deger_ve_kar(d, donem_yil, VT_net_yil)
 	_minsky(d, donem_yil)
@@ -522,7 +522,8 @@ func _kamu_maliyesi(d: KrizDurumu, donem_yil: float, Y_pot: float) -> float:
 		d.kemer -= 1
 
 	var birincil := (G - d.vergi_geliri_yil) / maxf(d.Y_yil, 1e-6)
-	var carpan := clampf(1.0 + d.i_yil - maxf(d.y_buyume, -0.02), 0.97, 1.020)
+	var carpan := clampf(1.0 + d.i_yil - maxf(d.y_buyume, P.kamu_buyume_taban_yil),
+			0.97, 1.020)
 	# Borc orani bir STOKtur ama carpani donem basinadir.
 	var carpan_d := pow(carpan, donem_yil / Oran.V44_TUR_YIL)
 	d.kamu_borc = clampf(d.kamu_borc * carpan_d + Oran.donem_akim(birincil, donem_yil),
@@ -542,7 +543,7 @@ func _kamu_maliyesi(d: KrizDurumu, donem_yil: float, Y_pot: float) -> float:
 # HASILA, KAPASITE, ISTIHDAM
 # ===========================================================================
 
-func _hasila_ve_istihdam(d: KrizDurumu, Y_pot: float, D_talep: float,
+func _hasila_ve_istihdam(d: KrizDurumu, donem_yil: float, Y_pot: float, D_talep: float,
 		Y_onceki: float) -> void:
 	var Y := 0.0
 	if d.rejim == "sosyalist":
@@ -557,7 +558,15 @@ func _hasila_ve_istihdam(d: KrizDurumu, Y_pot: float, D_talep: float,
 
 	d.Y_yil = Y
 	d.Y_zirve = maxf(d.Y_zirve, Y)
-	d.y_buyume = 0.85 * d.y_buyume + 0.15 * ((Y - Y_onceki) / maxf(Y_onceki, 1e-6))
+	# `y_buyume` YILLIK bir buyume oranidir. Ham fark donem basinadir; once
+	# yilliga cevrilir, sonra yillik tanimli bir uyum katsayisiyla yumusatilir.
+	# Ikisi de cevrilmezse olcu donem uzunluguyla birlikte kayar ve ona bakan
+	# esikler (resesyon, kamu borcu, riza) haftalik kosuda hic, yillik kosuda
+	# kolayca tetiklenir.
+	var ham := (Y - Y_onceki) / maxf(Y_onceki, 1e-6)
+	var buyume_yil := Oran.yillik_buyume(maxf(ham, -0.99), donem_yil)
+	var uy_y := Oran.donem_uyum(P.y_buyume_uyum_yil, donem_yil)
+	d.y_buyume = (1.0 - uy_y) * d.y_buyume + uy_y * buyume_yil
 
 	# Y_K de YILLIGA cevrilir; yoksa `u` 14 kat yanlis cikar.
 	var Y_K := d.K / maxf(d.kv, 1e-9) / Oran.V44_TUR_YIL
@@ -820,7 +829,7 @@ func _kriz_tescili(d: KrizDurumu, donem_yil: float) -> void:
 
 	# --- Resesyon: art arda daralan hasila ---
 	d.res_bekle = maxi(0, d.res_bekle - 1)
-	if d.y_buyume < P.v44.res_daralma:
+	if d.y_buyume < P.res_daralma_yil:
 		d.res_ici += 1
 		if d.res_ici >= KrizParam.sure_donem(P.res_sure_yil, donem_yil) and d.res_bekle == 0:
 			d.resesyonlar.append(d.y_buyume)
@@ -937,7 +946,7 @@ func _protesto_ve_devrim(d: KrizDurumu, donem_yil: float, dis: Dictionary) -> vo
 
 		# Riza PERFORMANSIN sonucudur: refah (buyume, istihdam, ucret payi) ve
 		# istikrar (dusuk huzursuzluk) bilesenlerinden.
-		var pc_refah := (0.40 * minf(1.0, maxf(0.0, d.y_buyume / P.v44.pc_buyume_ref))
+		var pc_refah := (0.40 * minf(1.0, maxf(0.0, d.y_buyume / P.pc_buyume_ref_yil))
 				+ 0.35 * minf(1.0, maxf(0.0, d.e / P.v44.e0))
 				+ 0.25 * minf(1.0, maxf(0.0, d.pay / P.v44.pc_pay_ref)))
 		var istikrar := 1.0 - minf(1.0, d.Omega)
