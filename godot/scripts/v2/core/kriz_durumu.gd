@@ -168,12 +168,122 @@ var parti_iktidari: bool = false
 var devrim_yil: float = -1.0       ## devrim olduysa yili, yoksa -1
 
 # ---------------------------------------------------------------------------
-# KARANLIK DEVLET  (B2b'de `bolunme` ile genisleyecek)
+# KARANLIK DEVLET  (B3 -- otoritesi `KaranlikDevlet`tedir, bkz. karanlik.gd)
+#
+# Katman TAKILI DEGILKEN bu alanlarin hepsi baslangic degerinde kalir ve
+# cekirdegin butun carpanlari OZDESLIKLE 1.0 olur. B1/B2 olcumleri bu yuzden
+# gecerliligini korur; `--v2-bolunme` bunu 1e-12 toleransla olcer.
 # ---------------------------------------------------------------------------
 var uyusturucu_orani: float = 0.0
 var cezaevi_orani: float = 0.0
 var lumpen_pay: float = 0.0
 var gasp: float = 0.0
+
+## EMEKCI SINIFIN KENDI ICINE BOLUNMUSLUGU [0,1] -- §4.1'in yeni degiskeni.
+##
+## Karanlik devletin amaci ofkeyi (`Omega`) azaltmak DEGIL, onun sinifsal
+## orgutlenmeye (`org`) donusmesini kirmaktir. Ofke yerinde kalir, hedefi
+## degisir: siniftan komsuya. Uc kanaldan is gorur (S, Q, T bloklari).
+var bolunme: float = 0.0
+
+## TAKTIKLER [0,1] -- oyuncu ya da AI yazar, `KaranlikDevlet` OKUR.
+##
+## TEK BIR "KARANLIK DEVLET KADRANI" YOKTUR, ve bu §4.6'nin geregi:
+## "bunlar oyunda NE ISELER O OLARAK gorunur -- magdurlari adlandirilmis,
+## bedelleri sayilmis politikalar; 'etkinlik' kolu gibi sunulmaz."
+##
+## Her taktigin KENDI kanali vardir (bkz. karanlik.gd'deki tablo). Sekiz
+## taktik tek bir olcege indirgenseydi hepsi ayni sekilde davranirdi ve
+## "hangi bedeli kim oduyor" sorusu motorda tanimsiz kalirdi.
+##
+## RIZA -- ucuz, yavas, sinsi:
+var t_uyusturucu: float = 0.0      ## uyusturucu ekonomisine goz yumma
+var t_cemaat: float = 0.0          ## dini cemaat/tarikat aglarinin onunu acma
+var t_mistisizm: float = 0.0       ## astroloji, evrim karsitligi, duz dunyacilik
+var t_milliyetcilik: float = 0.0   ## ic etnik gruplara dusmanlik, multeci dusmanligi, irkcilik
+var t_cinsiyet: float = 0.0        ## LGBT dusmanligi, kadinlara karsi baskici politikalar
+## ZOR -- hizli, pahali, iz birakir:
+var t_sendika_baskisi: float = 0.0 ## sendikal harekete baski, grev kirma
+var t_tutuklama: float = 0.0       ## muhalif siyasi karakterlerin tutuklanmasi
+var t_paramiliter: float = 0.0     ## paramiliter fasist gruplar, siyasi cinayet
+
+## Iki aygitin BILESKESI. `KaranlikDevlet` taktiklerden TURETIR, elle
+## yazilmaz -- tani ve kapi denetimleri bunlari okur.
+var riza_kolu: float = 0.0
+var zor_kolu: float = 0.0
+
+## SEHIT STOGU. Siyasi cinayet kisa vadede orgutlenmeyi kirar ama `Omega`yi
+## yukseltir -- ve bu ikisi AYNI ANDA olmaz. Gecikmeyi tasiyan sey bu stoktur;
+## bir akimla yazilsaydi "sehitler radikallestirir" cumlesi kurulamazdi
+## (B2c'nin dersi: bir mekanizmanin hafizasi olmaliysa onu akimla kurma).
+var sehit: float = 0.0
+
+## Uyusturucu ekonomisine goz yumma [0,1]. v4.4'te `mafya_tolerans`.
+var mafya_tolerans: float = 0.0
+var kd_hedef: float = 0.0              ## tani icin: toleransin hedef degeri
+
+## NITELIKLI EMEK CARPANI -- egitim ve uyusturucunun `q` buyumesine etkisi.
+## GOLGE CAPAYA gore normalize edilir (bkz. karanlik.gd, "capa ozdesligi"),
+## yani taktikler kapaliyken 1.0'dir -- yaklasik degil, BIREBIR.
+var nitelik: float = 1.0
+
+## GOLGE CAPA -- "taktikler hic acilmasaydi ne olurdu" referansi.
+##
+## Dort golge degisken, gercekleriyle AYNI denklemleri kosar; tek fark
+## taktik terimlerinin sifirlanmasidir. Boylece `nitelik` bir DUZEY degil
+## bir SAPMA olcer: karanlik devletin nitelikli emege verdigi zarar.
+##
+## NEDEN GEREKLI. Tasinan egitim denklemi kendi dengesine gider (0.3'ten
+## ~0.09'a) ve ham `nitelik` bu yuzden taktikler KAPALIYKEN bile 0.90'a
+## duserdi -- yani katmani takmak tek basina q buyumesini %10 yavaslatirdi.
+## Ve q yalnizca uretkenlik degil CAG TABLOSUNUN TETIKLEYICISIDIR, yani bu
+## sessiz yavaslama devrimin takvimini kaydirirdi. B2a'da tam olarak bu
+## yasandi (devrim 1923'ten 1903'e). Golge capa onu yapisal olarak keser.
+var tolerans_capa: float = 0.0
+var uo_capa: float = 0.0
+var cezaevi_capa: float = 0.0
+var egitim_capa: float = 0.3
+
+## KATILIM BASKISI [0,1] -- cinsiyet baskisi taktiginin KENDI kanali.
+##
+## Kadinlari isgucunun disina iten bir politika emek arzini daraltir:
+## `l_etkin()` kuculur, yani CANLI EMEK, yani YENI DEGERIN KAYNAGI daralir.
+## Zor aygitinin `cezaevi_orani` kanaliyla ayni mekanik, farkli magdur --
+## ve ikisi de bu kollarin bedava OLMADIGININ kanitidir.
+var katilim_baski: float = 0.0
+
+## TANI -- bolunme yarisinin iki tarafi (§4.4). Kapi "mekanizma canli mi"
+## denetimini bunlar uzerinden yapar; yon dogru cikip mekanizma olu olabilir.
+var bolunme_itki: float = 0.0
+var bolunme_geri: float = 0.0
+
+## KARSI HAREKETIN BILESKE GUCU -- tani (§4.4). Sendika, parti, parti
+## iktidari ve dayanisma kazanimlarinin toplami.
+var karsi_hareket: float = 0.0
+
+## TOPLULUKLAR ARASI SIDDET -- bolunmenin sinifsal kanaldan CEKTIGI enerji.
+##
+## §4.1: "Protestoyu sinifsal olmaktan cikarir, topluluklar arasi siddete
+## cevirir." Ofke yok olmaz, hedef degistirir: siniftan komsuya -- ic etnik
+## gruplara, multecilere, kadinlara, LGBT'ye.
+##
+## §4.6 geregi GORUNUR bir metriktir, gizli bir carpan degil: oyun bu
+## politikalari bir yonetim teknigi olarak degil sinif egemenliginin araci
+## olarak modeller ve MALIYETINI KIMIN ODEDIGINI sayar.
+var topluluk_siddeti: float = 0.0
+
+## SINIFSAL BASINC -- protesto riskinin bolunme UYGULANMADAN onceki hali.
+##
+## `PR` bu basincin SINIFSAL ifadesidir, `topluluk_siddeti` ise komsuya
+## yonelmis hali; ikisinin toplami basinca esittir (OZDESLIK).
+##
+## Ayri bir alan olarak durmasi gerekli, cunku §4.1'in iddiasi tam olarak
+## bu buyukluk uzerinden kurulur: karanlik devlet basinci AZALTMAZ, onu
+## sinifsal kanaldan baska bir kanala aktarir. Yalnizca `Omega`ya bakarak
+## bu iddia sinanamaz -- `Omega` bir STOKtur ve orgutlulukle CARPILARAK
+## birikir, dolayisiyla bolunmus bir sinifta daha yavas birikir. Basincin
+## kendisi ise yerinde durur.
+var sinif_basinci: float = 0.0
 
 # ---------------------------------------------------------------------------
 # EVRENSEL TEMEL GELIR
@@ -223,9 +333,16 @@ var satilamayan_II: float = 0.0    ## satilamayan tuketim mali
 var emek_gerginlik: float = 0.9
 
 
-## Etkin emek gucu -- hapsedilenler dusulmus.
+## ETKIN EMEK GUCU -- karanlik devletin iki magduru dusulmus.
+##
+## Zor aygitinin bedeli (`cezaevi_orani`) v4.4'ten gelir; riza aygitinin
+## `katilim_baski` kanali B3'un eklemesidir (§4.3). Ikisi de AYNI mekanik
+## uzerinden oder: canli emek daralir, yani YENI DEGERIN KAYNAGI daralir.
+## Marx'ta arti deger yalnizca canli emekten dogar, dolayisiyla emekcileri
+## isgucunun disina itmek arti degerin kendisini kesmektir.
 func l_etkin() -> float:
-	return L_etkin * katilim * (1.0 - minf(0.90, cezaevi_orani))
+	return (L_etkin * katilim * (1.0 - clampf(katilim_baski, 0.0, 0.90))
+			* (1.0 - minf(0.90, cezaevi_orani)))
 
 
 ## ETG'ye gore duzeltilmis issizlik. ETG gonullu cekilmeyle olculen istihdami

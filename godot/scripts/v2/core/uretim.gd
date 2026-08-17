@@ -490,7 +490,17 @@ func _yukselt(d: KrizDurumu, butce: float, ucret: float) -> float:
 		if secim < 0:
 			# Yukseltmeye deger aday yok: butce yaygin birikime doner.
 			return butce
-		binalar[secim].hedef_bedel = binalar[secim].K * yukseltme_maliyeti
+		# NITELIKLI EMEK BEDELI (B3, §4.3). Cekirdegin `_uretkenlik` blogu
+		# mikro katman takiliyken KOSMAZ, yani riza aygitinin `qg` bedeli
+		# orada uygulanamaz. Mikro karsiligi budur: curumus bir bilim tabani
+		# her teknik basamagi PAHALILASTIRIR, merdiven yavas tirmanilir.
+		#
+		# Ayni bedelin iki kolda ayri yazilmasi cifte sayim DEGILDIR -- iki
+		# kol asla birlikte kosmaz (`_uretkenlik` basta `return` eder).
+		# `nitelik` 1.0 iken bolen 1.0'dir, yani katman takili degilken bu
+		# satir ozdesliktir.
+		binalar[secim].hedef_bedel = (binalar[secim].K * yukseltme_maliyeti
+				/ maxf(d.nitelik, 0.10))
 
 	var b2 := binalar[secim]
 	# Taksit ANINDA sermayeye yazilir -- ozdeslik burada korunur.

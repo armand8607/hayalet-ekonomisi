@@ -101,6 +101,19 @@ var son_d_pay: float = 0.0
 ## Digerlerinden bagimsiz takilir -- ucu de ayri ayri acilip kapanmali.
 var mal: MalKatmani = null
 
+## KARANLIK DEVLET KATMANI (B3). Takili degilse `bolunme` 0.0'da durur ve bu
+## dosyadaki butun bolunme carpanlari OZDESLIKLE 1.0 doner -- yani cekirdek
+## zerre degismez ve B1/B2 olcumleri gecerliligini korur.
+##
+## Takiliysa otoritesi: `bolunme`, `mafya_tolerans`, `uyusturucu_orani`,
+## `cezaevi_orani`, `egitim`, `nitelik`, `sehit`, `katilim_baski`
+## (otorite tablosu: `karanlik.gd`).
+##
+## DIGERLERINDEN BAGIMSIZ TAKILIR. B2a'da devrimin 20 yil kaymasinin sebebi
+## tam da bu ayrilabilirlik sayesinde eleme yoluyla bulunmustu; B3 uc kanal
+## birden actigi icin ayrilabilirlik burada daha da onemli.
+var karanlik: KaranlikDevlet = null
+
 
 func _init(p_param: KrizParam = null, tohum: int = 42) -> void:
 	P = p_param if p_param != null else KrizParam.new()
@@ -113,6 +126,34 @@ func _init(p_param: KrizParam = null, tohum: int = 42) -> void:
 ## erozyonunu ayni anda degistirir.
 func _kur(d: KrizDurumu, alan: String, varsayilan: float = 1.0) -> float:
 	return float(Tables.KURUMLAR[d.kurum].get(alan, varsayilan))
+
+
+## BOLME/YOZLASTIRMA KANALLARINA DIRENC -- bilinclendirme sonumlemeyi kirar.
+##
+## Karsi hareketin IKINCI katmani (§4.4). Parti yalnizca `bolunme` stokunu
+## eritmez; karanlik devletin uc kanalinin UCUNDE birden sonumlemeyi
+## zayiflatir. Yani sosyalist politik ozne hem bolunmeyi geri iter hem de
+## bolunmenin is gormesini engeller -- ve mucadelenin iki tarafli olmasi
+## motorda bu ikilikten dogar.
+##
+## v4.4'te ayni katsayi lumpen ve karseral sonumlerde zaten kullaniliyordu;
+## B3 onu bolunmeye de baglar, yani yeni bir sabit gerekmez.
+func _direnc(d: KrizDurumu) -> float:
+	return 1.0 - P.v44.parti_direnc * d.parti
+
+
+# Kanal kapilari -- deney tasarimi icin (bkz. `karanlik.gd`). Katman takili
+# degilken hepsi acik doner; `bolunme` zaten 0.0 oldugu icin sonuc degismez.
+func _kanal_org() -> bool:
+	return karanlik == null or karanlik.kanal_org
+
+
+func _kanal_pazarlik() -> bool:
+	return karanlik == null or karanlik.kanal_pazarlik
+
+
+func _kanal_protesto() -> bool:
+	return karanlik == null or karanlik.kanal_protesto
 
 
 ## YENI DEGERIN TOPLAM URUN DEGERINDEKI PAYI --  W = c + v + s  icinde (v+s).
@@ -236,6 +277,17 @@ func adim(d: KrizDurumu, donem_yil: float, dis: Dictionary = {}) -> void:
 		d.pay = nufus.pay_hesapla(d)
 		pay_sinirla(d)
 	_kriz_tescili(d, donem_yil)
+	# KARANLIK DEVLET SIYASI BLOKLARDAN ONCE. Sira zorunludur: `bolunme` bu
+	# adimda hesaplanan `org`, `parti` ve `pay`dan dogar, ve hemen ardindan
+	# gelen S ve T bloklari onu OKUR. Sonra cagrilsaydi bolunme bir donem
+	# geriden is gorurdu.
+	#
+	# `cezaevi_orani` ve `l_etkin()` icin bir donemlik GECIKME kalir: karseral
+	# formul bu adimin basindaki `Omega`yi okur ve emek arzi etkisi gelecek
+	# donem gorunur. Gecikme v4.4'te de vardi ve orada da KASITLIYDI --
+	# devlet politikasi GOZLEMLENMIS duruma tepki verir (`motor.py:2002`).
+	if karanlik != null:
+		karanlik.adim(d, donem_yil)
 	_orgutlenme(d, donem_yil)
 	_protesto_ve_devrim(d, donem_yil, dis)
 
@@ -286,7 +338,12 @@ func _uretkenlik(d: KrizDurumu, donem_yil: float) -> void:
 	var doyum := 1.0 if doyum_sabit else maxf(
 			P.v44.q_doyum_taban, 1.0 - d.q / float(E["q_tavan"]))
 	d.q_doyum = doyum
-	d.q *= (1.0 + Oran.donem_buyume(P.qg_yil * doyum, donem_yil))
+	# NITELIKLI EMEK (B3, §4.3): riza aygitinin bedeli buradan cikar. Bilim
+	# karsitligi ve uyusturucu egitim tabanini curutur, `nitelik` duser, `q`
+	# buyumesi yavaslar -- ve `qg` LTRPF'ye karsi elde kalan TEK karsi
+	# egilimdir. Karanlik devlet toplumsal barisi kendi gelecekteki birikimini
+	# yiyerek satin alir. Katman takili degilken `nitelik` 1.0'dir.
+	d.q *= (1.0 + Oran.donem_buyume(P.qg_yil * doyum * d.nitelik, donem_yil))
 
 
 ## Nufus. Katman takiliysa kohortlar buyur ve aralarinda gecis olur (B2b);
@@ -1061,7 +1118,17 @@ func _goodwin(d: KrizDurumu, donem_yil: float) -> void:
 			d.emek_gerginlik - d.e_norm)
 
 	if d.rejim == "kapitalist":
-		var telafi := P.v44.w_beklenti * (1.0 + P.v44.w_org * d.org)
+		# BOLUNME (B3, §4.1): sendikanin PAZARLIK gucunu kirar.
+		#
+		# Orgutlenme stoku (`d.org`) degismez -- bolunmus bir sinif orgutludur
+		# ama BIRLIKTE PAZARLIK EDEMEZ. Goodwin blogunun uc yerinde `org`
+		# gecer (beklenti telafisi, uretkenlik aktarimi, istihdam primi) ve
+		# ucu de pazarlik gucudur, dolayisiyla ucu de bu buyuklugu okur.
+		#
+		# Sermaye icin sonuc §4.1'in vaadidir: ucret payi baskilanir, kar
+		# orani KORUNUR. Bedeli baska defterden cikar (§4.3).
+		var org_p := KaranlikDevlet.pazarlik_gucu(P, d, _direnc(d), _kanal_pazarlik())
+		var telafi := P.v44.w_beklenti * (1.0 + P.v44.w_org * org_p)
 		# Goodwin terimi SABIT bir hedefe degil ulkenin kendi HAREKETLI
 		# istihdam normuna gore calisir.
 		# Ucret pazarligi ISTIHDAM ORANINA degil EMEK GERGINLIGINE bakar:
@@ -1076,9 +1143,9 @@ func _goodwin(d: KrizDurumu, donem_yil: float) -> void:
 		# Emegin uretkenlik artisindan pay alma zemini kurumsaldir; orgutluluk
 		# onun uzerine biner. Duzenli rejimde 0.85, neoliberalde 0.40.
 		var taban_pay := _kur(d, "emek_pay", 0.5)
-		var aktarim := taban_pay + (1.0 - taban_pay) * d.org
+		var aktarim := taban_pay + (1.0 - taban_pay) * org_p
 		d.w_nom_buyume_yil = (telafi * d.pi_bek + goodwin
-				+ P.v44.w_org_e * d.org * (d.e - P.v44.e0) + aktarim * P.qg_yil)
+				+ P.v44.w_org_e * org_p * (d.e - P.v44.e0) + aktarim * P.qg_yil)
 		if d.kontrol > 0:
 			d.w_nom_buyume_yil *= (1.0 - P.v44.kont_etki)
 		if pazarlik_sabit:
@@ -1112,7 +1179,15 @@ func _goodwin(d: KrizDurumu, donem_yil: float) -> void:
 ## suruyordu).
 func pay_sinirla(d: KrizDurumu) -> void:
 	var etg_taban := P.v44.etg_taban_dus * d.etg * (1.0 - d.etg_metasiz)
-	var pay_taban := maxf(0.10, P.v44.pay_taban0 + P.v44.pay_taban_org * d.org
+	# TABAN PAZARLIK GUCUYLE HAREKET EDER, ORGUTLENME STOKUYLA DEGIL.
+	#
+	# B2b'nin acik birakip B3'e devrettigi borc buydu: "ucret payinin tabani
+	# `org` ile birlikte hareket edecek". Ucret tabanini kuran sey sendikanin
+	# VARLIGI degil, birlikte pazarlik EDEBILMESIDIR -- bolunmus bir sinifin
+	# sendikasi vardir ama tabani tutamaz.
+	var pay_taban := maxf(0.10, P.v44.pay_taban0
+			+ P.v44.pay_taban_org * KaranlikDevlet.pazarlik_gucu(
+				P, d, _direnc(d), _kanal_pazarlik())
 			- P.v44.gasp_taban * d.lumpen_pay - etg_taban)
 	if d.parti_iktidari:
 		pay_taban = minf(pay_taban, P.v44.parti_pay_taban)
@@ -1179,11 +1254,29 @@ func _orgutlenme(d: KrizDurumu, donem_yil: float) -> void:
 				* P.v44.org_era_era_erozyon * float(d.era - 2) if d.era >= 3 else 0.0)
 		var buyume := (P.org_kent_yil * d.kent + P.org_kriz_yil * kriz_n
 				+ P.egitim_org_yil * d.egitim)
+		# BOLUNME (B3, §4.1): ofkenin sinifsal orgutlenmeye DONUSUMUNU kirar.
+		# `kriz_n` bu donusumun motordaki tasiyicisidir -- kriz deneyimi
+		# orgutlenmeye cevrilir. Bolunmus bir sinifta ayni kriz ortak bir
+		# cikar degil, birbirine dusman topluluklar uretir.
+		#
+		# KIRILAN BUYUMEDIR, STOK DEGIL. `org`un kendisinden dusulseydi
+		# protesto ve parti kanallari da birlikte kapanirdi; §4.1 tam olarak
+		# bunun TERSINI soyluyor -- orgutlenme yerinde kalir, ofkeyle
+		# arasindaki BAG kirilir.
+		buyume *= KaranlikDevlet.org_kirilma(P, d, _direnc(d), _kanal_org())
 		var azalma := P.org_baski_yil * baski + eroz
+		# SENDIKAL HAREKETE BASKI (§4.2): grev kirma ve sendika kapatma
+		# orgutlenmeyi DOGRUDAN asindirir -- bolunmeden bagimsiz, ikinci bir
+		# kanal. Bolunme bagi kirar, bu kol dokuyu keser.
+		azalma += P.org_baski_yil * P.sendika_baski_egilim * d.t_sendika_baskisi
 		var dorg := buyume * (1.0 - d.org) - azalma * d.org
 		# Cozulme POLITIKA degiskenine degil FIILI lumpenlesmeye baglidir:
 		# yayilmis bir uyusturucu ekonomisi sendikal dokuyu cozer.
 		dorg -= P.lumpen_org_yil * d.lumpen_pay * d.org
+		# SIYASI CINAYET -- KISA VADE (§4.3). Sehit stogu buyurken orgutlenme
+		# kirilir; ayni stok orta vadede `Omega`yi YUKSELTIR (T blogu). Iki
+		# etki ayni anda olmaz, gecikmeyi stok tasir.
+		dorg -= P.sehit_org_yil * d.sehit * d.org
 		d.org = clampf(d.org + Oran.donem_akim(dorg, donem_yil), 0.0, 0.98)
 	else:
 		d.org = minf(0.98, d.org + Oran.donem_akim(
@@ -1218,14 +1311,28 @@ func _protesto_ve_devrim(d: KrizDurumu, donem_yil: float, dis: Dictionary) -> vo
 	d.orgutlu = d.org + d.parti * (1.0 - d.org)
 
 	# Bolme/yozlastirma politikalarina DIRENC: bilinclendirme sonumlemeyi kirar.
-	# B2b'de `bolunme` bu kanali genisletecek.
-	var direnc := 1.0 - P.v44.parti_direnc * d.parti
+	var direnc := _direnc(d)
 	var lumpen_sonum := 1.0 - minf(0.85, P.v44.lumpen_sonum_gucu * d.lumpen_pay * direnc)
 	# Karseral disiplin: hapsetme, disipline edilemeyen nufusu fiziksel olarak
 	# izole ederek protesto riskini DOGRUDAN bastirir.
 	var karseral_sonum := 1.0 - minf(0.40, P.v44.karseral_disiplin * minf(
 			2.0, d.cezaevi_orani / P.v44.cezaevi_ref) * direnc)
-	d.PR = Formulas.sg(P.v44.kappa * arg) * lumpen_sonum * karseral_sonum
+	# BOLUNME (B3, §4.1): protestoyu SINIFSAL olmaktan cikarir; ofke topluluklar
+	# arasi siddete akar. Motordaki imza tam olarak budur -- `Omega` yerinde
+	# durur, `PR` soner. Yani bolunme devrimi ONLEMEZ, ERTELER; ve ertelendigi
+	# surece ofke birikmeye devam eder.
+	var bolunme_sonum := KaranlikDevlet.protesto_sonum(P, d, direnc, _kanal_protesto())
+	# SINIFSAL BASINC -- bolunme UYGULANMADAN once. Lumpen ve karseral
+	# sonumler burada zaten var, cunku onlar gercekten YATISTIRIR (uyusturulmus
+	# ya da hapsedilmis nufus ofkesini de kaybeder). Bolunme BASKA bir seydir.
+	var pr_taban := Formulas.sg(P.v44.kappa * arg) * lumpen_sonum * karseral_sonum
+	d.sinif_basinci = pr_taban
+	d.PR = pr_taban * bolunme_sonum
+	# TOPLULUKLAR ARASI SIDDET (B3, §4.1). Bolunmenin sinifsal kanaldan
+	# CEKTIGI enerji YOK OLMAZ -- hedef degistirir. Siniftan komsuya: ic etnik
+	# gruplara, multecilere, kadinlara, LGBT'ye. §4.6 geregi bu bir gizli
+	# carpan degil GORUNUR bir metriktir; bedeli kimin odedigi sayilabilsin.
+	d.topluluk_siddeti = pr_taban - d.PR
 
 	var esik := maxf(P.v44.pr_esik_min, P.v44.pr_esik - P.v44.pr_esik_omega * d.Omega)
 	d.pr_sayac = (d.pr_sayac + 1) if d.PR >= esik else 0
@@ -1246,9 +1353,28 @@ func _protesto_ve_devrim(d: KrizDurumu, donem_yil: float, dis: Dictionary) -> vo
 		var makas := maxf(0.0, (1.0 - d.canli_pay) - P.v44.asiri_esik)
 		var asiri := P.asiri_uretim_yil * makas * (0.4 + 1.6 * d.orgutlu)
 
-		var dO := (P.org_omega_yil * (P.a1_yil * d.PR + P.a2_yil * kriz_n)
+		# SIYASI CINAYET -- ORTA VADE (§4.3). Sehitler radikallestirir: ayni
+		# stok S blogunda orgutlenmeyi kirarken burada OFKEYI yukseltir.
+		# Zor aygitinin en pahali ozelligi budur -- bastirdigi seyi besler,
+		# ve baskidan sag cikan orgutlenme daha radikal doner cunku `org`
+		# yeniden buyudugunde `Omega` hala yuksektir.
+		var sehit_ofke := P.sehit_omega_yil * d.sehit
+		# OFKE `pr_taban`DAN BESLENIR, `d.PR`DEN DEGIL -- ve ayrim §4.1'in
+		# TAMAMIDIR.
+		#
+		# OLCULDU VE YAPISAL CIKTI. Ilk yazimda `d.PR` okunuyordu ve sonuc
+		# §4.1'in tam TERSIYDI: tam kapasite karanlik devlet altinda `Omega`
+		# 0.238'den 0.0017'ye COKUYORDU. Sebep motorun kendi yapisi -- ofke
+		# protesto uzerinden birikiyor, dolayisiyla protestoyu sonumlemek
+		# ofkeyi de yok ediyordu. Yani mekanizma bir "bolme" kolu degil bir
+		# YATISTIRMA kolu olarak calisiyordu.
+		#
+		# Dogrusu: bolunme ofkeyi azaltmaz, sinifsal ifadesini kirar. Ofkeyi
+		# ureten basinc yerinde durur (`pr_taban`), yalnizca aldigi BICIM
+		# degisir -- sinifsal protesto yerine topluluklar arasi siddet.
+		var dO := (P.org_omega_yil * (P.a1_yil * pr_taban + P.a2_yil * kriz_n)
 					* (0.4 + 1.6 * d.orgutlu)
-				+ asiri
+				+ asiri + sehit_ofke
 				- P.a4_yil * baski - P.a5_yil * reform - P.omega_sonum_yil - refah)
 		d.Omega = clampf(d.Omega + Oran.donem_akim(dO, donem_yil), 0.0, 1.0)
 

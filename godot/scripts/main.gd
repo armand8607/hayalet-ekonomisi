@@ -54,6 +54,17 @@ func _ready() -> void:
 				# Mal piyasasi (B2c): satilamayan urun bir AKIM mi STOK mu --
 				# ve stok asiri uretim krizine SURE kazandiriyor mu.
 				cikis = MalTesti.kos()
+			"--v2-bolunme-tarama":
+				# Bolunme kanallarinin siddeti ve karsi hareketin agirligi.
+				# Tani kapisi.
+				cikis = BolunmeTesti.tarama()
+			"--v2-bolunme":
+				# Karanlik devlet (B3): riza ve zor aygitlari, `bolunme`, ve
+				# karsisindaki sendika/parti. Uc kademe -- katman takili
+				# degilken cekirdek zerre degismiyor mu, §7'nin alti yon
+				# iddiasi tutuyor mu, ve mekanizma CANLI mi (yonu dogru bir
+				# mekanizma yine de olu olabilir).
+				cikis = BolunmeTesti.kos()
 			"--v2-nufus-tarama":
 				# Yedek ordu etkisinin kalibrasyonu. Tani kapisi.
 				cikis = NufusTesti.tarama()

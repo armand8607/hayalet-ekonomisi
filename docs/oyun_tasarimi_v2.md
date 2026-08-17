@@ -480,7 +480,7 @@ yok" bulmak demekti.
 | **B2a** | **ÜRETİM KATMANI.** Sektör, bina, üretim yöntemi merdiveni (§5.11) | **KURULDU** — `--v2-uretim` 17/17, `--v2-tarih-mikro` geçiyor |
 | **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | **KURULDU** — `--v2-nufus` 13/13, `--v2-tarih-mikro` iki katmanla geçiyor |
 | **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | **KURULDU** — `--v2-mal` 7/7 |
-| **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
+| **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | **KURULDU** — `--v2-bolunme` 33/33; §4.3 ve §4.1'in birer iddiası ölçülüp düzeltildi (§6e) |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
 | **B5** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi | 20+ ülke, dokuz mod, bağlar çizili |
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | ~100 ülke, kabul edilebilir tik süresi |
@@ -1406,3 +1406,189 @@ epizot 15.7 yıl sürüyor, yani çapa olacak büyüklük orada zaten bozuk.
 Kategoriler ayrışıyor: ortalama (en dolu − en boş) stok/üretim farkı **0.236**.
 Biri dolarken diğeri boş — Marx'ın orantısızlık krizinin motordaki imzası, ve
 tek bir `talep_acigi` skaleriyle **tanımsız**.
+
+---
+
+## 6e. B3 — karanlık devlet, bölünme ve karşı hareket
+
+### Ölçüt beşinci kez düzeltilmedi — §7 baştan ayırt ediyordu
+
+B1b, B2a, B2b ve B2c'de ölçüt dört kez düzeltilmek zorunda kalmıştı: eski
+kapılar mekanizma eklenmeden de yeşil veriyordu. B3'te bu sorun yok. §7'nin
+altı yön testinin altısı da `bolunme` olmadan **tanımsız** — bir kapı ancak
+ölçtüğü şey yokken kurulamıyorsa gerçekten kapıdır.
+
+Ama §7'nin listesi yön iddialarıdır ve B2b'nin dersi hâlâ geçerli (yönü doğru
+bir mekanizma ölü olabilir). Kapı bu yüzden **üç kademelidir**: özdeşlik →
+yön → canlılık. 33 denetim.
+
+### Tek bir "karanlık devlet kadranı" yok — sekiz adlandırılmış taktik var
+
+§4.6'nın temsil ilkesi bunu zaten şart koşuyordu ("mağdurları adlandırılmış,
+bedelleri sayılmış politikalar; 'etkinlik' kolu gibi sunulmaz"). Ama gerekçe
+temsilî olduğu kadar mekaniktir de: sekiz taktik tek ölçeğe indirgenseydi
+hepsi aynı davranır ve **"bedeli kim ödüyor" sorusu motorda tanımsız kalırdı.**
+
+| taktik | aygıt | bölünme | kendi kanalı |
+|---|---|---|---|
+| uyuşturucuya göz yumma | rıza | orta | `mafya_tolerans` → `uo` → lumpen → gasp → **spekülatif stok** (Minsky'yi besler) |
+| cemaat / tarikat ağları | rıza | orta | eğitim tabanı aşınır |
+| mistisizm, astroloji, evrim karşıtlığı, düz dünyacılık | rıza | düşük | **eğitim/bilim en ağır aşınma** → `qg` düşer |
+| milliyetçilik, mülteci düşmanlığı, ırkçılık | rıza | **en yüksek** | topluluklar arası şiddet → `PR` sönümü |
+| LGBT düşmanlığı, kadınlara baskı | rıza | yüksek | **katılım düşer** → canlı emek → `V` düşer |
+| sendikal harekete baskı, grev kırma | zor | düşük | `org` doğrudan kırılır |
+| muhalif tutuklama | zor | düşük | `cezaevi_orani` → `l_etkin`, `PC`, eğitim |
+| paramiliter faşist gruplar, siyasi cinayet | zor | yüksek | **şehit stoku** → `org` kısa, `Omega` orta |
+
+Milliyetçilik en ağır basar çünkü §4.1'in tarif ettiği şey tam olarak odur:
+öfkenin **hedefini** sınıftan komşuya çevirmek. Ötekiler zemini hazırlar.
+
+### v4.4'ün karanlık devleti dar değil TAMDI — taşınmamıştı
+
+v2'nin ilk yazımında `uyusturucu_orani` ve `cezaevi_orani` **çıktı olarak**
+taşınmış, onları **süren denklemler** taşınmamıştı. Yani iki alan çekirdekte
+okunuyor ama hiçbir şey tarafından yazılmıyordu: lumpen kanalı, karseral
+sönüm ve meşruiyet aşınması 198 yıl boyunca 0.0'da **ölü** duruyordu.
+
+Taşınanlar (v4.4'ün kendi denklemleri, birim çevrimiyle): endojen mafya
+toleransı, lojistik uyuşturucu yayılımı, karseral nüfus formülü, eğitim
+birikimi (güvenlik harcamasının eğitimi dışlaması), nitelikli emek çarpanı.
+
+Eklenenler (v4.4'te karşılığı yok): `bolunme` ve üç kanalı, sekiz taktik,
+şehit stoku, **karşı hareket**, `topluluk_siddeti`, `sinif_basinci`.
+
+### Çapa özdeşliği — ve neden gölge gerekti
+
+Katman takılı değilken çekirdek **birebir** aynı (dokuz kapının dokuzu da
+bayt bayt aynı çıktı verdi). Ama `nitelik` için bu yetmedi.
+
+İlk yazımda `nitelik` **başlangıç değerine** göre normalize ediliyordu ve
+özdeşlik kırıldı: taşınan eğitim denklemi kendi dengesine gidiyor (0.30 →
+0.09), ham `nitelik` taktikler **kapalıyken bile** 0.9019'a düşüyordu. Yani
+katmanı takmak tek başına `q` büyümesini %10 yavaşlatırdı — ve `q` yalnızca
+üretkenlik değil **çağ tablosunun tetikleyicisidir**, yani bu sessiz yavaşlama
+devrimin takvimini kaydırırdı. B2a'da tam olarak bu yaşanmıştı.
+
+Çözüm dört **gölge değişken**: `tolerans_capa`, `uo_capa`, `cezaevi_capa`,
+`egitim_capa`. Gerçekle aynı denklemleri koşarlar, tek fark taktik
+terimlerinin sıfır olmasıdır. Böylece `nitelik` bir **düzey değil sapma**
+ölçer ve taktikler kapalıyken oran birebir 1.0'dır.
+
+### §4.3'ün kâr oranı iddiası ölçüldü ve TERS ÇIKTI
+
+Belge şöyle diyordu:
+
+> `q` büyümesi, LTRPF'ye karşı elindeki **tek karşı eğilimdir**. Karanlık
+> devlet bugün devrimi öteler, **yarın kâr oranını daha da düşürür.**
+
+**Bu motorda yanlış.** `qg` LTRPF'nin karşı eğilimi değil, **sebebidir**:
+q yükselir → c/v yükselir → r **düşer**. Dolayısıyla q büyümesini aşındırmak
+kâr oranını düşürmez, **yükseltir**.
+
+| mistisizm 1.0 | çapa | taktik açık |
+|---|---|---|
+| eğitim (son) | 0.0882 | **0.0000** |
+| `q` (son) | 20.01 | **15.87** |
+| hasıla (ort) | 1570.5 | **1268.2** |
+| **kâr oranı (son ⅓)** | 0.04915 | **0.06684** |
+
+İddia düzeltildi: **rıza aygıtının bedeli kâr oranında değil, üretkenlik ve
+hasıladadır.** Ortaya çıkan sonuç daha da çarpıcı — karanlık devlet, kârlılığı
+aşındıran sürecin **kendisini** yavaşlatarak kâr oranını ayrıca korur; ödenen
+bedel üretici güçlerin gelişimidir. §4.3'ün "geleceğini yiyerek satın alır"
+tezi ayakta, ama yenen şey kâr oranı değil **hasıla**.
+
+Rıza aygıtının kâr oranına giden asıl kanalı başkadır ve o tutuyor:
+uyuşturucu → gasp → **spekülatif stok** (1955.65 → 2108.59), yani Minsky.
+
+### §4.1'in "öfke yerinde kalır" iddiası — ölçüm iki kez düzeltildi
+
+İlk kurulumda tam kapasite kol kullanıldı ve imza **tersine** çıktı: `Omega`
+0.2377'den 0.0018'e çöküyordu. Sebep bölünme değil — uyuşturucu ve hapsetme
+v4.4'ün **kendi yatıştırma kanallarıdır** (`lumpen_sonum`, `karseral_sonum`)
+ve uyuşturulmuş ya da hapsedilmiş bir nüfus gerçekten öfkesini kaybeder.
+Onlar öfkeyi **azaltır**; bölünme ise öfkeyi azaltmaz, **hedefini** değiştirir.
+
+İkinci düzeltme: iddia `Omega` üzerinden kurulamaz. `Omega` bir **stoktur** ve
+örgütlülükle **çarpılarak** birikir, dolayısıyla bölünmüş bir sınıfta daha
+yavaş birikir. Ölçülmesi gereken **basınçtır**. Motora iki yeni çıktı eklendi:
+
+```
+sinif_basinci  ==  PR  +  topluluk_siddeti        (özdeşlik)
+```
+
+Saf bölünme (milliyetçilik 1.0) ile ölçüm:
+
+| | çapa | bölünme |
+|---|---|---|
+| sınıfsal basınç | 0.7360 | **0.7853** (azalmıyor) |
+| `PR` (sınıfsal ifade) | 0.7360 | **0.5939** (kırılıyor) |
+| topluluklar arası şiddet | 0.0000 | **0.1914** |
+
+`topluluk_siddeti` §4.6 gereği **görünür bir metriktir**, gizli bir çarpan
+değil: sınıfsal kanaldan çekilen enerji yok olmaz, komşuya yönelir.
+
+### §8.4'ün birinci riski gerçekleşti — ve mekanizmanın içinden çözüldü
+
+§8.4: *"yanlış kalibre edilirse ya devrimi imkânsız kılar ya da etkisiz
+kalır."* Birincisi gerçekleşti: bölünme devrimi ertelemiyor, **tümden
+kapatıyordu**.
+
+Sebep çekirdeğin eşik yapısının keskinliği: `pr_esik = 0.74`,
+`pr_esik_omega = 0.06`, yani öfke tavana dayansa bile eşik ancak 0.68'e iner.
+Çapa koşusunda `PR` 0.736 ile o eşiği **kıl payı** aşıyor — dolayısıyla `PR`'yi
+%8'den fazla sönümleyen **herhangi** bir mekanizma devrimi sonsuza kadar kapatır.
+
+Ölçüldü: sönüm tavanı 0.35'ten 0.05'e indirildiğinde bile (`PR` 0.580 → 0.728,
+çapaya neredeyse eşit) devrim **575 yıllık ufukta bile** gelmiyordu. Yani
+seçenek "mekanizmayı öldüresiye zayıflat" ile "devrimi imkânsız kıl"
+arasındaydı; ikisi de kabul edilemez.
+
+Üçüncü yol mekanizmanın kendi içindeydi ve Marx'ın kendi iddiasıdır:
+**kriz sınıf çizgilerini gizlemez, görünür kılar.** Protesto sönümü `Omega`
+ile zayıflar (`bolunme_omega_kirilma = 0.85`); yeterince derinleşmiş bir
+öfkede bölünme anlatısı tutmaz.
+
+> `pr_esik_omega`'yı büyütmek de bir seçenekti ve **reddedildi**: o sabit çapa
+> koşusunu da değiştirir, yani B1/B2'nin bütün kalibrasyonunu kaydırırdı.
+> Seçilen çözüm `bolunme = 0` iken özdeşlikle nötrdür.
+
+Sonuç: devrim **1984 → 2241**, yani 258 yıl ertelendi ama olmaya devam ediyor.
+
+### Bir mertebe hatası, ölçümle yakalandı
+
+`sehit_org_yil` önce 0.30 seçilmişti. Çekirdeğin örgütlenme akımları yılda
+**0.006–0.013** mertebesindedir (`org_kent_yil` 0.0059, `org_kriz_yil` 0.0081,
+`org_baski_yil` 0.0130) — yani ilk değer otuz kat büyüktü. Sonucu: `org`
+0.465'ten 0.04'e çöküyor, `Omega` onunla sönüyor ve devrim imkânsızlaşıyordu.
+
+> **Yeni bir kanal eklerken büyüklüğü komşu terimlerle kıyasla.** Tek başına
+> "makul görünen" bir sayı, motorun kendi ölçeğinde bir felaket olabilir.
+
+### Karşı hareket dekor değil — iki katlı
+
+§4.4 sendika ve partinin "karşı etkileri olmalı" diyordu. Motorda iki ayrı
+katman olarak kuruldu:
+
+1. **Geri çekme** — `bolunme` stokunu doğrudan eritirler. Ölçüldü: karşı
+   hareket kapalıyken bölünme 1.0000'a dayanıyor, açıkken 0.7487'de duruyor.
+2. **Direnç** — `parti_direnc` üç kanalın **üçünde birden** sönümlemeyi kırar,
+   yani bilinçlendirme karanlık devletin kanallarını tek tek kapatır.
+
+Canlılık denetimi: bölünme taktikler **açıkken bile** kampanyanın %85.1'inde
+gerileyebiliyor. Yani yarış gerçekten iki taraflı.
+
+### Tam kapasite — kapı değil kayıt
+
+Sekiz taktiği birden tam kapasite kullanan bir devlet devrimi gerçekten
+önler. Bedeli:
+
+| | çapa | tam kapasite |
+|---|---|---|
+| `q` (son) | 20.0 | **15.0** |
+| hasıla (ort) | 1571 | **916** |
+| yeni değer `V` (ort) | 713 | **598** |
+| devrim | 1984 | **yok** |
+
+§4.3'ün tezi burada sayılarla duruyor: toplumsal barış satın alınabilir, ve
+bedeli üretici güçlerin gelişimidir.

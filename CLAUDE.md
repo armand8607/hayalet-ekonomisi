@@ -87,9 +87,10 @@ Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
 `--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-tarih-mikro` (aynısı, iki mikro
 katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
 (üretim katmanı, 17 denetim), `--v2-nufus` (sınıf kohortları, 13 denetim),
-`--v2-mal` (mal piyasası, 7 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
-`--v2-uretim-tarama`, `--v2-nufus-tarama` ve `--v2-mal-tarama`
-(kalibrasyon taramaları — tanı, ana kapıdan yavaş),
+`--v2-mal` (mal piyasası, 7 denetim), `--v2-bolunme` (karanlık devlet,
+bölünme ve karşı hareket, 33 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
+`--v2-uretim-tarama`, `--v2-nufus-tarama`, `--v2-mal-tarama` ve
+`--v2-bolunme-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
 `--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
 
 > **v2'de SAYAÇLAR dönem cinsindendir, tur cinsinden DEĞİL.** v4.4'ün bütün
@@ -381,6 +382,22 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   (haftalık yatırımın şu kadarı), koşul hiç sağlanmaz. Bir kez yaşandı:
   yükseltme 200 yılda sıfır kez ateşledi. Taksitlendir — ve taksiti anında
   sermayeye yaz, yoksa korunum özdeşliği kırılır.
+- **v2'de YENİ BİR KANALIN BÜYÜKLÜĞÜNÜ KOMŞU TERİMLERLE KIYASLA.** Tek başına
+  "makul görünen" bir sayı motorun kendi ölçeğinde felaket olabilir. B3'te
+  yaşandı: `sehit_org_yil = 0.30` seçilmişti, oysa çekirdeğin bütün örgütlenme
+  akımları yılda **0.006–0.013** mertebesinde (`org_kent_yil` 0.0059,
+  `org_baski_yil` 0.0130) — yani otuz kat büyüktü. Sonucu: `org` 0.465'ten
+  0.04'e çöktü, `Omega` onunla söndü ve devrim imkânsızlaştı.
+- **v2'de bir mekanizmayı ölçerken TAKTİĞİ değil MEKANİZMAYI aç/kapa.** B3'te
+  iki test bu yüzden yanlış sebeple kaldı. Paramiliter taktiği aynı anda
+  `bolunme`yi de itiyor, o da `org`u kırıyor, o da `Omega`nın birikim çarpanını
+  küçültüyor; taktiği açıp `Omega`ya bakmak şehit etkisini değil **üç kanalın
+  bileşkesini** ölçer. Doğru karşı-olgusal `sehit_omega_yil = 0` ile kurulur.
+- **v4.4'ün karanlık devlet çıktıları taşındı ama DENKLEMLERİ taşınmamıştı.**
+  `uyusturucu_orani` ve `cezaevi_orani` çekirdekte okunuyor ama hiçbir şey
+  tarafından yazılmıyordu — lumpen kanalı, karseral sönüm ve meşruiyet aşınması
+  198 yıl boyunca 0.0'da **ölü** durdu. Bir alanın var olması sürüldüğü anlamına
+  gelmez; `grep` ile "kim yazıyor" diye bakmak ucuz bir denetimdir.
 - **`exp`/`log`/`pow` şu an bit-birebir uyuşuyor** (CPython 3.12 x86-64 Windows
   ↔ Godot 4.7 aynı makinede, 36 noktalık ızgarada). Bu **garanti değildir**:
   ızgara küçük ve wasm/ARM hedeflerinde ayrışabilir. Katman 3'ün toleransları
@@ -424,17 +441,22 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `UretimKatmani` | mikro katman: sektör, bina, üretim yöntemi merdiveni (B2a) |
 | `NufusKatmani` | sınıf kohortları: emek arzı, istihdam, ücret payı (B2b) |
 | `MalKatmani` | mal piyasası: dört kategori, satılamayan **stok** (B2c) |
+| `KaranlikDevlet` | rıza/zor aygıtları, `bolunme`, karşı hareket (B3) |
 | `Oran` | dönem↔yıl dönüşümleri. Tur→hafta tuzağının tek savunması |
 
-**Mikro katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
-`cekirdek.nufus` ve `cekirdek.mal` `null` ise bütün kapalı formlar eskisi gibi koşar;
-B1a/B1b ölçümleri geçerliliğini korur. **İkisi birbirinden bağımsız takılır** —
-etkileri ancak öyle ayrı ölçülebilir; B2a'da devrimin 20 yıl kaymasının sebebi
-tam da bu ayrılabilirlik sayesinde eleme yoluyla bulundu. Takılıysa otorite
-geçer: `mikro` → `K`, `q`, `oto`, `pay_I`; `nufus` → `L_etkin`, `e`,
-`emek_gerginlik`, `pay`; `mal` → `talep_acigi`, `satilamayan_I/II`. **Otorite
-tabloları katman dosyalarının başındadır.** Açık/kapalı olması bir test kolaylığı değil deney tasarımıdır
-(B1b'de kesitsel ölçüm bir kez yanlış sonuç verdi).
+**Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
+`cekirdek.nufus`, `cekirdek.mal` ve `cekirdek.karanlik` `null` ise bütün kapalı
+formlar eskisi gibi koşar; B1a/B1b ölçümleri geçerliliğini korur. Ölçüldü:
+B3 eklendikten sonra dokuz kapının dokuzu da **bayt bayt aynı** çıktı verdi.
+**Dördü birbirinden bağımsız takılır** — etkileri ancak öyle ayrı ölçülebilir;
+B2a'da devrimin 20 yıl kaymasının sebebi tam da bu ayrılabilirlik sayesinde
+eleme yoluyla bulundu. Takılıysa otorite geçer: `mikro` → `K`, `q`, `oto`,
+`pay_I`; `nufus` → `L_etkin`, `e`, `emek_gerginlik`, `pay`; `mal` →
+`talep_acigi`, `satilamayan_I/II`; `karanlik` → `bolunme`, `mafya_tolerans`,
+`uyusturucu_orani`, `cezaevi_orani`, `egitim`, `nitelik`, `sehit`.
+**Otorite tabloları katman dosyalarının başındadır.** Açık/kapalı olması bir
+test kolaylığı değil deney tasarımıdır (B1b'de kesitsel ölçüm bir kez yanlış
+sonuç verdi).
 
 **Bir mekanizmanın YÖNÜ doğru çıkabilir ve mekanizma yine de ÖLÜ olabilir.**
 B2b'de yaşandı: `pay` kampanyanın %74'ünü tabana çakılmış geçiriyordu, bileşim

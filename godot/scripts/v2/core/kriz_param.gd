@@ -228,6 +228,134 @@ var kat_hiz_yil: float
 var dev_geri_yil: float
 
 # ---------------------------------------------------------------------------
+# B3 -- KARANLIK DEVLET
+#
+# Iki gruba ayrilir ve ayrimi korumak onemlidir:
+#
+#   TASINAN : v4.4'un kendi karanlik devlet denklemlerinin katsayilari.
+#             Hicbiri elle yazilmaz, hepsi `v44`ten okunup birim cevriminden
+#             gecer -- deponun "355 sabiti elle kopyalama" kurali burada da
+#             gecerli.
+#   EKLENEN : `bolunme` ve karsi hareket. v4.4'te KARSILIGI YOK, dolayisiyla
+#             okunacak bir sabit de yok; bunlar v2'nin kendi kalibrasyonudur
+#             ve degerleri `--v2-bolunme-tarama` ile secilir.
+# ---------------------------------------------------------------------------
+
+## TASINAN -- uyusturucu yayiliminin akimlari (v4.4 tur basina tanimliydi).
+var uo_omega_yil: float
+var uo_iss_yil: float
+var uo_gecim_yil: float
+var uo_bastirma_yil: float
+var uo_cozulme_yil: float
+var kd_hiz_yil: float
+
+## TASINAN -- egitim birikimi. v4.4: `egitim += harcama*0.25 - asinma*3*egitim`.
+## Iki katsayi da TUR basinadir; `0.25` ve `3` carpanlari v4.4'un kendi
+## formulunden gelir ve orada da ciplak sayilardi.
+var egitim_harcama_yil: float
+var egitim_asinma_yil: float
+
+## EKLENEN -- riza taktiklerinin egitim tabanina saldirisi (yillik akim).
+##
+## Mistisizm cemaatten AGIR basar: tarikat agi egitimin yerini alir ama
+## kendi icinde bir bilgi aktarimi surdurur; evrim karsitligi ve duz
+## dunyacilik ise bilimsel yontemin kendisini hedef alir. Ikisi de `nitelik`
+## uzerinden `qg`ye vurur, yani LTRPF'ye karsi elde kalan TEK karsi egilime.
+var mistisizm_egitim_yil: float = 0.055
+var cemaat_egitim_yil: float = 0.030
+
+## EKLENEN -- cinsiyet baskisinin katilim kanali.
+## `cinsiyet_katilim` bir DUZEYdir: taktik tam acikken katilimdan dusulen pay.
+## 0.18 secildi -- kadin isgucu katiliminin bastirilmasinin tarihsel buyuklugu
+## bu mertebededir ve `cezaevi_orani`nin (%2.5 tavan) bir mertebe ustundedir,
+## yani rIza aygiti zor aygitindan DAHA COK canli emek maliyeti uretir.
+var cinsiyet_katilim: float = 0.18
+var cinsiyet_hiz_yil: float = 0.20   ## UYUM -- yerlesmesi ~5 yil
+
+## EKLENEN -- zor taktiklerinin karseral formule dogrudan girisi (DUZEY).
+## `tutuklama_karseral` tam acikken cezaevi oranina eklenen pay; tavan %2.5
+## oldugu icin 0.010 tek basina orani ucte bir oraninda buyutur.
+var tutuklama_karseral: float = 0.010
+var sendika_baski_egilim: float = 0.35   ## grev kirma -> polis baskisi egilimi
+
+## EKLENEN -- sehit stogu. Siyasi cinayetin gecikmeli `Omega` etkisi.
+## Sonum 0.22/yil ~ 4.5 yillik hafiza: bir kusagin siyasi hafizasi.
+##
+## `sehit_org_yil` KISA vadeyi, `sehit_omega_yil` ORTA vadeyi tasir. Ikisinin
+## ayni stoktan beslenmesi zorunludur -- ayri iki degiskene baglansaydi
+## "once kirilir, sonra radikallesir" iliskisi kurulmus olmaz, iki bagimsiz
+## etki yan yana durmus olurdu.
+##
+## OLCEK MOTORUN KENDI OLCEGIDIR, ve ilk yazimda DEGILDI. Cekirdegin
+## orgutlenme akimlari yilda 0.006-0.013 mertebesindedir (`org_kent_yil`
+## 0.0059, `org_kriz_yil` 0.0081, `org_baski_yil` 0.0130); ilk deger 0.30
+## secilmisti, yani otuz kat buyuk. Sonucu olculdu: `org` 0.465'ten 0.04'e
+## cokuyor, `Omega` onunla birlikte sonuyor ve devrim IMKANSIZ hale
+## geliyordu -- §8.4'un birinci riski, tam olarak bir mertebe hatasindan.
+## Yeni bir kanal eklerken buyuklugu KOMSU TERIMLERLE kiyaslanmali.
+var sehit_itki_yil: float = 0.30
+var sehit_sonum_yil: float = 0.22
+var sehit_org_yil: float = 0.010
+var sehit_omega_yil: float = 0.003
+
+## EKLENEN -- BOLUNME ITKISI, taktik basina (yillik akim).
+##
+## Agirlik sirasi §4.1'den turer, keyfi degil: bolunmeyi asil ureten sey
+## ofkenin HEDEFINI degistiren taktiktir. Milliyetcilik tam olarak budur
+## (ic etnik gruplar, multeciler, irkcilik); cinsiyet baskisi ve paramiliter
+## siddet onun yanindaki iki agir kol; uyusturucu ve cemaat zemini hazirlar;
+## mistisizm, sendika baskisi ve tutuklama bolunmeyi ancak dolayli uretir --
+## onlarin asil bedeli baska kanalda.
+var bol_milliyetcilik_yil: float = 0.075
+var bol_cinsiyet_yil: float = 0.045
+var bol_paramiliter_yil: float = 0.040
+var bol_uyusturucu_yil: float = 0.030
+var bol_cemaat_yil: float = 0.030
+var bol_mistisizm_yil: float = 0.015
+var bol_sendika_yil: float = 0.015
+var bol_tutuklama_yil: float = 0.010
+
+## EKLENEN -- KARSI HAREKET (§4.4). Bolunme stokunu eriten kuvvetler.
+##
+## Sendika ve parti ayni buyuklukte DEGILDIR: parti dagInik ofkeyi sinifsal
+## guce ceviren ozgul ozne oldugu icin (tam da karanlik devletin kirmaya
+## calistigi kanal) agirligi sendikanin iki katidir. Parti iktidari ayrica
+## bir SICRAMA getirir, carpan degil -- iktidar bir esik olayidir.
+var bol_org_yil: float = 0.10
+var bol_parti_yil: float = 0.20
+var bol_iktidar_yil: float = 0.25
+var bol_dayanisma_yil: float = 0.35
+
+## EKLENEN -- karsi hareketin YAPISAL tarafi (DUZEY).
+## Kentlesme itkiye direnir; dayanisma referansi, ucret payinin ustunde
+## kazanimin "dayanisma kazanimi" sayildigi esik.
+var bolunme_kent: float = 0.45
+var dayanisma_ref: float = 0.45
+
+## EKLENEN -- bolunmenin uc kanalinin siddeti ve TAVANLARI (DUZEY).
+##
+## Tavanlar zorunludur, kozmetik degil: §8.4 bu kolun yanlis kalibre
+## edilirse devrimi IMKANSIZ kilabilecegini soyluyor. Tavan, bolunme 1.0'a
+## dayansa bile kanalin tamamen kapanmamasini garanti eder -- yani bolunme
+## devrimi ONLEMEZ, ERTELER.
+var bolunme_org_kirilma: float = 0.70
+var bolunme_org_tavan: float = 0.55
+var bolunme_pazarlik: float = 0.75
+var bolunme_pazarlik_tavan: float = 0.60
+var bolunme_sonum_gucu: float = 0.55
+var bolunme_sonum_tavan: float = 0.35
+
+## OFKENIN BOLUNMEYI KIRDIGI DUZEY. `Omega` bu degere yaklastikca protesto
+## sonumu ZAYIFLAR; bu duzeyde bolunme anlatisi artik tutmaz.
+##
+## §8.4'un sigortasi budur ve olcumle secildi (bkz. `protesto_sonum`).
+## `omega_kritik` 0.6'dir, yani devrim esigi; 0.85 secilmesi "bolunme devrim
+## esigine YAKLASILANA KADAR is gorur, o civarda cozulur" demektir. Daha
+## kucuk bir deger kolu erken oldururdu, daha buyugu devrimi kapatirdi --
+## §8.4'un iki riski tam olarak bu iki yondur.
+var bolunme_omega_kirilma: float = 0.85
+
+# ---------------------------------------------------------------------------
 # SURE  --  tur cinsinden sayaclar; donem sayisina cevrilir
 # ---------------------------------------------------------------------------
 var delev_sure_yil: float
@@ -278,6 +406,19 @@ func _init(kaynak: ParamSet = null) -> void:
 	a5_yil = Oran.v44_akim(v44.a5)
 	# Sonum carpani: her tur x ile carpiliyor -> yillik x^(1/0.27).
 	trend_asinma_yil = pow(v44.trend_asinma, 1.0 / Oran.V44_TUR_YIL)
+
+	# --- B3 KARANLIK DEVLET (tasinan katsayilar) ---
+	# Hepsi v4.4'te TUR basinaydi. `egitim`in iki carpani (0.25 ve 3) v4.4'un
+	# kendi formulunden gelir; orada da ciplak sayilardi ve buraya oldugu gibi
+	# tasinir -- degistirmek bir port degil bir mekanizma degisikligi olurdu.
+	uo_omega_yil = Oran.v44_akim(v44.uo_omega)
+	uo_iss_yil = Oran.v44_akim(v44.uo_iss)
+	uo_gecim_yil = Oran.v44_akim(v44.uo_gecim)
+	uo_bastirma_yil = Oran.v44_akim(v44.uo_bastirma)
+	uo_cozulme_yil = Oran.v44_akim(v44.uo_cozulme)
+	kd_hiz_yil = Oran.v44_uyum(v44.kd_hiz)
+	egitim_harcama_yil = Oran.v44_akim(0.25)
+	egitim_asinma_yil = Oran.v44_akim(v44.egitim_asinma * 3.0)
 
 	# --- UYUM ---
 	beklenti_hiz_yil = Oran.v44_uyum(v44.beklenti_hiz)
