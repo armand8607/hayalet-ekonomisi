@@ -54,6 +54,12 @@ func _ready() -> void:
 				# Mal piyasasi (B2c): satilamayan urun bir AKIM mi STOK mu --
 				# ve stok asiri uretim krizine SURE kazandiriyor mu.
 				cikis = MalTesti.kos()
+			"--v2-savas":
+				# Savas bir kriz cikisi olarak (B4): §3.2'nin muhasebesi --
+				# savastan sonra kar orani yukari, nufus asagi. Ayrica B3'ten
+				# devredilen olcum: karanlik devletin bedeli cok ulkeli
+				# dunyada doguyor mu.
+				cikis = SavasTesti.kos()
 			"--v2-bolunme-tarama":
 				# Bolunme kanallarinin siddeti ve karsi hareketin agirligi.
 				# Tani kapisi.

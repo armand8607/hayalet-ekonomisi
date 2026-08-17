@@ -88,7 +88,8 @@ Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
 katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
 (üretim katmanı, 17 denetim), `--v2-nufus` (sınıf kohortları, 13 denetim),
 `--v2-mal` (mal piyasası, 7 denetim), `--v2-bolunme` (karanlık devlet,
-bölünme ve karşı hareket, 33 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
+bölünme ve karşı hareket, 33 denetim), `--v2-savas` (savaş bir kriz çıkışı
+olarak, 16 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
 `--v2-uretim-tarama`, `--v2-nufus-tarama`, `--v2-mal-tarama` ve
 `--v2-bolunme-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
 `--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
@@ -382,6 +383,11 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   (haftalık yatırımın şu kadarı), koşul hiç sağlanmaz. Bir kez yaşandı:
   yükseltme 200 yılda sıfır kez ateşledi. Taksitlendir — ve taksiti anında
   sermayeye yaz, yoksa korunum özdeşliği kırılır.
+- **v2'de v4.4'ün SÜRE sabitleri tarihsel çapaya karşı sınanmalı.** Birim
+  çevrimi doğru olsa bile değerin kendisi v4.4'ün kalibrasyonudur ve v2 onu
+  devralmaz. B4'te yaşandı: `sv_min_sure`/`sv_max_sure` doğru çevrildi ama
+  savaşlar 15.3 yıl sürdü ve nüfus kaybı %31.8'e çıktı — yön testi 14/14
+  **geçerek**. Tarihsel çapa (büyük savaşlarda %4–13) süreyi 1.5–7 yıla çekti.
 - **v2'de YENİ BİR KANALIN BÜYÜKLÜĞÜNÜ KOMŞU TERİMLERLE KIYASLA.** Tek başına
   "makul görünen" bir sayı motorun kendi ölçeğinde felaket olabilir. B3'te
   yaşandı: `sehit_org_yil = 0.30` seçilmişti, oysa çekirdeğin bütün örgütlenme
@@ -442,6 +448,7 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `NufusKatmani` | sınıf kohortları: emek arzı, istihdam, ücret payı (B2b) |
 | `MalKatmani` | mal piyasası: dört kategori, satılamayan **stok** (B2c) |
 | `KaranlikDevlet` | rıza/zor aygıtları, `bolunme`, karşı hareket (B3) |
+| `SavasKatmani` | savaş: ilan, seferberlik, yıkım, yenilgi, karşı-devrim (B4) |
 | `Oran` | dönem↔yıl dönüşümleri. Tur→hafta tuzağının tek savunması |
 
 **Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,

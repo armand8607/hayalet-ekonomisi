@@ -481,7 +481,7 @@ yok" bulmak demekti.
 | **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | **KURULDU** — `--v2-nufus` 13/13, `--v2-tarih-mikro` iki katmanla geçiyor |
 | **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | **KURULDU** — `--v2-mal` 7/7 |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | **KURULDU** — `--v2-bolunme` 33/33; §4.3 ve §4.1'in birer iddiası ölçülüp düzeltildi (§6e) |
-| **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
+| **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | **SAVAŞ KURULDU** — `--v2-savas` 16/16; ittifak/abluka/ambargo kalan iş (§6f) |
 | **B5** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi | 20+ ülke, dokuz mod, bağlar çizili |
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | ~100 ülke, kabul edilebilir tik süresi |
 | **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce | Ekran `--ss=` ile çizdirilip bakılmış |
@@ -1592,3 +1592,117 @@ Sekiz taktiği birden tam kapasite kullanan bir devlet devrimi gerçekten
 
 §4.3'ün tezi burada sayılarla duruyor: toplumsal barış satın alınabilir, ve
 bedeli üretici güçlerin gelişimidir.
+
+---
+
+## 6f. B4 — savaş bir kriz çıkışı olarak
+
+### Ölçüt beşinci kez düzeltilmedi
+
+§6'nın tablosu B4 için tek cümle yazıyordu: **"savaş sonrası kâr oranı yukarı,
+nüfus aşağı."** Bu, B1b/B2a/B2b/B2c'nin aksine baştan ayırt ediyor — savaş
+katmanı olmadan kurulamaz bile, çünkü "savaş sonrası" diye bir an yoktur.
+
+Ama tek başına yetmiyor, ve sebebi §3.2'nin kendi cümlesinde: *"savaş sermayeyi
+imha eder, sermayenin imhası kâr oranını yükseltir."* Yani ölçüt bir **mekanizma
+iddiasıdır**, bir sonuç gözlemi değil. `r = s/K` olduğu için `K`'yı yıkan
+**herhangi** bir şey `r`'yi yükseltir; testin işi bunun savaş yıkımından
+geldiğini göstermek. Kapı bu yüzden zinciri ayrı ayrı ölçüyor.
+
+### Ana ölçüt — 3 tohum, 14 epizot
+
+| | ölçüm |
+|---|---|
+| kâr oranı, savaş sonrası | **+0.02213**, 14/14 epizotta artıyor |
+| nüfus, savaş sonrası | **−%13.20**, 14/14 epizotta azalıyor |
+| sermaye stoku (karşı-olgusal) | savaşlı 666 239 < barışçı 868 674 |
+
+Tek tohumda iki epizot bir ölçüm değil anekdottur; deponun kendi kuralı
+(§10: "en az üç tohum gerekir") savaş için de geçerli.
+
+### Savaş süresi v4.4'ten devralınmadı — tarihsel çapaya çekildi
+
+v4.4 `sv_min_sure = 20`, `sv_max_sure = 70` **tur** diyor, yani 5.4–18.9 yıl.
+Ölçüldü: ortalama savaş **15.3 yıl** sürdü ve epizot başına nüfus kaybı
+**%31.8**'e çıktı — yönü doğru, büyüklüğü tarihin iki katından fazla. Çapa:
+1. Dünya Savaşı 4 yıl (Fransa ~%4), 2. Dünya Savaşı 6 yıl (SSCB ~%13).
+
+v2 v4.4'ün **kalibrasyonunu değil denklemlerini** devralır (§1). Süre 1.5–7
+yıla çekildi; ortalama 6.4 yıl, kayıp %13.2 — 20. yüzyılın büyük savaşlarının
+mertebesi.
+
+> **Bir yön testi bandı olmadan yeşil verir.** İlk kalibrasyonda "nüfus aşağı"
+> denetimi 14/14 geçiyordu — %31.8 kayıpla. Yön doğruydu, büyüklük saçmaydı.
+> B2b'nin dersinin savaş biçimi: bant denetimi yön denetiminin yerini tutmaz.
+
+### Muhasebe zinciri yanlış kuruldu, ölçümle düzeldi
+
+İlk yazımda "savaş içinde `K` dip < `K` baş" diye ölçüldü ve **0/2 epizotta**
+kaldı. Mekanizma yok değildi — ölçüm yanlış kurulmuştu: `K` savaş sırasında da
+birikimle büyüyor, yani yıkım gerçek ama net düzey yine de yükselebiliyor.
+
+Doğru soru "K düştü mü" değil, **"savaş olmasaydı K ne olurdu"** — yani
+karşı-olgusal. Aynı tohum, savaş katmanı açık/kapalı: 666 239 vs 868 674.
+
+### §3.1'in kanalları ölçüldü
+
+| iddia | ölçüm |
+|---|---|
+| savaş **krizden doğar** (`sikisma = (sv_r_ref − r)/sv_r_ref`) | savaşa girenin kâr oranı 0.0586, girmeyenin 0.0662 |
+| `saldirganlik` gerçekten o kol | 0.0'da **hiç** savaş yok, 0.35'te var |
+| savaş **aşırı üretimi emer** | talep açığı savaşta 0.1455, barışta 0.2205 |
+
+Üçüncüsü §3.1'in "aşırı üretim → yeni pazar, gerekirse zorla" satırının
+motordaki en dolaysız biçimi: savaş gerçekleşme krizini **çözer**, çünkü
+satılamayan ürün sorunu ortadan kalkar. Bedeli yıkımdır.
+
+### Birim tuzağı denetimi
+
+`sv_min_sure`/`sv_max_sure` tur cinsindendi; haftalık döngüye kopyalansaydı
+savaşlar 14 kat kısa sürerdi. Haftalık ile aylık koşu aynı savaş yoğunluğunu
+veriyor (%1.3 / %1.0), yani tuzağa düşülmemiş.
+
+### Karşı-devrim kuruldu
+
+Yenilen bir sosyalist rejimde kapitalizm zorla restore edilebiliyor
+(`kd_askeri_olasilik`). §3.1'in "bir yerde devrim oldu → kuşatma, abluka,
+müdahale" satırının en sert ucu. Emperyalist müdahale ayrıca ayrı bir kanal
+olarak duruyor ve ayrı kapatılabiliyor — ikisi aynı kapıdan geçseydi hangi
+kanalın sonucu ürettiği bilinemezdi.
+
+### B3'ten devredilen ölçüm: karanlık devletin bedeli çok ülkeli dünyada
+
+B3'te bir denge açığı ölçülmüştü — tek ülkeli koşuda karanlık devlet devrimi
+önlüyor **ve** kâr oranını yükseltiyor, tek bedeli hasıla; zafer koşulu
+olmadığı için kol neredeyse **bedavaydı**. Karar kayda geçmişti: *"önce
+ölçelim, sonra karar."* B4 çok ülkeli dünyayı kurduğu için ölçüm artık yapıldı.
+
+Ölçülen ülke "Orta", sekiz taktik tam kapasite, aynı tohum, aynı dünya:
+
+| | karanlıksız | karanlık |
+|---|---|---|
+| ort kâr oranı | 0.0691 | **0.0983** |
+| üretkenlik `q` | 20.01 | 14.22 |
+| sermaye `K` | 50 136 | **3 773** |
+| birikmiş `NX` | −4 790 | −3 328 |
+| bileşik dış konum | −10 214 | −6 044 |
+| devrim | 1922 | **yok** |
+| **savaşta geçen dönem** | **0** | **160** |
+| yenilgi | 0 | 0 |
+
+**Karşı ağırlık doğdu ama zayıf.** Karanlık devlete sarılan ülke 13 kat
+küçülüyor ve savaşa çekiliyor (0 → 160 dönem) — `guc() = K·q` çöktüğü için av
+haline geliyor, `savas_karari`'nın hedef seçimi tam da zayıfı arıyor. Ama
+henüz **yenilgi yok**, yani ceza fiilen kesilmiyor.
+
+> **Karar hâlâ açık.** Ölçüm karşı ağırlığın var olduğunu gösteriyor ama
+> yeterli olduğunu göstermiyor: kapitalist oyuncu için kâr oranı hâlâ yüksek,
+> devrim hâlâ yok. Abluka ve ambargo (B4'ün kalan işi) bu tabloyu değiştirebilir
+> — ülke zaten küçülmüşken dış pazarı da kesilirse ceza gerçekleşir. Tablo o
+> mekanizmalar kurulduktan sonra tekrar okunmalı.
+
+### B4'ün kalan işi
+
+Savaş kuruldu. §3.3'ün ittifak/blok mekanizması (`muttefik` alanı hazır ama
+işlenmiyor), abluka ve ambargo (`Dunya.aciklik` hazır ama savaşa bağlı değil),
+ve himaye henüz yok.

@@ -681,6 +681,14 @@ func _efektif_talep(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	#
 	# `Dunya` yazmazsa sifirdir; kapali ekonomi testleri etkilenmez.
 	var D_talep := C + I + G + VT_net_yil + d.NX_yil
+	# SAVAS TALEBI (B4, v4.4 `motor.py:1931`). Savas ekonomisi kapasiteyi
+	# neredeyse tamamen sogurur -- silah da bir metadir ve alicisi devlettir.
+	#
+	# §3.1'in "asiri uretim -> yeni pazar, gerekirse zorla" satirinin motordaki
+	# en dogrudan bicimi budur: savas gerceklesme krizini COZER, cunku
+	# satilamayan urun sorunu ortadan kalkar. Bedeli asagida, `SavasKatmani`de.
+	if d.savasta():
+		D_talep = maxf(D_talep, Y_pot * 0.95)
 	d.C_yil = C
 	d.I_yil = I
 	d.G_yil = G
@@ -879,6 +887,9 @@ func _hasila_ve_istihdam(d: KrizDurumu, donem_yil: float, Y_pot: float, D_talep:
 	# Y_K de YILLIGA cevrilir; yoksa `u` 14 kat yanlis cikar.
 	var Y_K := d.K / maxf(d.kv, 1e-9) / Oran.V44_TUR_YIL
 	d.u = clampf(Y / maxf(Y_K, 1e-9), 0.20, 1.0)
+	# SEFERBERLIK (B4, v4.4 `motor.py:1948`). Savas atil kapasiteyi calistirir.
+	if d.savasta():
+		d.u = minf(1.0, d.u + P.v44.sv_seferberlik)
 
 	# Istihdam artik FIZIKSEL kapasitenin kullanimidir: robotlar kapasiteyi
 	# buyuttukce ayni hasila daha az canli emek ister.
@@ -1241,7 +1252,10 @@ func _kriz_tescili(d: KrizDurumu, donem_yil: float) -> void:
 
 func _orgutlenme(d: KrizDurumu, donem_yil: float) -> void:
 	var iss := 1.0 - d.e
-	var krizde := (d.r_yil < P.v44.r_kriz_esigi) or (iss > 0.13) or d.delev > 0
+	# SAVAS da bir kriz halidir (v4.4 `motor.py:2426`): orgutlenmeyi besleyen
+	# "kriz deneyimi" sayacini o da doldurur.
+	var krizde := ((d.r_yil < P.v44.r_kriz_esigi) or (iss > 0.13)
+			or d.delev > 0 or d.savasta())
 	d.kriz = (d.kriz + 1) if krizde else maxi(0, d.kriz - 2)
 	var kriz_n := minf(float(d.kriz) * donem_yil / (25.0 * Oran.V44_TUR_YIL), 1.2)
 

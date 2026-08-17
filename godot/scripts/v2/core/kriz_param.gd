@@ -356,6 +356,31 @@ var bolunme_sonum_tavan: float = 0.35
 var bolunme_omega_kirilma: float = 0.85
 
 # ---------------------------------------------------------------------------
+# B4 -- SAVAS
+# ---------------------------------------------------------------------------
+
+## SAVAS SURESI (yil) -- v2'nin KENDI kalibrasyonu.
+##
+## v4.4 `sv_min_sure = 20`, `sv_max_sure = 70` TUR diyor, yani 5.4-18.9 yil;
+## ortalama ~12 yil. Olculdu: v2'de ortalama savas 15.3 yil surdu ve nufus
+## kaybi epizot basina %31.8'e cikti. Tarihsel capa bunun cok ustunde:
+## 1. Dunya Savasi 4 yil (Fransa nufusunun ~%4'unu kaybetti), 2. Dunya
+## Savasi 6 yil (SSCB ~%13). Devletlerarasi buyuk savaslar 1-7 yil surer.
+##
+## v2 v4.4'un KALIBRASYONUNU degil DENKLEMLERINI devralir (§1); bu yuzden
+## sure tarihsel capaya gore yeniden secildi. Nufus kaybi boylece savas
+## basina %5-12 bandina iner -- 20. yuzyilin buyuk savaslarinin mertebesi.
+var savas_sure_alt_yil: float = 1.5
+var savas_sure_ust_yil: float = 7.0
+
+## SAVASIN NUFUS BEDELI (yillik olum orani artisi).
+##
+## v4.4'te `olum_orani` savasta 0.008 artiyordu (`motor.py:2060`) ve o sabit
+## TUR basinaydi. B4'un ilan edilmis olcutunun ikinci yarisi budur: "savas
+## sonrasi kar orani yukari, NUFUS ASAGI".
+var savas_olum_yil: float
+
+# ---------------------------------------------------------------------------
 # SURE  --  tur cinsinden sayaclar; donem sayisina cevrilir
 # ---------------------------------------------------------------------------
 var delev_sure_yil: float
@@ -419,6 +444,9 @@ func _init(kaynak: ParamSet = null) -> void:
 	kd_hiz_yil = Oran.v44_uyum(v44.kd_hiz)
 	egitim_harcama_yil = Oran.v44_akim(0.25)
 	egitim_asinma_yil = Oran.v44_akim(v44.egitim_asinma * 3.0)
+
+	# --- B4 SAVAS ---
+	savas_olum_yil = Oran.v44_akim(0.008)
 
 	# --- UYUM ---
 	beklenti_hiz_yil = Oran.v44_uyum(v44.beklenti_hiz)

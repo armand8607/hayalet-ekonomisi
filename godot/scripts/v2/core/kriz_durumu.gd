@@ -286,6 +286,59 @@ var topluluk_siddeti: float = 0.0
 var sinif_basinci: float = 0.0
 
 # ---------------------------------------------------------------------------
+# SAVAS  (B4 -- otoritesi `SavasKatmani`dedir, bkz. savas.gd)
+#
+# Katman TAKILI DEGILKEN bu alanlarin hepsi baslangic degerinde kalir ve
+# cekirdegin butun savas kollari kapali durur; `savasta()` false doner,
+# dolayisiyla B1/B2/B3 olcumleri gecerliligini korur.
+# ---------------------------------------------------------------------------
+
+## Suren savaslar: rakip ADI -> kalan DONEM sayisi.
+##
+## SAYAC DONEM CINSINDEN. v4.4'un `sv_min_sure`/`sv_max_sure`'si TUR (0.27
+## yil) cinsindendir; haftalik donguye oldugu gibi kopyalanirsa savaslar 14
+## kat kisa surer. `Oran.v44_sayac` ile cevrilir.
+var savas: Dictionary = {}
+
+## Kampanya boyunca savasta gecirilen DONEM sayisi (tani).
+var savas_toplam: int = 0
+## Kampanya boyunca kaybedilen savas sayisi.
+var yenilgi_sayisi: int = 0
+
+## SALDIRGANLIK [0,1] -- savas ilan etme egilimi (v4.4'un `saldirganlik`i).
+## Politika degiskenidir: oyuncu ya da AI yazar.
+var saldirganlik: float = 0.35
+
+## MUTTEFIKLER. v4.4'te `set`ti; burada SIRALI Array.
+##
+## Depo kurali: v4.4'te `rng.choice(list(muttefik))` sira'ya bakiyordu ve
+## `PYTHONHASHSEED` yuzunden surece ozgu sonuc veriyordu -- motorun kendi
+## kusuru olarak kayda gecti. v2 o kusuru DEVRALMAZ: dizi sirali tutulur,
+## yani hangi muttefigin dusurulecegi belirlenimlidir.
+var muttefik: PackedStringArray = PackedStringArray()
+
+## Savas kaynakli sermaye yikiminin kampanya toplami (tani). §3.2'nin
+## muhasebesi bunun uzerinden okunur.
+var savas_yikimi: float = 0.0
+## Savas kaynakli nufus kaybinin kampanya toplami (tani).
+var savas_nufus_kaybi: float = 0.0
+
+
+## Ulke savasta mi. Cekirdegin savas kollari bunu okur; katman takili
+## degilken `savas` bos oldugu icin her zaman false doner.
+func savasta() -> bool:
+	return not savas.is_empty()
+
+
+## SAVAS GUCU -- v4.4 `motor.py:1443`: `guc = K * q`.
+##
+## Sermaye stoku carpi uretkenlik. §3.4'un kapsam durustlugu geregi savasin
+## sonucunu belirleyen tek sey budur (yipranma ve ic cephe disinda): taktik
+## savas, cephe yonetimi, muharebe cozumu YOKTUR. Savas bir IKTISADI OLAYDIR.
+func guc() -> float:
+	return K * q
+
+# ---------------------------------------------------------------------------
 # EVRENSEL TEMEL GELIR
 # ---------------------------------------------------------------------------
 var etg_hedef: float = 0.0

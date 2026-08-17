@@ -189,6 +189,15 @@ var _mor_bekleyen: PackedFloat64Array = PackedFloat64Array()
 var P: KrizParam
 
 
+## SAVAS KATMANI (B4). Takili degilse hicbir ulke savasa girmez ve
+## `d.savasta()` her zaman false doner -- yani cekirdegin butun savas
+## kollari kapali kalir ve B1/B2/B3 olcumleri gecerliligini korur.
+##
+## Digerlerinden bagimsiz takilir; §3.2'nin muhasebesi ("kar orani yukari,
+## nufus asagi") ancak acik/kapali karsilastirmasiyla olculebilir.
+var savas: SavasKatmani = null
+
+
 func _init(p_ornek: KrizParam = null) -> void:
 	P = p_ornek if p_ornek != null else KrizParam.new()
 	ticaret_yogunlugu = P.v44.ticaret_aciklik
@@ -592,6 +601,13 @@ func adim(donem_yil: float) -> void:
 	# SIRA ONEMLI. Ticaret once kurulur cunku deger transferi GERCEKLESEN
 	# ticaretin uzerinde yurur; Thirlwall primi ise transferi bilmek zorunda
 	# (cari denge onu tasir). Ucu de tikin BASINDAKI duruma bakar.
+	# SAVAS EN BASTA. Sira zorunludur: savas durumu bu donemin talep, kapasite
+	# ve uretim hesabina girmeli. Sonra cagrilsaydi seferberlik ve savas
+	# talebi bir donem geriden is gorurdu -- ve `--v2-olcek`in olcek
+	# degismezligi denetiminde gorunmeyecek kadar kucuk, ama kampanya
+	# boyunca birikecek kadar buyuk bir kayma olurdu.
+	if savas != null:
+		savas.adim(ulkeler, adlar, donem_yil)
 	ticaret()
 	_ticaret_korunumunu_kaydet()
 	var vt := transferler()
