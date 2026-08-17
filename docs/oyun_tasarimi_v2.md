@@ -479,7 +479,7 @@ yok" bulmak demekti.
 | **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ✅ | **KURULDU** — beş kanal da yerinde, `--v2-dunya` 17/17 |
 | **B2a** | **ÜRETİM KATMANI.** Sektör, bina, üretim yöntemi merdiveni (§5.11) | **KURULDU** — `--v2-uretim` 17/17, `--v2-tarih-mikro` geçiyor |
 | **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | **KURULDU** — `--v2-nufus` 13/13, `--v2-tarih-mikro` iki katmanla geçiyor |
-| **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | Gerçekleşme krizi bir sayı değil, depoda **kütle** olarak okunur |
+| **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | **KURULDU** — `--v2-mal` 7/7 |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
 | **B5** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi | 20+ ülke, dokuz mod, bağlar çizili |
@@ -1333,3 +1333,76 @@ Sıradaki adaylar, en umut vericiden başlayarak:
    büyük değil; Minsky hiç ateşlenmiyor (`varlik → 0`, çünkü `r > i_spec`)
 3. **`kv`'nin sürüklenmesi** — `K/Y`'nin 8'e çıkması amortisman talebini
    şişiriyor; `kappa_v`'ye tavan ya da `δ`'nın sermaye kalitesiyle düşmesi
+
+
+---
+
+## 6d. B2c — mal piyasası
+
+### Ölçüt dördüncü kez: "okunur" bir niyet, kapı değil
+
+§6 B2c için "gerçekleşme krizi bir sayı değil kütle olarak okunur" diyordu.
+Bu, öncekilerin aksine **ayırt ediyor** — stok olmadan cümle kurulamaz. Ama
+"okunur" bir niyettir; kapıya çevrilmesi gerekti. Stok olmadan tanımsız olan
+iddia:
+
+> Aşırı üretim krizinin bir **süresi** vardır. Yığın birikince kapitalist dolu
+> depoya üretim yapmaz; üretim kısılır, istihdam düşer, talep daha da düşer.
+
+Bir akım bunu üretemez: "geçen dönem satılmadı" der ve susar. Bir stok "hâlâ
+duruyor" demeye devam eder. Ölçüt bu yüzden **süre**dir, sıklık değil.
+
+### Tek yapısal ekleme: `stok += uretim − satis`
+
+Çekirdek satılamayan ürünü `satilamayan_I/II` diye tutuyordu ama bunlar
+**akım**dı — dönem bitince buharlaşıyorlardı. Dört kategori (§5.10: tüketim,
+sermaye, hammadde, lüks) artık stok taşıyor, satış `min(arz, talep)` ile
+temizleniyor ve defter her dönem birebir kapanıyor. `max(0,…)` koruması
+kampanya boyunca yalnızca **1.1e-15** mertebesinde ateşliyor — yani hiç.
+
+### İlk iddia ters çıktı
+
+"Stok krize süre kazandırır" diye yazmıştım. Ölçüldüğünde tam tersi çıktı:
+
+| | stok yok | stok var, kısma yok | stok + kısma |
+|---|---|---|---|
+| aşırı üretim epizodu | 9 | 4 | **43** |
+| ort. epizot süresi | **15.72 yıl** | 48.69 yıl | **2.07 yıl** |
+| ort. talep açığı | 0.2247 | 0.7499 | 0.0881 |
+
+Sebep anlaşılınca iddia da düzeldi. Stoksuz kolda `talep_acigi` bir akım
+oranıdır ve onu geri çekecek hiçbir mekanizma yoktur: açık açılır ve
+**onyıllarca açık kalır**. Yani orada "epizot" diye ölçülen şey bir kriz değil
+**kalıcı bir durumdur** — tarihsel kayıtta öyle bir şey yok. Stok, yığını
+üretimi kısarak temizliyor ve aşırı üretimi tekrar bir **olaya** çeviriyor.
+
+> **Doğru ölçüt yön değil BANT.** İki kol da bandın dışındaydı — biri onlarca
+> kat uzun, diğeri beş kat kısa. Tarihsel aşırı üretim krizleri 1–3 yıl sürer.
+
+### Kalibrasyon — ve çapa bu kez tarihsel
+
+B2a ve B2b'de çapa çekirdeğin kapalı formuydu. Burada olamazdı: kapalı formda
+epizot 15.7 yıl sürüyor, yani çapa olacak büyüklük orada zaten bozuk.
+
+| kısma | erime | epizot | ort süre | ort açık |
+|---|---|---|---|---|
+| 0.05 | 0.20 | 8 | 19.48 | 0.3504 |
+| 0.20 | 0.20 | 13 | 9.30 | 0.1401 |
+| 0.28 | 0.20 | 26 | 3.72 | 0.1026 |
+| 0.30 | 0.20 | 27 | 3.65 | 0.0970 |
+| **0.33** | **0.20** | **43** | **2.07** | **0.0881** |
+| 0.36 | 0.20 | 50 | 1.46 | 0.0805 |
+| 0.60 | 0.20 | 78 | 0.21 | 0.0349 |
+
+> **İki çapa çelişiyor ve seçim kayda geçiyor.** Epizot **sayısı** için en iyi
+> değer 0.30 (27 epizot, tarihsel 27 ile birebir); **süre** için 0.33 (2.07
+> yıl). Süre seçildi çünkü B2c'nin iddiası süredir ve sayıyı `--v2-tarih`
+> zaten kendi ölçütüyle kapılıyor. 43 epizot tarihsel 27'nin üstünde, ama bu
+> B2c'nin getirdiği bir fazlalık değil: B1a'dan beri bilinen "model tarihten
+> daha kriz-yatkın" özelliği.
+
+### Orantısızlık ölçüldü
+
+Kategoriler ayrışıyor: ortalama (en dolu − en boş) stok/üretim farkı **0.236**.
+Biri dolarken diğeri boş — Marx'ın orantısızlık krizinin motordaki imzası, ve
+tek bir `talep_acigi` skaleriyle **tanımsız**.

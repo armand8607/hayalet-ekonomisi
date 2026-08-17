@@ -94,6 +94,13 @@ var nufus: NufusKatmani = null
 ## yalnizca tanidir.
 var son_d_pay: float = 0.0
 
+## MAL KATMANI (B2c). Takili degilse satilamayan urun bir AKIMDIR ve donem
+## bitince buharlasir; takiliysa depoda BIRIKIR ve sonraki donemin uretimini
+## kisar. Otoritesi: `talep_acigi`, `satilamayan_I/II` (bkz. `mal.gd`).
+##
+## Digerlerinden bagimsiz takilir -- ucu de ayri ayri acilip kapanmali.
+var mal: MalKatmani = null
+
 
 func _init(p_param: KrizParam = null, tohum: int = 42) -> void:
 	P = p_param if p_param != null else KrizParam.new()
@@ -662,6 +669,10 @@ func _departmanlar(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	var kap_I := Y_pot * d.pay_I
 	var kap_II := Y_pot * (1.0 - d.pay_I)
 
+	if mal != null:
+		_mal_piyasasi(d, donem_yil, Y_pot, kap_I, kap_II, D_tuketim, D_yatirim)
+		return
+
 	d.Y_I_yil = minf(kap_I, D_yatirim)
 	d.Y_II_yil = minf(kap_II, D_tuketim)
 	d.satilamayan_I = maxf(0.0, kap_I - D_yatirim)
@@ -670,6 +681,37 @@ func _departmanlar(d: KrizDurumu, donem_yil: float, Y_pot: float,
 	# ASIRI URETIM: satilamayan urun kitlesi. Artik "toplam talep toplam
 	# arzdan kucuk mu" degil, "HANGI DEPARTMANDA mal yigildi" sorusu.
 	d.talep_acigi = (d.satilamayan_I + d.satilamayan_II) / maxf(Y_pot, 1e-9)
+
+
+## MAL KATMANI TAKILIYKEN (B2c). Departman kapasitesi ve talebi dort
+## kategoriye bolunur, satis kategori bazinda temizlenir ve satilamayan
+## kutle DEPODA BIRIKIR.
+##
+## Fark akim/stok farkidir ve tek satirda gorunur: yukaridaki kolda
+## `satilamayan_I` o donemin artigidir ve donem bitince yok olur; burada
+## `stok` gecmisin toplamidir ve sonraki donemin uretimini kisar.
+func _mal_piyasasi(d: KrizDurumu, donem_yil: float, Y_pot: float,
+		kap_I: float, kap_II: float, D_tuketim: float, D_yatirim: float) -> void:
+	var kap := PackedFloat64Array()
+	var talep := PackedFloat64Array()
+	kap.resize(MalKatmani.MALLAR.size())
+	talep.resize(MalKatmani.MALLAR.size())
+	for i in range(MalKatmani.MALLAR.size()):
+		var pay := float(MalKatmani.MALLAR[i]["pay0"])
+		var dept := int(MalKatmani.MALLAR[i]["dept"])
+		kap[i] = (kap_I if dept == 1 else kap_II) * pay
+		talep[i] = (D_yatirim if dept == 1 else D_tuketim) * pay
+
+	mal.adim(donem_yil, kap, talep)
+
+	d.Y_I_yil = mal.uretim_dept(1)
+	d.Y_II_yil = mal.uretim_dept(2)
+	# Tani alanlari korunuyor ama anlamlari DEGISTI: artik akim degil STOK.
+	d.satilamayan_I = mal.stok_dept(1)
+	d.satilamayan_II = mal.stok_dept(2)
+	# ASIRI URETIM artik NORMALIN USTUNDEKI YIGIN. Bir miktar stok saglikli
+	# bir ekonominin normalidir; kriz olan sey fazlasidir.
+	d.talep_acigi = mal.fazla_yigin(Y_pot)
 
 
 # ===========================================================================

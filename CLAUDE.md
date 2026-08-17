@@ -87,8 +87,9 @@ Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
 `--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-tarih-mikro` (aynısı, iki mikro
 katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
 (üretim katmanı, 17 denetim), `--v2-nufus` (sınıf kohortları, 13 denetim),
-`--v2-dunya-siddet`, `--v2-dunya-ayrim`, `--v2-uretim-tarama` ve
-`--v2-nufus-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
+`--v2-mal` (mal piyasası, 7 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
+`--v2-uretim-tarama`, `--v2-nufus-tarama` ve `--v2-mal-tarama`
+(kalibrasyon taramaları — tanı, ana kapıdan yavaş),
 `--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
 
 > **v2'de SAYAÇLAR dönem cinsindendir, tur cinsinden DEĞİL.** v4.4'ün bütün
@@ -370,6 +371,11 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   farklı olduğu için sabit taşınmıyor. Ve tarama yalnızca uç noktaya bakıyordu:
   uç nokta çapaya %88 yakınken yörünge iki kat ayrışıyordu. **Bir eğriyi tek
   noktadan eşleştirmek onu eşleştirmez.**
+- **v2'de bir AKIM ile bir STOK aynı şeyi ölçmez.** `satilamayan_I/II` akım
+  olarak yazılıydı ve dönem bitince buharlaşıyordu; sonucu ölçüldü — aşırı
+  üretim epizodu ortalama **15.7 yıl** sürüyordu, yani bir kriz değil kalıcı
+  bir durum. Stoka çevrilince 2.07 yıla indi. Bir mekanizmanın hafızası
+  olmalıysa onu akımla kurma.
 - **Toplu bedeli haftalık akımla karşılaştırma.** Bir yatırım kararının bedeli
   stok cinsindense (binanın sermayesinin şu kadarı) ve bütçe akım cinsindense
   (haftalık yatırımın şu kadarı), koşul hiç sağlanmaz. Bir kez yaşandı:
@@ -417,16 +423,17 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `Dunya` | ülkeler arası **korunumlu** değer akışı (C/L blokları) |
 | `UretimKatmani` | mikro katman: sektör, bina, üretim yöntemi merdiveni (B2a) |
 | `NufusKatmani` | sınıf kohortları: emek arzı, istihdam, ücret payı (B2b) |
+| `MalKatmani` | mal piyasası: dört kategori, satılamayan **stok** (B2c) |
 | `Oran` | dönem↔yıl dönüşümleri. Tur→hafta tuzağının tek savunması |
 
-**Mikro katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`
-ve `cekirdek.nufus` `null` ise bütün kapalı formlar eskisi gibi koşar;
+**Mikro katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
+`cekirdek.nufus` ve `cekirdek.mal` `null` ise bütün kapalı formlar eskisi gibi koşar;
 B1a/B1b ölçümleri geçerliliğini korur. **İkisi birbirinden bağımsız takılır** —
 etkileri ancak öyle ayrı ölçülebilir; B2a'da devrimin 20 yıl kaymasının sebebi
 tam da bu ayrılabilirlik sayesinde eleme yoluyla bulundu. Takılıysa otorite
 geçer: `mikro` → `K`, `q`, `oto`, `pay_I`; `nufus` → `L_etkin`, `e`,
-`emek_gerginlik`, `pay`. **Otorite tabloları `uretim.gd` ve `nufus.gd`'nin
-başındadır.** Açık/kapalı olması bir test kolaylığı değil deney tasarımıdır
+`emek_gerginlik`, `pay`; `mal` → `talep_acigi`, `satilamayan_I/II`. **Otorite
+tabloları katman dosyalarının başındadır.** Açık/kapalı olması bir test kolaylığı değil deney tasarımıdır
 (B1b'de kesitsel ölçüm bir kez yanlış sonuç verdi).
 
 **Bir mekanizmanın YÖNÜ doğru çıkabilir ve mekanizma yine de ÖLÜ olabilir.**

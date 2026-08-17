@@ -47,6 +47,13 @@ func _ready() -> void:
 				# tuzagi -- bina defterinde karli gorunen yukseltme toplam
 				# kar oranini dusuruyor mu.
 				cikis = UretimTesti.kos()
+			"--v2-mal-tarama":
+				# Yigin kisma ve erime kalibrasyonu. Tani kapisi.
+				cikis = MalTesti.tarama()
+			"--v2-mal":
+				# Mal piyasasi (B2c): satilamayan urun bir AKIM mi STOK mu --
+				# ve stok asiri uretim krizine SURE kazandiriyor mu.
+				cikis = MalTesti.kos()
 			"--v2-nufus-tarama":
 				# Yedek ordu etkisinin kalibrasyonu. Tani kapisi.
 				cikis = NufusTesti.tarama()
