@@ -42,6 +42,21 @@ func _ready() -> void:
 				# Dunya katmani: deger akisi korunuyor mu, ve esitsiz
 				# mubadelenin kriz yogunlugundaki imzasi olculebiliyor mu.
 				cikis = DunyaTesti.kos()
+			"--v2-uretim":
+				# Mikro uretim katmani (B2a): toplama ozdesligi ve §2.4'un
+				# tuzagi -- bina defterinde karli gorunen yukseltme toplam
+				# kar oranini dusuruyor mu.
+				cikis = UretimTesti.kos()
+			"--v2-uretim-tarama":
+				# Yukseltme maliyetinin kalibrasyonu. Tani kapisi.
+				cikis = UretimTesti.tarama()
+			"--v2-tarih-mikro":
+				# Ayni tarihsel olcut, mikro uretim katmani TAKILI. B2'nin
+				# kendi olcutu: toplamlar mikro katmandan gelirken tarihsel
+				# kayit hala tutuyor mu.
+				TarihTesti.mikro_acik = true
+				cikis = TarihTesti.kos()
+				TarihTesti.mikro_acik = false
 			"--v2-dunya-ayrim":
 				# Dis konum gradyanindaki duzluk gercek mi, temerrut
 				# sikliginin eseri mi. 36 kampanya; ayri kapi.

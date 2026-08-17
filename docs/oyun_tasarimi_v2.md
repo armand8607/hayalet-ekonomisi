@@ -477,7 +477,9 @@ yok" bulmak demekti.
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
 | ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
 | **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ✅ | **KURULDU** — beş kanal da yerinde, `--v2-dunya` 17/17 |
-| **B2** | **MİKRO KATMAN.** Sektör, sınıf kohortları, bina, üretim yöntemi, mal kategorileri (§5.8–5.11) | Mikro toplamlar değer katmanını besler; `--v2-tarih` hâlâ geçer |
+| **B2a** | **ÜRETİM KATMANI.** Sektör, bina, üretim yöntemi merdiveni (§5.11) | **KURULDU** — `--v2-uretim` 17/17, `--v2-tarih-mikro` geçiyor |
+| **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | Goodwin otoritesi pop katmanına geçer, salınım ölmez |
+| **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | Gerçekleşme krizi bir sayı değil, depoda **kütle** olarak okunur |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
 | **B5** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi | 20+ ülke, dokuz mod, bağlar çizili |
@@ -878,6 +880,171 @@ bir durum (`talep_acigi`) olmasıydı, ayrık bir olay değil.
 Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
 (B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran
 değişmişse `--ss=` ile gerçekten çizdirilip bakılmış olur.
+
+---
+
+## 6b. B2a — üretim katmanı
+
+### B2'nin ölçütü de ayırt etmiyordu — ve aynı sebeple
+
+§6'nın tablosu B2 için "`--v2-tarih` hâlâ geçer" diyordu. Bu, B1b'de
+kapatılan kusurun **birebir aynısıdır**: o test B2 başlamadan geçiyor,
+dolayısıyla B2'nin bittiğini söyleyemez. Kapı, iki durumda da yeşilse
+kapı değildir.
+
+Mikro katman olmadan **kurulamayan** tek cümle §2.4'ünkidir:
+
+> Tek tek binalar kârlı görünürken toplam kâr oranı düşer.
+
+"Bina kârlılığı" mikro, "toplam kâr oranı" makro bir büyüklüktür; tek
+katmanlı bir motorda bu cümle telaffuz bile edilemez. B1b'nin üçüncü
+maddesi ("tek ülkede tanımsızdır") ile aynı türden bir ölçüttür ve B2a'nın
+kapısı odur: **`--v2-uretim`**.
+
+### Otorite tablosu — §8.2 kapatıldı
+
+Risk §8.2 mikro-makro tutarsızlığını işaret ediyordu: iki katman aynı alanı
+yazarsa hangisinin kazandığı çağrı sırasına bağlı kalır. Her paylaşılan alan
+bir kez karara bağlandı (`godot/scripts/v2/core/uretim.gd`):
+
+| alan | otorite | gerekçe |
+|---|---|---|
+| `K` | mikro | binaların birikmiş inşaat maliyeti — **özdeşlik** |
+| `q` | mikro | aktif üretim yöntemlerinin ağırlıklı seviyesi |
+| `oto` | mikro | makine-ağırlıklı basamakların sermaye payı |
+| `pay_I` | mikro | Dept I binalarının sermaye payı |
+| `cv`, `kv` | çekirdek | `q`'dan türer — mikro katman c/v'yi **yazmaz** |
+| `L`, `e`, `pay` | çekirdek | B2b'de pop katmanına geçer |
+| `Y_yil` | çekirdek | efektif talep belirler; mikro yalnızca kapasite verir |
+| `g`, `r` | çekirdek | §2.4: kâr oranı piyasadan **okunmaz**, hesaplanır |
+
+**Sermaye yoğunluğu iki kez yazılmaz.** Bir basamağın "daha sermaye-yoğun"
+olması elle girilmez; `kappa_v(cv, q)` zaten `q`'ya bakar. Basamak yalnızca
+işçi başına çıktıyı taşır, sermaye ihtiyacı çekirdeğin `kv`'sinden türer.
+Tuzak iki katmanın **bileşiminden** doğar, iki kez yazılmasından değil.
+
+### Ölçülen — dört sonuç
+
+Mikro katman takılı değilken çekirdek zerre değişmez; B1a/B1b'nin bütün
+ölçümleri geçerliliğini korur (`--v2-olcek` 23/23, `--v2-dunya` 17/17,
+`--v2-tarih` geçiyor — hepsi yeniden koşuldu).
+
+**1. Sermaye özdeşliği.** `sum(bina.K) == d.K`, kampanyanın 10 400 adımının
+her birinde ölçüldü: en büyük bağıl sapma **2.2e-16**. Kuruluşta hata tam
+olarak `0.0`. B1b'nin korunum disiplini burada da geçerli — toplam bir
+kalibrasyon değil özdeşliktir.
+
+**2. Ortalama marj teknikten bağımsızdır — ve bu bir özdeşliktir.**
+
+```
+ort(marj) = sum(K_i·(1 − w/q_i))/sum(K_i) = 1 − w/q_toplam = 1 − pay
+```
+
+Ölçülen sapma **4.4e-16**. Yani ülke ortalaması marj yalnızca ücret payına
+bakar, tekniğe **hiç** bakmaz. Tuzağın en keskin biçimi budur:
+
+> **Teknik değişmenin toplam kaybı, kararın verildiği defterde görünmez.**
+
+**3. Öncü kârı pozitif: +0.021.** Yükselten bina, yükseltme anında ülke
+ortalamasının üstüne çıkıyor. Marx'ın göreli artı değeri: kazanç önce
+davranana ait ve diğerleri yetiştikçe sönüyor.
+
+**4. Karşı-olgusal (aynı tohum, yükseltme kolu açık/kapalı, 1836–2036):**
+
+| | kapalı | açık | değişim |
+|---|---|---|---|
+| ort. c/v | 1.102 | 4.785 | **+3.683** |
+| ort. kâr oranı `r` | 0.0682 | 0.0410 | **−0.0272** |
+| ort. mikro marj | 0.5577 | 0.5576 | −0.0001 |
+
+Kâr oranı **%40 düşüyor**, mikro marj kıpırdamıyor: `|Δmarj|/|Δr| = 0.004`.
+Tuzak ölçüldü. `--v2-uretim` **17/17**.
+
+### Üç hata ölçümle yakalandı — üçü de oynayarak fark edilmezdi
+
+**1. "Mikro" marj makro tuzağı zaten içeriyordu.** Marj ilk yazımda sermaye
+üzerinden tanımlanmıştı: `(Y_i − w·L_i)/K_i`. Bu cebirsel olarak
+`(1 − w/q_i)/kv`'ye eşittir — yani içinde `kv` taşır, `kv` ise makro bir
+büyüklüktür ve yükseltmeyle birlikte yükselir. Sonuç: iki katman **aynı**
+işareti verdi (mikro −0.0033, makro −0.0123) ve tuzak ölçülemedi. Tek tek
+kapitalist ekonominin `kv`'sini görmez; onun defterinde teknik değişme
+**satış üzerinden marjdır**. Marx'ın kâr marjı ↔ kâr oranı ayrımı ve oyunun
+tuzağı tam olarak o ayrımda yaşıyor.
+
+**2. Toplu bedel ile haftalık akım karşılaştırılamaz.** Yükseltme bedeli
+binanın sermayesine oranlı toplu bir tutar, yatırım ise haftalık bir akım:
+haftalık yükseltme bütçesi ~0.17 iken en küçük binanın bedeli ~44 idi. Koşul
+200 yılda **bir kez bile** sağlanmadı — merdiven kuruldu ama hiç tırmanılmadı.
+Çözüm taksitlendirme, ve iktisadi olarak da doğrusu: yeni teknik yapı bir
+günde satın alınmaz, parça parça inşa edilir. Ödenen her taksit anında
+binanın sermayesine yazıldığı için özdeşlik kırılmaz.
+
+**3. Merdiveni `era_min` ile kapılamak çağ tablosunu tersine çeviriyordu.**
+İlk yazımda basamaklar elle yazılmış altı satırdı ve her biri bir çağ
+istiyordu. Ölçüldü: 200 yılda 15 yükseltme, q 1.00 → **1.33** (aynı pencerede
+kapalı form 55.4 veriyor). Çağ tablosu teknolojik gelişmeyi böyle kurmuyor:
+her çağın bir `q_tavan`ı var ve q çağ **içinde** o tavana doğru doyarak
+büyüyor. Yani çağ, hangi yöntemin açıldığını değil **üretkenliğin
+ulaşabileceği tavanı** belirler. `era_min` kapıları 1836–1975 arası 139 yıl
+boyunca merdiveni tek basamakta dondurmuştu. Merdiven artık **üretilmiş**
+(72 basamak × %10) ve yukarıdan çağın kendi `q_tavan`ı kesiyor — yeni bir
+kalibrasyon sabiti eklenmedi, kapı zaten var olan tablodan geliyor.
+
+### Yükseltme maliyeti kalibre edildi — ve ilk değer çifte sayımdı
+
+`yukseltme_maliyeti` başta 0.45 (binanın sermayesinin %45'i) yazılmıştı. Bu
+**tekniğin maliyetini iki kez saymaktır**: asıl bedel değer katmanında zaten
+ödeniyor (q ↑ → c/v ↑ → `kv` ↑ → aynı sermaye daha az kapasite). Buraya
+yazılması gereken yalnızca **fark**tır — yeni tekniği kurmak, eskisini olduğu
+gibi yenilemekten ne kadar pahalı.
+
+Çapa olarak çekirdeğin **kapalı formu** alındı: o kalibrasyon `--v2-olcek`
+23/23 ve `--v2-tarih`ten geçiyor, yani üretkenlik büyüme hızı bu motorda
+zaten sınanmış. B1b'de `vt_siddet` için kullanılan gerekçenin aynısı.
+
+> **ÇAPA (mikro yok): q = 55.43, ort r = 0.0425**
+
+| maliyet | yükseltme | q(2036) | q/çapa | ort r |
+|---|---|---|---|---|
+| 0.450 | 15 | 1.33 | 0.02 | 0.0670 |
+| 0.200 | 35 | 1.95 | 0.04 | 0.0673 |
+| 0.100 | 80 | 4.60 | 0.08 | 0.0600 |
+| **0.050** | **203** | **48.52** | **0.88** | **0.0410** |
+| 0.020 | 225 | 72.89 | 1.32 | 0.0274 |
+| 0.010 | 225 | 72.89 | 1.32 | 0.0283 |
+| 0.005 | 225 | 72.89 | 1.32 | 0.0289 |
+
+0.050 seçildi: çapaya en yakın ve ortalama kâr oranı da çapayla örtüşüyor.
+
+**Eşiğin altı donuyor** — 0.02'nin altında tablo kıpırdamıyor (225 yükseltme,
+q = 72.89, hepsi aynı). Bağlayıcı kısıt artık maliyet değil çağın `q_tavan`ı.
+Daha ucuz teknik daha hızlı gelişme üretmiyor; merdivenin çağ tablosuna doğru
+bağlandığının kanıtı budur.
+
+### Tarihsel kayıt mikro katmanla — ve beklenmedik bir iyileşme
+
+`--v2-tarih-mikro` (aynı ölçüt, mikro katman takılı) **geçiyor**. Ama asıl
+ilginç olan yön:
+
+| | kapalı form | mikro katman | tarihsel |
+|---|---|---|---|
+| ham sicil toplamı (medyan) | 35.0 | **25.0** | 27 |
+| ayrık olay, 2 yıl (medyan) | 21.0 | 19.0 | 24 |
+| olay / 100 kapitalist yıl | 19.2 | 19.8 | 12.1 |
+
+Ham kriz toplamı 35.0'ten **25.0**'e iniyor, yani tarihsel 27'ye
+yaklaşıyor — B1a'nın "fazla kriz-yatkın" fazlalığını mikro katman kendiliğinden
+kısıyor. Sebebi tahminen sermayenin binalara gömülü ve departmanlar arası
+kaymanın yavaş olmasıdır, ama **ölçülmedi**; iddia edilmiyor.
+
+> **AÇIK KIRMIZI — devrim ~20 yıl erkene kayıyor.** Kapalı formda devrim
+> 1920–1926'da, mikro katmanla 1903–1905'te. Kapitalist süre 96–101 yıldan
+> 78–81 yıla iniyor, dolayısıyla "olay / 100 kapitalist yıl" ölçüsü
+> **iyileşmiş gibi görünmüyor** — payda küçüldü. Bu, B2b'ye (sınıf
+> kohortları) girmeden önce açıklanmalı: erken devrim gerçek bir mekanizma
+> sonucu mu, yoksa `pay`ın hâlâ çekirdekte olmasından doğan bir kuplaj
+> eseri mi? `pay` B2b'de pop katmanına geçecek ve bu soru orada
+> yanıtlanabilir hale gelecek.
 
 ---
 

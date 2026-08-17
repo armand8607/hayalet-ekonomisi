@@ -58,6 +58,18 @@ var doyum_sabit := false
 ## belirlenimciligi kendi tohumundan gelir.
 var rng: PyRandom
 
+## MIKRO KATMAN (B2). Takili degilse cekirdek bu dosyadaki KAPALI FORMLARLA
+## calisir ve davranisi zerre degismez -- B1a/B1b'nin butun olcumleri
+## gecerliligini korur. Takiliysa dort alanin otoritesi ona gecer:
+## `K`, `q`, `oto`, `pay_I` (otorite tablosu: `uretim.gd`).
+##
+## ACIK/KAPALI OLMASI BIR TEST KOLAYLIGI DEGIL, DENEY TASARIMIDIR. B1b'de
+## ogrenildi: bir mekanizmanin etkisi ancak AYNI TOHUMLA acik ve kapali
+## kosulup karsilastirilarak olculebilir; kesitsel karsilastirma mekanizmanin
+## etkisiyle yapisal farki birbirine karistirir ve bir kez yanlis sonuc
+## verdi (§6, "Kesitsel degil karsi-olgusal").
+var mikro: UretimKatmani = null
+
 
 func _init(p_param: KrizParam = null, tohum: int = 42) -> void:
 	P = p_param if p_param != null else KrizParam.new()
@@ -160,6 +172,13 @@ func adim(d: KrizDurumu, donem_yil: float, dis: Dictionary = {}) -> void:
 	var VT_net_yil := float(dis.get("VT_net_yil", 0.0))
 	var Y_onceki := d.Y_yil
 
+	# MIKRO KATMAN EN BASTA TOPLAR. Sira zorunludur: `_deger_bilesimi` c/v'yi
+	# q'dan turetir, dolayisiyla q bu adimda kullanilmadan ONCE binalardan
+	# okunmalidir. `q_toplam()` cebirsel olarak `kv`den bagimsiz oldugu icin
+	# (kanit: uretim.gd) bu sira daireyi kapatmaz.
+	if mikro != null:
+		mikro.topla(d)
+
 	_deger_bilesimi(d, donem_yil)
 	_calisma_suresi(d)
 	var Y_pot := _arz_kapasitesi(d, donem_yil)
@@ -208,7 +227,17 @@ func adim(d: KrizDurumu, donem_yil: float, dis: Dictionary = {}) -> void:
 ## (LTRPF) ustunluk kurar ve kriz olgunlasir; cag atlamasi yeni bir capa
 ## acar ve yeni bir birikim dalgasi baslar. Kriz artik takvimin degil
 ## TEKNOLOJIK DONEMIN fonksiyonudur.
+##
+## MIKRO KATMAN TAKILIYSA BU BLOK KOSMAZ. Uretkenlik artik takvimin degil
+## YATIRIM KARARININ sonucudur: q ancak bir bina bir ust basamaga gectiginde
+## yukselir, ve o gecis sermaye ister. Teknolojik gelismenin "sicramali"
+## olmasi boylece bir cag TABLOSUNDAN degil, birikimin kendisinden dogar.
+##
+## Doyum egrisi de gereksizlesir: merdivenin ustu sonludur ve bir sonraki
+## basamak `era_min` ile kapalidir, yani cag ici doyum YAPISALDIR.
 func _uretkenlik(d: KrizDurumu, donem_yil: float) -> void:
+	if mikro != null:
+		return
 	var E: Dictionary = Tables.ERAS[clampi(d.era, 1, 6)]
 	var doyum := 1.0 if doyum_sabit else maxf(
 			P.v44.q_doyum_taban, 1.0 - d.q / float(E["q_tavan"]))
@@ -245,6 +274,11 @@ func _cag_gecisi(d: KrizDurumu, donem_yil: float) -> void:
 	d.IR = minf(1.0, d.IR + 0.08)
 	# Cag gecisi sermayeyi eskitir: eski teknik yapinin bir kismi silinir.
 	d.K *= (1.0 - P.v44.gecis_yikim)
+	# Ayni kirpma binalara da yazilmali, yoksa `sum(bina.K)` ile `d.K`
+	# ayrisir ve ozdeslik cag gecisinde sessizce kirilir -- kampanyada
+	# yalnizca bes kez olan, dolayisiyla gozden kacmasi en kolay yer.
+	if mikro != null:
+		mikro.gecis_yikimi(P.v44.gecis_yikim)
 	if d.rejim == "kapitalist":
 		d.Omega = minf(1.0, d.Omega + P.v44.gecis_omega)
 
@@ -311,11 +345,17 @@ func _calisma_suresi(d: KrizDurumu) -> void:
 func _arz_kapasitesi(d: KrizDurumu, donem_yil: float) -> float:
 	# Otomasyon bir POLITIKA degil, rekabetin zorlayici yasasinin sonucudur:
 	# duran geride kalir. Oyuncunun kapatabilecegi bir kol degildir.
-	if d.era >= P.v44.oto_esik_era:
-		var hedef := P.v44.oto_tavan * minf(1.0, d.ito / P.v44.ito_tavan) * minf(
-				1.0, float(d.era - P.v44.oto_esik_era + 1) / 2.0)
-		d.oto += Oran.donem_uyum(P.oto_hiz_yil, donem_yil) * (hedef - d.oto)
-	d.oto = clampf(d.oto, 0.0, P.v44.oto_tavan)
+	#
+	# MIKRO KATMAN TAKILIYSA bu blok atlanir: `oto` artik cag tablosundan
+	# gelen bir hedefe yaklasan bir sayi degil, MAKINE-AGIRLIKLI BASAMAKTAKI
+	# BINALARIN SERMAYE PAYIDIR. Ikisi birden yazsaydi hangisinin kazandigi
+	# cagri sirasina baglanirdi -- §8.2'nin tarif ettigi hata tam olarak budur.
+	if mikro == null:
+		if d.era >= P.v44.oto_esik_era:
+			var hedef := P.v44.oto_tavan * minf(1.0, d.ito / P.v44.ito_tavan) * minf(
+					1.0, float(d.era - P.v44.oto_esik_era + 1) / 2.0)
+			d.oto += Oran.donem_uyum(P.oto_hiz_yil, donem_yil) * (hedef - d.oto)
+		d.oto = clampf(d.oto, 0.0, P.v44.oto_tavan)
 
 	# Satinalma gucu iki AYRI kanaldan asinir; ikisi zincirin ayri
 	# noktalarinda oturur, o yuzden carpilirlar:
@@ -862,7 +902,28 @@ func _birikim(d: KrizDurumu, donem_yil: float, VT_net_yil: float) -> void:
 
 	d.g_yil = clampf(d.g_yil, -P.g_daralma_tavani_yil, P.g_tavani_yil)
 	# DONEM UZUNLUGU YALNIZCA BURADA.
-	d.K = maxf(1.0, d.K * (1.0 + Oran.donem_buyume(d.g_yil, donem_yil)))
+	var K_yeni := maxf(1.0, d.K * (1.0 + Oran.donem_buyume(d.g_yil, donem_yil)))
+
+	if mikro == null:
+		d.K = K_yeni
+		return
+
+	# MIKRO KATMAN: birikim HIZI burada kalir (§2.4 -- kar orani piyasadan
+	# okunmaz), birikimin NEREYE gittigi asagi iner. Toplam degismez:
+	# `_yukselt` odedigi bedeli binanin sermayesine yazar, `_yeni_kapasite`
+	# kalanini dagitir, dolayisiyla `sum(bina.K)` tam olarak `K_yeni` olur.
+	# Bu bir kalibrasyon degil OZDESLIKTIR ve `--v2-uretim` onu 1e-12 ile
+	# olcer -- kirilirsa iki katman sermaye stoku konusunda anlasmazliga
+	# duser ve hangisinin hakli oldugu hicbir yerde yazmaz.
+	var yatirim := K_yeni - d.K
+	if yatirim > 0.0:
+		mikro.adim(d, donem_yil, yatirim)
+	else:
+		# Sermaye ERIYOR (g < 0). Kucultme binalara orantili yazilir; hangi
+		# binanin kapanacagi B2c'nin (mal piyasasi) isidir -- orada
+		# satilamayan mal yigini kapanmayi SECER, burada henuz secemeyiz.
+		mikro.gecis_yikimi(1.0 - K_yeni / maxf(d.K, 1e-9))
+	d.K = mikro.K_toplam()
 
 
 # ===========================================================================

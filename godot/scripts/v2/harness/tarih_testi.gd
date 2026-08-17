@@ -124,6 +124,14 @@ static func _ozet() -> Dictionary:
 
 ## Bir kosu yapar. `vt_pay` hasilanin kacta kacinin DISARI aktigidir
 ## (negatif = cevre konumu, deger merkeze akiyor).
+## MIKRO KATMAN KOLU (B2a). Acikken ayni test mikro uretim katmani takili
+## kosar. Tek gövde iki kol: tarihsel olcut degistiginde iki kol birlikte
+## degissin diye ayri bir test yazilmadi. Iki kolun AYNI olcutten gecmesi
+## B2'nin kendi tanimidir -- "mikro toplamlar deger katmanini besler ve
+## tarihsel kayit hala tutar".
+static var mikro_acik := false
+
+
 static func _kos(vt_pay: float, tohum: int = 42) -> KrizDurumu:
 	var d := KrizDurumu.new()
 	d.L_etkin = 110.0
@@ -134,6 +142,10 @@ static func _kos(vt_pay: float, tohum: int = 42) -> KrizDurumu:
 	d.varlik = 0.5
 	var cekirdek := KrizCekirdegi.new(null, tohum)
 	cekirdek.baslat(d)
+	if mikro_acik:
+		var m := UretimKatmani.new()
+		m.baslat(d)
+		cekirdek.mikro = m
 	var n := Oran.donem_sayisi(BITIS - BAS, OlcekTesti.HAFTA)
 	for _i in range(n):
 		# Deger transferi burada TEK PARAMETREYLE taklit ediliyor: amac dunyayi
@@ -148,7 +160,8 @@ static func _kos(vt_pay: float, tohum: int = 42) -> KrizDurumu:
 static func kos() -> int:
 	var sure := BITIS - BAS
 	print("")
-	print("V2 CEKIRDEK -- TARIHSEL KALIBRASYON")
+	print("V2 CEKIRDEK -- TARIHSEL KALIBRASYON%s"
+			% ("   [MIKRO KATMAN TAKILI]" if mikro_acik else ""))
 	print("==================================================================")
 	print("Kaynak: Marksist Sistematikte Kapitalist Krizler, %d-%d" % [int(BAS), int(BITIS)])
 	print("")

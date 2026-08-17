@@ -84,9 +84,11 @@ Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
 **Oyun**: `--oyna[=kayıt:tohum:ülke:tur]`, `--menu`, `--ss=DOSYA`.
 
 **v2** (hiçbiri v4.4'e dokunmaz): `--v2-olcek` (ölçek değişmezliği, 23 denetim),
-`--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-dunya` (dünya katmanı, 17 denetim),
-`--v2-dunya-siddet` ve `--v2-dunya-ayrim` (kalibrasyon taramaları — tanı, ana
-kapıdan yavaş), `--v2-iz[=YIL[:baş[:dönem]]]` (teşhis izi).
+`--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-tarih-mikro` (aynısı, mikro
+katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
+(mikro üretim katmanı, 17 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim` ve
+`--v2-uretim-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
+`--v2-iz[=YIL[:baş[:dönem]]]` (teşhis izi).
 
 > **v2'de SAYAÇLAR dönem cinsindendir, tur cinsinden DEĞİL.** v4.4'ün bütün
 > `*_sure` sabitleri 0.27 yıllık tur cinsindendir; haftalık döngüye olduğu gibi
@@ -342,6 +344,23 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
 - **GDScript lambda'ları DEĞERE göre yakalar.** `var x = {}; sinyal.connect(
   func(r): x = r)` dıştaki `x`'i değiştirmez — sinyal testleri sessizce hep
   "boş" görür. Sözlük/dizi gibi referans tiplerinin *içini* doldurmak gerekir.
+- **v2'de MİKRO ile MAKRO büyüklüğü aynı formülle yazma.** "Bina kârlılığı"
+  sermaye üzerinden (`(Y_i − w·L_i)/K_i`) tanımlanırsa cebirsel olarak
+  `(1 − w/q_i)/kv` eder — yani içine `kv` girer, o da makro bir büyüklüktür.
+  Ölçüldü: iki katman aynı işareti verdi ve §2.4'ün tuzağı ölçülemedi.
+  Kapitalistin defterindeki büyüklük **satış üzerinden marjdır**; kâr oranı
+  makro defterde durur. Ayrım Marx'ın kendi ayrımıdır, kozmetik değildir.
+- **v2'de çağ tablosu `q_tavan` demektir, `era_min` değil.** `Tables.ERAS`
+  teknolojik gelişmeyi "her çağın bir üretkenlik tavanı var, q çağ içinde ona
+  doğru doyar" diye kurar. Yeni mekanizmaları çağ **numarasıyla** kapılamak bu
+  mantığı tersine çevirir: üretim yöntemi merdiveni bir kez öyle yazıldı ve
+  1836–1975 arası 139 yıl tek basamakta dondu (200 yılda q 1.00 → 1.33, kapalı
+  form 55.4 verirken). Kapı `q_tavan` olmalı — tabloyu tekrarlamaz, okur.
+- **Toplu bedeli haftalık akımla karşılaştırma.** Bir yatırım kararının bedeli
+  stok cinsindense (binanın sermayesinin şu kadarı) ve bütçe akım cinsindense
+  (haftalık yatırımın şu kadarı), koşul hiç sağlanmaz. Bir kez yaşandı:
+  yükseltme 200 yılda sıfır kez ateşledi. Taksitlendir — ve taksiti anında
+  sermayeye yaz, yoksa korunum özdeşliği kırılır.
 - **`exp`/`log`/`pow` şu an bit-birebir uyuşuyor** (CPython 3.12 x86-64 Windows
   ↔ Godot 4.7 aynı makinede, 36 noktalık ızgarada). Bu **garanti değildir**:
   ızgara küçük ve wasm/ARM hedeflerinde ayrışabilir. Katman 3'ün toleransları
@@ -382,7 +401,16 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `KrizDurumu` | ülke durumu. **Akımlar YILLIK, stoklar düzey, sayaçlar dönem** |
 | `KrizCekirdegi` | ülke-içi kriz teorisi. `adim(d, donem_yil, dis)` |
 | `Dunya` | ülkeler arası **korunumlu** değer akışı (C/L blokları) |
+| `UretimKatmani` | mikro katman: sektör, bina, üretim yöntemi merdiveni (B2a) |
 | `Oran` | dönem↔yıl dönüşümleri. Tur→hafta tuzağının tek savunması |
+
+**Mikro katman TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`
+`null` ise bütün kapalı formlar eskisi gibi koşar; B1a/B1b ölçümleri
+geçerliliğini korur. Takılıysa dört alanın otoritesi ona geçer — `K`, `q`,
+`oto`, `pay_I` — ve **otorite tablosu `uretim.gd`'nin başındadır**. Açık/kapalı
+olması bir test kolaylığı değil deney tasarımıdır: bir mekanizmanın etkisi
+ancak aynı tohumla açık ve kapalı koşulup karşılaştırılarak ölçülebilir
+(B1b'de kesitsel ölçüm bir kez yanlış sonuç verdi).
 
 **Birim sözleşmesi v4.4'ten en önemli ayrılıktır.** v4.4'te akımlar *tur
 başına* tanımlıydı ve dönem uzunluğu değişince sessizce yanlışlanan tek şey
