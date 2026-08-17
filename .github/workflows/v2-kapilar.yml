@@ -96,9 +96,21 @@ jobs:
         # cok kampanya. En sona birakildi.
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-dunya
 
-      # --- Turetilmis dosyalar belgeden kaymis mi ---------------------------
+  kahin:
+    # AYRI IS, VE KAPSIZ BIR RUNNER'DA.
+    #
+    # `barichello/godot-ci:4.7` kabinda python3 YOK -- ilk kosuda bu adim
+    # `exit 127` (command not found) ile dustu, on iki kapinin on ikisi de
+    # gectikten sonra. Denetimin Godot'a zaten ihtiyaci olmadigi icin dogru
+    # yer kabin ici degil; ayri is olarak paralel de kosar.
+    name: Kahin turetilmis mi
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: 'Kahin: turetilmis Python dosyalari belgeyle ayni mi'
+      - name: 'Turetilmis Python dosyalari belgeyle ayni mi'
         run: |
           # `python/` ikilisi frozen markdown'daki kod bloklarindan URETILIR.
           # Elle duzenlenirlerse zincir belgeden kopar ve bunu fark etmenin

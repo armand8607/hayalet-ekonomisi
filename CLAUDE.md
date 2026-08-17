@@ -90,8 +90,9 @@ katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
 `--v2-mal` (mal piyasası, 7 denetim), `--v2-bolunme` (karanlık devlet,
 bölünme ve karşı hareket, 33 denetim), `--v2-savas` (savaş bir kriz çıkışı
 olarak, 16 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
-`--v2-uretim-tarama`, `--v2-nufus-tarama`, `--v2-mal-tarama` ve
-`--v2-bolunme-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
+`--v2-uretim-tarama`, `--v2-nufus-tarama`, `--v2-mal-tarama`,
+`--v2-bolunme-tarama` ve `--v2-savas-tarama` (kalibrasyon taramaları — tanı,
+ana kapıdan yavaş),
 `--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
 
 **Godot yoksa (Linux / uzak oturum):** binary'yi indirmek yeterli, kurulum
@@ -405,6 +406,17 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   (haftalık yatırımın şu kadarı), koşul hiç sağlanmaz. Bir kez yaşandı:
   yükseltme 200 yılda sıfır kez ateşledi. Taksitlendir — ve taksiti anında
   sermayeye yaz, yoksa korunum özdeşliği kırılır.
+- **`barichello/godot-ci:4.7` kabında `python3` YOK.** CI'da kâhin denetimi
+  (`extract_sources.py --check`) o kapta `exit 127` ile düştü — on iki kapının
+  on ikisi de geçtikten sonra. Godot gerektirmeyen adımlar kapsız bir runner'da
+  ayrı iş olarak koşmalı.
+- **v2'de bir DÜZEY karşılaştırması trendi ölçer, mekanizmayı değil.** Bu
+  ailenin dört üyesi oldu: mutlak `NX` yerine `NX/Y` (ekonomi küçülünce mutlak
+  akım da küçülür), ham `l_etkin` yerine çarpan (nüfus sürükleniyor), kampanya
+  ortalaması yerine eş-zamanlı kesit (`r` 0.10'dan 0.04'e düşüyor ve olaylar
+  erken kümeleniyor), dünya toplamı yerine çift hacmi (iki yörünge kaotik
+  ayrışıyor). Yeni bir karşılaştırma yazarken sor: **ölçtüğüm fark mekanizmadan
+  mı, yoksa iki kolun zaten ayrıştığı yerden mi geliyor?**
 - **v2'de v4.4'ün SÜRE sabitleri tarihsel çapaya karşı sınanmalı.** Birim
   çevrimi doğru olsa bile değerin kendisi v4.4'ün kalibrasyonudur ve v2 onu
   devralmaz. B4'te yaşandı: `sv_min_sure`/`sv_max_sure` doğru çevrildi ama

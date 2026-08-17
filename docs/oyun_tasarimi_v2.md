@@ -1706,3 +1706,68 @@ henüz **yenilgi yok**, yani ceza fiilen kesilmiyor.
 Savaş kuruldu. §3.3'ün ittifak/blok mekanizması (`muttefik` alanı hazır ama
 işlenmiyor), abluka ve ambargo (`Dunya.aciklik` hazır ama savaşa bağlı değil),
 ve himaye henüz yok.
+
+### B4'ün kalanı kuruldu — abluka, ambargo, ittifak
+
+**Abluka çift üzerinde tanımlıdır**, ve bu zorunluydu. Deponun kuralı açık:
+"ülke başına çarpan uygulamak (abluka, açıklık) **çifte simetrik** olmalıdır",
+ve v4.4'ün L bloğunu bozan şey tam olarak buydu (korunum hatası %57). Kesinti
+çiftin **toplam hacmine** uygulanır; iki taraf aynı küçülmüş hacmi paylaştığı
+için `sum(NX) == 0` kırılmaz. Ölçüldü: abluka açıkken bağıl korunum hatası
+`< 1e-9`.
+
+Üç kaynak, üçü de §3.1'in tablosundan: **savaş** (0.95 — tam kapanma değil,
+kaçakçılık her savaşta vardır), **kuşatma** (devrim olan ülkeye, kuşatanın
+saldırganlığıyla ölçeklenir), **ambargo** (rejim karşıtlığı + blok tehdidi).
+
+İttifaklar: sosyalist pakt kendiliğinden kurulur; kapitalist ittifak **ortak
+düşmana** bağlıdır. v4.4'ün `PYTHONHASHSEED` kusuru devralınmadı — dizi sıralı.
+
+**§4.5 kapandı.** `otomatik` kolu artık sınanıyor: AI ülkeleri karanlık araca
+kendiliğinden sarılıyor (en yüksek tolerans 0.887).
+
+### Savaş sıklığı — çapa tutturulamadı, ve sebebi yapısal
+
+Süre tarihsel çapaya çekilmişti; sıklık çekilmemişti. Ölçüldü ve **iki kez
+şaşırttı**.
+
+Önce `saldirganlik` tarandı: 0.20→0.90 aralığında sıklık 0.34 / 0.54 / 0.47 /
+0.27 / 0.61 — **gradyan değil gürültü**. Sonra ayrı bir çarpan eklendi, 10 kat
+büyütüldüğünde sıklık ancak 2 katına çıktı. Yani bağlayıcı kısıt **olasılık
+değil**.
+
+Hipotez ölçüldü: **hedef bulunabilirliği.** Hedef seçimi `guc < 1.15·guc`
+istiyor; beş ülkeli ve ayrışmış bir dünyada zayıf ülkenin saldıracağı kimse
+yok, güçlü ülke de savaşa girince kilitleniyor.
+
+| ülke sayısı | zaman payı | savaş/ülke-yüzyıl |
+|---|---|---|
+| 5 | 0.013 | 0.27 |
+| 10 | 0.016 | 0.34 |
+| 20 | 0.033 | 0.79 |
+
+Doğrulandı. Ve tarihsel çapanın (yüzyılda 1–4 savaş) kendisi zaten **50+
+devletli** bir dünyadan geliyor.
+
+> **Seçim 20 ülkelik kolda yapıldı, 5'te değil.** Kalibrasyon karar verilen
+> kurulumda yapılır ve oyunun hedefi ~100 ülkedir (B6), test dünyası değil.
+> `savas_siklik = 5.0` → 20 ülkede zamanın %6.9'u savaşta, yüzyılda 1.58 savaş
+> — iki eksende de bantta. Beş ülkelik test kolunda oran daha düşük kalır ve
+> bu beklenendir. **Ölçüt B6'da ~100 ülkeyle yeniden okunmalıdır.**
+
+### Aynı ölçüm hatası üçüncü ve dördüncü kez
+
+Sıklık 5'e çıkarılınca iki denetim düştü, ikisi de **ölçüm tasarımı** hatasıydı:
+
+1. **Kâr oranı karşılaştırması trendi ölçüyordu.** İlan anındaki `r` kampanya
+   geneli ortalamayla karşılaştırılıyordu; `r` 0.10'dan 0.04'e düştüğü ve
+   ilanlar erken yıllarda kümelendiği için ilan edenler otomatik olarak yüksek
+   çıkıyordu (0.0937 vs 0.0711). Eş-zamanlı kesitle ölçülünce **−0.0067**.
+2. **Abluka dünya toplamıyla ölçülüyordu.** Abluka açıkken dünya hacmi *daha
+   büyük* çıktı — abluka edilen ülkenin malları satılamayınca `_itki` onu kalan
+   çiftlere daha sert asıyor, ve iki yörünge 198 yılda kaotik olarak ayrışıyor.
+   Abluka edilen **çiftin kendi hacmiyle** ölçülünce: **1.9 / 61.6**.
+
+> Bu ailenin dört üyesi oldu: mutlak `NX` yerine `NX/Y`, ham `l_etkin` yerine
+> çarpan, kampanya ortalaması yerine eş-zamanlı kesit, dünya toplamı yerine
+> çift hacmi. **Düzey karşılaştırması trendi ölçer, mekanizmayı değil.**

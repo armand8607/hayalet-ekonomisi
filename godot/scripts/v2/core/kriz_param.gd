@@ -373,6 +373,59 @@ var bolunme_omega_kirilma: float = 0.85
 var savas_sure_alt_yil: float = 1.5
 var savas_sure_ust_yil: float = 7.0
 
+## SAVAS SIKLIGI CARPANI -- v2'nin KENDI kalibrasyonu.
+##
+## v4.4'un ilan olasiligi (`sv_carpan = 0.35` ile birlikte) v2'nin kurulumunda
+## ulke basina yuzyilda ~0.5 savas veriyor. Tarihsel capa 1-4'tur (1816-2007
+## devletlerarasi savas kaydi), yani mekanizma 3-10 kat SEYREK kosuyordu --
+## yonu dogru, sikligi yanlis.
+##
+## `saldirganlik` BU ISI YAPAMIYOR, olculdu: 0.20'den 0.90'a tarandiginda
+## siklik 0.34 / 0.54 / 0.47 / 0.27 / 0.61 verdi -- gradyan degil GURULTU.
+## Sebep baglayici kisidin olasilik OLMAMASI: hedef secimi `guc < 1.15*guc`
+## istiyor ve ulkeler ayristikca gecerli hedef kaliyor; ustune savastaki
+## ulke yeni savas acamiyor. Yani olasiligi buyutmek tek basina yetmez,
+## ayri bir olcek carpani gerekir.
+## SECILDI: 5.0, ve secim 20 ULKELIK kolda yapildi (`--v2-savas-tarama`).
+##
+##   20 ulke   zaman_pay   savas/ulke-yuzyil
+##      1.0        0.033                0.79
+##      2.0        0.046                1.09
+##      3.0        0.033                0.72   <- gurultu (3 tohum az)
+##      5.0        0.069                1.58   <- secilen, iki eksende de bantta
+##
+## Capa: zamanin %5-15'i savasta, ulke basina yuzyilda 1-4 savas.
+##
+## NEDEN 20 ULKEDE. Kalibrasyon KARAR VERILEN kurulumda yapilir ve oyunun
+## hedefi ~100 ulkedir (B6), bes ulkelik test dunyasi degil. 5 ulkeye gore
+## ayarlanmis bir sabit olcek buyudukce savasi salgina cevirirdi -- B2a'da
+## merdiven capasi yanlis kurulumda secildigi icin aynen bu olmustu.
+##
+## BES ULKELIK KOLDA ORAN DAHA DUSUK KALIR ve bu beklenendir: test dunyasi
+## oyunun dunyasi degil. Olcut B6'da ~100 ulkeyle YENIDEN olculmelidir.
+var savas_siklik: float = 5.0
+
+## ABLUKA VE AMBARGO (§3.3) -- cift bazli ticaret kesintisi [0,1].
+##
+## DUZEYdir, akim degil: abluka bir birikim degil bir POLITIKA DURUMUDUR ve
+## her tik yeniden hesaplanir, yani savas bitince ya da rejim degisince
+## kendiliginden kalkar.
+##
+## `savas_abluka` en sert olani: savasan iki ulke birbiriyle ticaret yapmaz.
+## 0.95, 1.0 degil -- kacakcilik ve ucuncu ulke uzerinden dolayli ticaret her
+## savasta vardir, tam kapanma tarihsel olarak gerceklesmez.
+##
+## `kusatma_siddeti` kusatanin SALDIRGANLIGIYLA carpilir: kusatma bir kapasite
+## degil bir tercihtir. Varsayilan saldirganlikta (0.35) kesinti 0.26 eder.
+##
+## `ambargo_taban` rejim karsitliginin kendisidir; `ambargo_blok` sosyalist
+## blok buyudukce sertlesen kismi. Ikisi birlikte, dunyanin yarisi sosyalist
+## oldugunda 0.10 + 0.5*0.40 = 0.30'a cikar.
+var savas_abluka: float = 0.95
+var kusatma_siddeti: float = 0.75
+var ambargo_taban: float = 0.10
+var ambargo_blok: float = 0.40
+
 ## SAVASIN NUFUS BEDELI (yillik olum orani artisi).
 ##
 ## v4.4'te `olum_orani` savasta 0.008 artiyordu (`motor.py:2060`) ve o sabit

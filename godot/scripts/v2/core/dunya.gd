@@ -197,6 +197,38 @@ var P: KrizParam
 ## nufus asagi") ancak acik/kapali karsilastirmasiyla olculebilir.
 var savas: SavasKatmani = null
 
+## ABLUKA MATRISI, duz dizi: `abluka[i*n + j]` = i-j ciftinin ticaretine
+## uygulanan kesinti [0,1]. 1.0 = tam abluka.
+##
+## CIFT UZERINDE TANIMLI, VE BU ZORUNLU. Deponun kurali acik: "ulke basina
+## carpan uygulamak (abluka, aciklik) CIFTE SIMETRIK olmalidir -- tek tarafa
+## uygulanan carpan korunumu kirar", ve v4.4'un L blogunu bozan sey tam olarak
+## buydu (olculdu: korunum hatasi %57).
+##
+## Burada kesinti ciftin TOPLAM HACMINE uygulanir; iki taraf ayni kuculmus
+## hacmi paylastigi icin `sum(NX) == 0` ozdesligi kirilmaz. Ablukayi "abluka
+## edilen ulkenin acikligi" diye yazmak cazip ama YANLIS olurdu: o zaman
+## abluka eden ulke kaybettigi ihracati baska yerde bulmus gibi gorunurdu.
+var abluka: PackedFloat64Array = PackedFloat64Array()
+
+
+## Bir ciftin bu tikteki gerceklesen ticaret hacmi. Yalnizca tani ve test
+## icin; `_son_hacim` yalnizca i<j icin dolu oldugundan siralamayi burada
+## normallestiriyoruz.
+func cift_hacmi(i: int, j: int) -> float:
+	var n := ulkeler.size()
+	if _son_hacim.size() != n * n:
+		return 0.0
+	return _son_hacim[mini(i, j) * n + maxi(i, j)]
+
+
+## Cift bazli ticaret engeli [0,1]. 1.0 = engel yok.
+func _engel(i: int, j: int) -> float:
+	var n := ulkeler.size()
+	if abluka.size() != n * n:
+		return 1.0
+	return clampf(1.0 - abluka[i * n + j], 0.0, 1.0)
+
 
 func _init(p_ornek: KrizParam = null) -> void:
 	P = p_ornek if p_ornek != null else KrizParam.new()
@@ -240,6 +272,13 @@ func _borc_matrisini_buyut() -> void:
 		for j in range(eski_n):
 			yeni[i * n + j] = borc[i * eski_n + j]
 	borc = yeni
+	var yeni_abluka := PackedFloat64Array()
+	yeni_abluka.resize(n * n)
+	yeni_abluka.fill(0.0)
+	for i in range(eski_n):
+		for j in range(eski_n):
+			yeni_abluka[i * n + j] = abluka[i * eski_n + j]
+	abluka = yeni_abluka
 
 
 ## DIS TICARET (B bloku) -- cift bazli, korunumlu.
@@ -299,7 +338,8 @@ func ticaret() -> void:
 			var b := ulkeler[j]
 			var hacim := (ticaret_yogunlugu
 					* maxf(a.Y_yil, 0.0) * maxf(b.Y_yil, 0.0) / Y_dunya)
-			hacim *= minf(aciklik[i], aciklik[j])
+			# Abluka ve savas ciftin HACMINI keser (bkz. `abluka`).
+			hacim *= minf(aciklik[i], aciklik[j]) * _engel(i, j)
 			if hacim <= 0.0:
 				continue
 			# Thirlwall orani: rekabet gucu -- CARPANI gerceklesme baskisidir.
@@ -608,6 +648,7 @@ func adim(donem_yil: float) -> void:
 	# boyunca birikecek kadar buyuk bir kayma olurdu.
 	if savas != null:
 		savas.adim(ulkeler, adlar, donem_yil)
+		savas.abluka_kur(ulkeler, adlar, abluka, donem_yil)
 	ticaret()
 	_ticaret_korunumunu_kaydet()
 	var vt := transferler()

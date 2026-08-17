@@ -326,11 +326,21 @@ static func _kanal() -> void:
 	#
 	# Olcum: savas ILAN EDEN ulkelerin ilan anindaki kar orani, ilan
 	# etmeyenlerin ayni andaki kar oranindan DUSUK olmali.
+	# ES-ZAMANLI KARSILASTIRMA, KAMPANYA ORTALAMASI DEGIL.
+	#
+	# Ilk yazimda ilan anindaki kar orani KAMPANYA GENELI ortalamayla
+	# karsilastirildi ve siklik 5'e cikarilinca test dondu: ilan edenlerin
+	# orani DAHA YUKSEK cikti (0.0937 vs 0.0711). Mekanizma bozulmadi,
+	# olcum trendi iceriyordu -- `r` kampanya boyunca 0.10'dan 0.04'e
+	# duser ve ilanlar erken yillarda kumelenir, yani "ilan eden" orneklemi
+	# otomatik olarak ERKEN yillardan geliyordu.
+	#
+	# Dogru soru: ilan eden ulkenin kar orani, O ANDA digerlerinin altinda mi.
+	# Ayni ailenin ucuncu hatasi (mutlak NX yerine NX/Y, ham l_etkin yerine
+	# carpan): duzey karsilastirmasi trendi olcer, mekanizmayi degil.
 	var w2 := _dunya_kur(42, true)
-	var ilan_r := 0.0
+	var fark_top := 0.0
 	var ilan_say := 0
-	var genel_r := 0.0
-	var genel_say := 0
 	var n := Oran.donem_sayisi(SURE, HAFTA)
 	var onceki: Array = []
 	for i in range(w2.ulkeler.size()):
@@ -344,18 +354,20 @@ static func _kanal() -> void:
 		for i in range(w2.ulkeler.size()):
 			var simdi := w2.ulkeler[i].savasta()
 			if simdi and not onceki[i]:
-				ilan_r += r_simdi[i]
+				# O ANIN kesitindeki ortalama -- ilan eden haric.
+				var top := 0.0
+				var say := 0
+				for j in range(w2.ulkeler.size()):
+					if j != i:
+						top += r_simdi[j]
+						say += 1
+				fark_top += r_simdi[i] - top / maxf(float(say), 1.0)
 				ilan_say += 1
-			if not simdi:
-				genel_r += r_simdi[i]
-				genel_say += 1
 			onceki[i] = simdi
-	var ort_ilan := ilan_r / maxf(float(ilan_say), 1.0)
-	var ort_genel := genel_r / maxf(float(genel_say), 1.0)
-	_dogrula(ilan_say > 0 and ort_ilan < ort_genel,
-			"SAVASA GIRENIN kar orani, girmeyenin altinda (§3.1 kanali)",
-			"(ilan aninda %.5f, genel %.5f, %d ilan)" % [
-				ort_ilan, ort_genel, ilan_say])
+	var ort_fark := fark_top / maxf(float(ilan_say), 1.0)
+	_dogrula(ilan_say > 0 and ort_fark < 0.0,
+			"SAVASA GIRENIN kar orani, O ANDA digerlerinin altinda (§3.1)",
+			"(es-zamanli fark %+.5f, %d ilan)" % [ort_fark, ilan_say])
 
 	# SAVAS ASIRI URETIMI EMER. §3.1'in "asiri uretim -> yeni pazar, gerekirse
 	# zorla" satiri: savas ekonomisi kapasiteyi sogurdugu icin gerceklesme
@@ -473,28 +485,162 @@ static func _karanlik_bedeli() -> void:
 			d2.t_paramiliter = 1.0
 		var n := Oran.donem_sayisi(SURE, HAFTA)
 		var r_top := 0.0
+		var nx_y_top := 0.0
+		var abluka_top := 0.0
 		for _i in range(n):
 			w.adim(HAFTA)
 			r_top += w.ulkeler[2].r_yil
+			nx_y_top += w.ulkeler[2].NX_yil / maxf(w.ulkeler[2].Y_yil, 1e-9)
+			var un := w.ulkeler.size()
+			for j in range(un):
+				if j != 2 and w.abluka.size() == un * un:
+					abluka_top += w.abluka[2 * un + j] / float(un - 1)
 		var d := w.ulkeler[2]
 		sonuc.append({
 			"r": r_top / float(n), "q": d.q, "K": d.K,
 			"devrim": d.devrim_yil,
-			"nx": w.toplam_nx[2], "dis": w.toplam_dis[2],
+			# NX MUTLAK DEGIL HASILAYA ORANLI. Karanlik devlete sarilan ulke
+			# 13 kat kuculdugu icin MUTLAK dis akimlari da kuculur -- ilk
+			# olcumde `birikmis NX` daha az negatif cikti ve bu "dis konumu
+			# duzeldi" gibi okunabilirdi. Duzelen bir sey yok, ekonomi kuculdu.
+			"nx_y": nx_y_top / float(n), "dis": w.toplam_dis[2],
 			"yenilgi": d.yenilgi_sayisi, "savas": d.savas_toplam,
+			"abluka": abluka_top / float(n),
 		})
 	var a: Dictionary = sonuc[0]
 	var b: Dictionary = sonuc[1]
 	print("  Olculen ulke: 'Orta'. Sekiz taktik tam kapasite.")
 	print("  %-22s %12s %12s" % ["", "karanliksiz", "karanlik"])
 	for alan in [["ort kar orani", "r"], ["uretkenlik q", "q"],
-			["sermaye K", "K"], ["birikmis NX", "nx"],
-			["bilesik dis konum", "dis"], ["devrim yili", "devrim"],
+			["sermaye K", "K"], ["ort NX/Y", "nx_y"],
+			["bilesik dis konum", "dis"], ["ort abluka", "abluka"],
+			["devrim yili", "devrim"],
 			["yenilgi sayisi", "yenilgi"], ["savasta donem", "savas"]]:
 		print("  %-22s %12.4f %12.4f" % [alan[0], float(a[alan[1]]),
 				float(b[alan[1]])])
 	print("\n  NOT: bu bir kapi degil KAYITTIR. B3'un denge sorusu bu tabloya")
 	print("  bakarak karara baglanir (bkz. tasarim belgesi §6e).")
+
+
+# ===========================================================================
+# 6. ABLUKA, AMBARGO VE ITTIFAK  --  §3.3
+# ===========================================================================
+
+static func _abluka_ittifak() -> void:
+	print("\n--- 6. ABLUKA, AMBARGO, ITTIFAK (§3.3) ---")
+
+	var w := _dunya_kur(42, true)
+	var n := Oran.donem_sayisi(SURE, HAFTA)
+	var abluka_gorulen := 0.0
+	var savas_ciftinde := 0.0
+	var savas_cift_say := 0
+	var korunum_en_kotu := 0.0
+	var ittifak_gorulen := 0
+	for _i in range(n):
+		w.adim(HAFTA)
+		var un := w.ulkeler.size()
+		# KORUNUM: abluka acikken de `sum(NX) == 0` ozdesligi durmali.
+		# Ciftte tanimli olmasinin sebebi buydu; tek tarafli yazilsaydi
+		# burada kirilirdi (v4.4'un L blogu %57 hata veriyordu).
+		var nx_top := 0.0
+		var nx_mutlak := 0.0
+		for d in w.ulkeler:
+			nx_top += d.NX_yil
+			nx_mutlak += absf(d.NX_yil)
+		if nx_mutlak > 1e-9:
+			korunum_en_kotu = maxf(korunum_en_kotu, absf(nx_top) / nx_mutlak)
+		for a in range(un):
+			if not w.ulkeler[a].muttefik.is_empty():
+				ittifak_gorulen += 1
+			for b in range(a + 1, un):
+				if w.abluka.size() != un * un:
+					continue
+				var k := w.abluka[a * un + b]
+				abluka_gorulen = maxf(abluka_gorulen, k)
+				if w.ulkeler[a].savas.has(w.adlar[b]):
+					savas_ciftinde += k
+					savas_cift_say += 1
+
+	_dogrula(korunum_en_kotu < 1e-9,
+			"KORUNUM: abluka acikken de sum(NX) == 0 (cift uzerinde tanimli)",
+			"(en kotu bagil hata %.3e)" % korunum_en_kotu)
+	_dogrula(abluka_gorulen > 0.0, "abluka/ambargo FIILEN uygulaniyor",
+			"(en yuksek kesinti %.2f)" % abluka_gorulen)
+	if savas_cift_say > 0:
+		_dogrula(savas_ciftinde / float(savas_cift_say) > 0.5,
+				"    ...ve savasan cift birbiriyle ticaret yapmiyor",
+				"(ort kesinti %.2f)" % (savas_ciftinde / float(savas_cift_say)))
+
+	# ABLUKA GERCEKTEN TICARETI KESIYOR MU.
+	#
+	# DUNYA TOPLAMINA BAKILMAZ, ve bu bir kez yanlis olculdu: abluka acikken
+	# dunya hacmi DAHA BUYUK cikti (6.29M vs 5.71M). Mekanizma tersine
+	# donmedi -- abluka edilen ulkenin mallari satilamayinca `talep_acigi`
+	# buyuyor, `_itki` onu KALAN ciftlere daha sert asiyor, ve 198 yillik iki
+	# yorunge zaten kaotik olarak ayrisiyor. Dunya toplami mekanizmayi degil
+	# yorunge farkini olcer.
+	#
+	# Dogru olcu ABLUKA EDILEN CIFTIN kendi hacmi: kesinti oradadir.
+	var wc := _dunya_kur(42, true)
+	var engelli_hacim := 0.0
+	var engelli_say := 0
+	var serbest_hacim := 0.0
+	var serbest_say := 0
+	for _i in range(n):
+		wc.adim(HAFTA)
+		var un := wc.ulkeler.size()
+		if wc.abluka.size() != un * un:
+			continue
+		for a in range(un):
+			for b in range(a + 1, un):
+				var h := wc.cift_hacmi(a, b)
+				if wc.abluka[a * un + b] > 0.5:
+					engelli_hacim += h
+					engelli_say += 1
+				else:
+					serbest_hacim += h
+					serbest_say += 1
+	var e_ort := engelli_hacim / maxf(float(engelli_say), 1.0)
+	var s_ort := serbest_hacim / maxf(float(serbest_say), 1.0)
+	_dogrula(engelli_say > 0 and e_ort < s_ort,
+			"ABLUKA edilen ciftin ticareti KESILIYOR",
+			"(engelli cift %.1f < serbest cift %.1f, %d gozlem)" % [
+				e_ort, s_ort, engelli_say])
+
+	_dogrula(ittifak_gorulen > 0, "ITTIFAKLAR kuruluyor (§3.3)",
+			"(%d ulke-donem muttefikli)" % ittifak_gorulen)
+
+
+# ===========================================================================
+# 7. ENDOJEN KARANLIK DEVLET  --  §4.5
+# ===========================================================================
+
+## §4.5: "Yapay zeka yonetimindeki ulkeler bu kollari kendi krizlerine gore
+## kullanir -- yani dunyada baska ulkelerin fasizme kayisini DISARIDAN
+## izlersin." B3'te `otomatik` bayragi yazildi ama hicbir kapi calistirmadi;
+## dunya artik var, dolayisiyla sinanabilir.
+static func _endojen_karanlik() -> void:
+	print("\n--- 7. ENDOJEN KARANLIK DEVLET (§4.5) ---")
+	var w := _dunya_kur(42, true)
+	for i in range(w.ulkeler.size()):
+		var kd := KaranlikDevlet.new(w.cekirdekler[i].P)
+		kd.otomatik = true
+		kd.baslat(w.ulkeler[i])
+		w.cekirdekler[i].karanlik = kd
+	var n := Oran.donem_sayisi(SURE, HAFTA)
+	var tol_zirve := 0.0
+	var uo_zirve := 0.0
+	for _i in range(n):
+		w.adim(HAFTA)
+		for d in w.ulkeler:
+			tol_zirve = maxf(tol_zirve, d.mafya_tolerans)
+			uo_zirve = maxf(uo_zirve, d.uyusturucu_orani)
+	_dogrula(tol_zirve > 0.05,
+			"AI ulkeleri karanlik araca KENDILIGINDEN sariliyor",
+			"(en yuksek tolerans %.3f)" % tol_zirve)
+	_dogrula(uo_zirve > 0.0,
+			"    ...ve endojen kol gercek bir cikti uretiyor",
+			"(en yuksek uyusturucu orani %.4f)" % uo_zirve)
 
 
 # ===========================================================================
@@ -512,8 +658,83 @@ static func kos() -> int:
 	_muhasebe()
 	_kanal()
 	_canlilik()
+	_abluka_ittifak()
+	_endojen_karanlik()
 	_karanlik_bedeli()
 
 	print("------------------------------------------------------------------")
 	print("SONUC: %d gecti, %d kaldi" % [_gecen, _kalan])
 	return 0 if _kalan == 0 else 1
+
+
+## SIKLIK TARAMASI -- tani, kapi degil.
+##
+## SURE tarihsel capaya cekildi ama SIKLIK cekilmedi ve bu bir eksikti:
+## olcut yon ve bant soruyor, sikligi sormuyordu. B2b'nin dersinin bir
+## kuzeni burada duruyor olabilirdi -- "yonu dogru, mekanizma seyrek".
+##
+## TARIHSEL CAPA. 1816-2007 arasi devletlerarasi savas kaydinda buyuk gucler
+## zamanlarinin kabaca %5-15'ini savasta gecirir; bir ulke yuzyilda 1-4 kez
+## savasa girer. Ust sinir onemli: "surekli savas" da tarihsel degildir.
+static func tarama() -> int:
+	print("\nV2 SAVAS -- SIKLIK KALIBRASYONU (tani)")
+	print("==================================================================")
+	print("  Capa: buyuk gucler zamanin %5-15'ini savasta gecirir,")
+	print("        ulke basina yuzyilda 1-4 savas.")
+	print("  --- (a) siklik carpani (5 ulke) ---")
+	print("  siklik  zaman_pay  savas/ulke-yuzyil  ort_sure")
+	for sik in [1.0, 4.0, 10.0]:
+		_tarama_satiri(5, float(sik), "  %6.1f" % float(sik))
+
+	# HIPOTEZ: baglayici kisit OLASILIK DEGIL HEDEF BULUNABILIRLIGI.
+	# Hedef secimi `guc < 1.15*guc` istiyor; bes ulkeli ve ayrismis bir
+	# dunyada zayif ulkenin saldiracagi kimse yok, guclu ulke de savasa
+	# girince kilitleniyor. Oyleyse ULKE SAYISI sikligi olasiliktan daha
+	# cok belirlemeli. Tarihsel capa (yuzyilda 1-4 savas) zaten 50+ devletli
+	# bir dunyadan geliyor.
+	print("\n  --- (b) ulke sayisi (siklik = 1.0) ---")
+	print("  ulke    zaman_pay  savas/ulke-yuzyil  ort_sure")
+	for un in [5, 10, 20]:
+		_tarama_satiri(un, 1.0, "  %4d  " % un)
+
+	# SECIM 20 ULKEDE YAPILIR, 5'te DEGIL. Kalibrasyon KARAR VERILEN
+	# kurulumda yapilir; oyunun hedefi ~100 ulkedir (B6), test dunyasi degil.
+	# 5 ulkelik kola gore ayarlanmis bir sabit olcek buyudukce savasi
+	# salgina cevirirdi.
+	print("\n  --- (c) 20 ulkede siklik secimi ---")
+	print("  siklik  zaman_pay  savas/ulke-yuzyil  ort_sure")
+	for sik2 in [1.0, 2.0, 3.0, 5.0]:
+		_tarama_satiri(20, float(sik2), "  %6.1f" % float(sik2))
+	print("\n  NOT: bu bir kapi degil TANIDIR. Secim tasarim belgesine yazilir.")
+	return 0
+
+
+## Tarama satiri. `ulke_n` verildiginde dunya o kadar ulkeyle kurulur --
+## uretkenlikleri ayni araliga yayilir, yani ayrisma yapisi korunur.
+static func _tarama_satiri(ulke_n: int, siklik: float, on_ek: String) -> void:
+	var donem_top := 0
+	var epizot_top := 0
+	var sure_top := 0.0
+	for tohum in [42, 101, 202]:
+		var w := Dunya.new()
+		w.yil = BAS
+		for i in range(ulke_n):
+			var t := float(i) / maxf(float(ulke_n - 1), 1.0)
+			w.ekle(_ulke(1.60 - 0.95 * t, 0.42 - 0.24 * t),
+					"U%d" % i, tohum)
+		for d in w.ulkeler:
+			d.saldirganlik = 0.35
+		w.savas = SavasKatmani.new(w.P, tohum + 7777)
+		w.savas.P.savas_siklik = siklik
+		var eps := _kos(w, HAFTA)
+		for d in w.ulkeler:
+			donem_top += d.savas_toplam
+		epizot_top += eps.size()
+		for e in eps:
+			sure_top += (e as Epizot).bit_yil - (e as Epizot).bas_yil
+	var ulke_donem := 3 * ulke_n * Oran.donem_sayisi(SURE, HAFTA)
+	var ulke_yuzyil := 3.0 * float(ulke_n) * SURE / 100.0
+	print("%s %10.3f %18.2f %9.1f" % [on_ek,
+			float(donem_top) / float(ulke_donem),
+			float(epizot_top) / ulke_yuzyil,
+			sure_top / maxf(float(epizot_top), 1.0)])

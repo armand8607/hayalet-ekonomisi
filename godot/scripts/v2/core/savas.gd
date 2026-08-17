@@ -81,6 +81,11 @@ var ilan_acik: bool = true
 ## kanalin olctugumuz sonucu urettigi bilinemez.
 var mudahale_acik: bool = true
 
+## ABLUKA/AMBARGO ayri kapatilabilir -- karsi-olgusal olcum icin. Kapaliyken
+## savaslar yine olur ama ticaret kesilmez, yani "abluka ne yapti" sorusu
+## savasin kendi etkisinden ayrilabilir.
+var abluka_acik: bool = true
+
 ## Savasin RNG'si. Ulke cekirdeklerininkinden ve `Dunya`nInkinden AYRI:
 ## savas ilani ayrik bir olaydir ve baska bir kapiyi acip kapatmak savas
 ## cekilisini kaydirmamali.
@@ -104,6 +109,9 @@ func _init(p_ornek: KrizParam = null, tohum: int = 4242) -> void:
 ## hesabina girmeli, bir donem geriden degil.
 func adim(ulkeler: Array[KrizDurumu], adlar: PackedStringArray,
 		donem_yil: float) -> void:
+	# ITTIFAKLAR ILANDAN ONCE: hedef secimi `muttefik`e bakiyor, yani bu
+	# donemin ittifak durumu bu donemin savas kararina girmeli.
+	ittifak_isle(ulkeler, adlar)
 	if ilan_acik:
 		_savas_karari(ulkeler, adlar, donem_yil)
 	_yikim_ve_cozum(ulkeler, adlar, donem_yil)
@@ -154,7 +162,8 @@ func _savas_karari(ulkeler: Array[KrizDurumu], adlar: PackedStringArray,
 					continue
 				var istek := (P.v44.sv_mudahale * d_m.saldirganlik * tehdit
 						* (1.0 if d_m.guc() > d_s.guc() * 0.8 else 0.3))
-				if rng.random() < _tehlike(istek * P.v44.sv_carpan * 0.10, donem_yil):
+				if rng.random() < _tehlike(
+						istek * P.v44.sv_carpan * 0.10 * P.savas_siklik, donem_yil):
 					_ilan(ulkeler, adlar, m, s, donem_yil)
 					mudahale_sayisi += 1
 					break
@@ -170,7 +179,8 @@ func _savas_karari(ulkeler: Array[KrizDurumu], adlar: PackedStringArray,
 		var kaynak := P.v44.sv_kaynak if c.era >= 3 else 0.0
 		var p := (P.v44.sv_taban + P.v44.sv_kar_baskisi * sikisma + kaynak
 				+ P.v44.sv_doktrin * c.saldirganlik) * c.saldirganlik
-		if rng.random() >= _tehlike(p * 0.06 * P.v44.sv_carpan, donem_yil):
+		if rng.random() >= _tehlike(
+				p * 0.06 * P.v44.sv_carpan * P.savas_siklik, donem_yil):
 			continue
 		# HEDEF SECIMI: muttefik olmayan, savasta olmayan, ve gucu bizden
 		# cok ustun OLMAYAN bir ulke. Zayifi secme egilimi rastgelelikle
@@ -314,3 +324,115 @@ func _cozum(c: KrizDurumu, rakip: KrizDurumu, oran: float) -> void:
 		c.IR = 0.75
 		c.muttefik = PackedStringArray()
 		karsi_devrim_sayisi += 1
+
+
+# ===========================================================================
+# ABLUKA, AMBARGO VE ITTIFAK  --  §3.3
+# ===========================================================================
+
+## ABLUKA MATRISINI KURAR. Her tik yeniden hesaplanir (bir stok degil, bir
+## POLITIKA durumudur), dolayisiyla savas bitince ya da rejim degisince
+## kendiliginden kalkar.
+##
+## Uc kaynak, ve ucu de §3.1'in tablosundan:
+##
+##   SAVAS      -- savasan cift birbiriyle ticaret yapmaz. En sert kesinti.
+##   KUSATMA    -- "bir yerde devrim oldu -> kusatma, abluka, mudahale".
+##                 Kapitalist merkezler devrim olan ulkeyi abluka altina alir.
+##                 Kesinti abluka edenin SALDIRGANLIGIYLA olceklenir: kusatma
+##                 bir kapasite degil bir TERCIHTIR.
+##   AMBARGO    -- ideolojik blok karsitligi. Sosyalist blok buyudukce
+##                 kapitalist merkezlerin ambargosu sertlesir; `sv_blok_tehdidi`
+##                 zaten savas istegini olceklendiriyor, ambargo onun ticari
+##                 karsiligidir.
+##
+## MATRIS SIMETRIK DOLDURULUR. `abluka[i*n+j]` ve `abluka[j*n+i]` ayni degeri
+## alir; `Dunya._engel` yalnizca birini okusa bile ikisinin ayni olmasi
+## "kim kime abluka uyguladi" sorusunu tanida okunabilir tutar.
+func abluka_kur(ulkeler: Array[KrizDurumu], adlar: PackedStringArray,
+		abluka: PackedFloat64Array, _donem_yil: float) -> void:
+	var n := ulkeler.size()
+	if abluka.size() != n * n:
+		return
+	abluka.fill(0.0)
+	if not abluka_acik:
+		return
+
+	var sos_say := 0
+	for d in ulkeler:
+		if d.rejim == "sosyalist":
+			sos_say += 1
+	var blok_pay := float(sos_say) / maxf(float(n), 1.0)
+
+	for i in range(n):
+		for j in range(i + 1, n):
+			var a := ulkeler[i]
+			var b := ulkeler[j]
+			var kesinti := 0.0
+
+			# SAVAS -- en sert.
+			if a.savas.has(adlar[j]):
+				kesinti = maxf(kesinti, P.savas_abluka)
+
+			# KUSATMA -- kapitalist merkez, devrim olan ulkeyi kusatir.
+			# Yon onemli: kusatan tarafin saldirganligi belirler.
+			if a.rejim != b.rejim:
+				var kusatan := a if a.rejim == "kapitalist" else b
+				var kusatilan := b if a.rejim == "kapitalist" else a
+				if kusatilan.devrim_yil >= 0.0:
+					kesinti = maxf(kesinti,
+							P.kusatma_siddeti * kusatan.saldirganlik)
+				# AMBARGO -- blok tehdidi buyudukce sertlesir.
+				kesinti = maxf(kesinti, P.ambargo_taban
+						+ P.ambargo_blok * blok_pay)
+
+			kesinti = clampf(kesinti, 0.0, 1.0)
+			abluka[i * n + j] = kesinti
+			abluka[j * n + i] = kesinti
+
+
+## ITTIFAKLAR (§3.3). v4.4'un `ittifak_isle`inin v2 karsiligi.
+##
+## SOSYALIST PAKT kendiliginden kurulur: sosyalist ulkeler birbirinin
+## muttefikidir. v4.4'te de boyleydi ve orada her tur `sos` listesinden
+## YENIDEN kuruluyordu -- v2 ayni yolu izler, cunku bir stok olarak tutmak
+## rejim degisince bayat muttefiklik birakir.
+##
+## KAPITALIST ITTIFAK ideolojik mesafeye degil ORTAK DUSMANA baglidir:
+## ayni ulkeyle savasan iki kapitalist ulke muttefiktir. Bu, §3.3'un "merkez
+## ici rekabet" satirinin diger yuzu -- merkezler birbiriyle yarisir ama
+## cevreye ya da devrime karsi birleslir.
+##
+## v4.4'UN KUSURU DEVRALINMADI. Orada muttefik bir `set`ti ve
+## `rng.choice(list(muttefik))` sira'ya bakiyordu; `PYTHONHASHSEED` yuzunden
+## ayni tohum ayri sureclerde ayri sonuc veriyordu. Burada dizi SIRALI
+## kurulur, yani belirlenimlidir.
+func ittifak_isle(ulkeler: Array[KrizDurumu], adlar: PackedStringArray) -> void:
+	var n := ulkeler.size()
+	var sos: PackedStringArray = PackedStringArray()
+	for i in range(n):
+		if ulkeler[i].rejim == "sosyalist":
+			sos.append(adlar[i])
+	sos.sort()
+
+	for i in range(n):
+		var c := ulkeler[i]
+		var yeni: PackedStringArray = PackedStringArray()
+		if c.rejim == "sosyalist":
+			for ad in sos:
+				if ad != adlar[i]:
+					yeni.append(ad)
+		else:
+			# ORTAK DUSMAN: ayni ulkeyle savasan kapitalistler muttefiktir.
+			for j in range(n):
+				if j == i or ulkeler[j].rejim != "kapitalist":
+					continue
+				var ortak := false
+				for rk in c.savas:
+					if ulkeler[j].savas.has(rk):
+						ortak = true
+						break
+				if ortak:
+					yeni.append(adlar[j])
+			yeni.sort()
+		c.muttefik = yeni
