@@ -94,6 +94,21 @@ olarak, 16 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
 `--v2-bolunme-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
 `--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
 
+**Godot yoksa (Linux / uzak oturum):** binary'yi indirmek yeterli, kurulum
+gerekmiyor. Ölçüldü — `--headless` için xvfb bile gerekmez:
+
+```bash
+curl -sSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
+unzip -q godot.zip && chmod +x Godot_v4.7-stable_linux.x86_64
+./Godot_v4.7-stable_linux.x86_64 --headless --path godot --import   # bir kez
+./Godot_v4.7-stable_linux.x86_64 --headless --path godot res://scenes/Main.tscn -- --v2-savas
+```
+
+`--import` şart ve depoda `.godot/` olmadığı için ilk iş odur. Sekiz v2
+kapısının tamamı ~7 dakika sürer. **Ekranı görmek** için `--ss=` kapısı hâlâ
+`xvfb-run` ister (aşağıya bak); yalnızca headless doğrulama koşuları
+gerektirmez.
+
 > **v2'de SAYAÇLAR dönem cinsindendir, tur cinsinden DEĞİL.** v4.4'ün bütün
 > `*_sure` sabitleri 0.27 yıllık tur cinsindendir; haftalık döngüye olduğu gibi
 > kopyalanırsa **14 kat hızlı** dolar. Bir kez yaşandı: `fx_baski >= 8` (v4.4'te
@@ -150,10 +165,17 @@ Sonuçları:
 
 İki iş akışı da `main`'e push'ta çalışır:
 
-| iş akışı | çıktı |
-|---|---|
-| `.github/workflows/deploy.yml` | Web export → GitHub Pages |
-| `.github/workflows/android.yml` | Debug APK → koşu **Artifacts**'ı, `v*` etiketinde **GitHub Release** |
+| iş akışı | ne zaman | çıktı |
+|---|---|---|
+| `.github/workflows/v2-kapilar.yml` | **her dala** push + PR | sekiz v2 kapısı + iki v4.4 kapısı + türetilmiş dosya denetimi (~7 dk) |
+| `.github/workflows/deploy.yml` | `main`'e push | Web export → GitHub Pages |
+| `.github/workflows/android.yml` | `main`'e push | Debug APK → koşu **Artifacts**'ı, `v*` etiketinde **GitHub Release** |
+
+**Kapılar gerçekten düşebiliyor — doğrulandı.** `_dogrula`ya kasten
+`kosul = false` konup koşuldu: `SONUC: 0 geçti, 7 kaldı` ve `rc=1`.
+`main.gd` `get_tree().quit(cikis)` ile çıkış kodunu taşıyor. Bu denetim
+olmadan yeşil bir CI hiçbir şey iddia etmez; yeni bir kapı eklerken aynı
+şekilde bir kez bozup kırmızıya döndüğünü gör.
 
 - İkisi de `barichello/godot-ci:4.7` kabında derlenir. Android'e dair hiçbir şey
   yerel makinede kurulu değil; APK'yı yerelde derlemeye çalışma.
