@@ -953,11 +953,11 @@ davranana ait ve diğerleri yetiştikçe sönüyor.
 
 | | kapalı | açık | değişim |
 |---|---|---|---|
-| ort. c/v | 1.102 | 4.785 | **+3.683** |
-| ort. kâr oranı `r` | 0.0682 | 0.0410 | **−0.0272** |
+| ort. c/v | 1.102 | 1.790 | **+0.689** |
+| ort. kâr oranı `r` | 0.0682 | 0.0600 | **−0.0082** |
 | ort. mikro marj | 0.5577 | 0.5576 | −0.0001 |
 
-Kâr oranı **%40 düşüyor**, mikro marj kıpırdamıyor: `|Δmarj|/|Δr| = 0.004`.
+Kâr oranı **%12 düşüyor**, mikro marj kıpırdamıyor: `|Δmarj|/|Δr| = 0.011`.
 Tuzak ölçüldü. `--v2-uretim` **17/17**.
 
 ### Üç hata ölçümle yakalandı — üçü de oynayarak fark edilmezdi
@@ -1002,49 +1002,80 @@ gibi yenilemekten ne kadar pahalı.
 23/23 ve `--v2-tarih`ten geçiyor, yani üretkenlik büyüme hızı bu motorda
 zaten sınanmış. B1b'de `vt_siddet` için kullanılan gerekçenin aynısı.
 
-> **ÇAPA (mikro yok): q = 55.43, ort r = 0.0425**
+**Tarama iki kez düzeltildi, çünkü ilk hâli yanlış şeyi ölçüyordu.**
 
-| maliyet | yükseltme | q(2036) | q/çapa | ort r |
-|---|---|---|---|---|
-| 0.450 | 15 | 1.33 | 0.02 | 0.0670 |
-| 0.200 | 35 | 1.95 | 0.04 | 0.0673 |
-| 0.100 | 80 | 4.60 | 0.08 | 0.0600 |
-| **0.050** | **203** | **48.52** | **0.88** | **0.0410** |
-| 0.020 | 225 | 72.89 | 1.32 | 0.0274 |
-| 0.010 | 225 | 72.89 | 1.32 | 0.0283 |
-| 0.005 | 225 | 72.89 | 1.32 | 0.0289 |
+*Yanlış konfigürasyon.* İlk tarama 1836/çağ-2 kurulumundan koşuyordu; oysa
+üzerinde karar verilen ölçüt `--v2-tarih`tir ve o **1825'te çağ 1'den**
+başlar. Çağ 1'in `q_tavan`ı 4.0, çağ 2'ninki 8.0 — merdivenin tavanı baştan
+farklı. Başka bir kurulumda kalibre edilen sabit, karar verilen kurulumda
+geçerli değildir.
 
-0.050 seçildi: çapaya en yakın ve ortalama kâr oranı da çapayla örtüşüyor.
+*Yanlış ölçü.* Yalnızca **uç nokta** karşılaştırılıyordu. Uç nokta çapaya
+0.88 oranıyla yakın çıkarken yörünge tamamen ayrışıyordu: mikro kol 1865'te
+2.59'a, kapalı form 1.58'e varmıştı. **Bir eğriyi tek noktadan eşleştirmek
+onu eşleştirmez.**
 
-**Eşiğin altı donuyor** — 0.02'nin altında tablo kıpırdamıyor (225 yükseltme,
-q = 72.89, hepsi aynı). Bağlayıcı kısıt artık maliyet değil çağın `q_tavan`ı.
-Daha ucuz teknik daha hızlı gelişme üretmiyor; merdivenin çağ tablosuna doğru
-bağlandığının kanıtı budur.
+> **ÇAPA (mikro yok): devrim 1923, ort r 0.0653**
+> **q yörüngesi: 1.27 1.58 1.90 2.24 3.23 4.33 5.69 8.58**
 
-### Tarihsel kayıt mikro katmanla — ve beklenmedik bir iyileşme
+| maliyet | yükseltme | log-sapma | devrim | ort r | q(1885) | q(1965) |
+|---|---|---|---|---|---|---|
+| 0.050 | 177 | 0.694 | 1903 | 0.0401 | 3.70 | 15.86 |
+| **0.100** | **81** | **0.340** | **1918** | **0.0594** | **1.61** | **3.29** |
+| 0.200 | 35 | 0.764 | 1922 | 0.0660 | 1.21 | 1.69 |
+| 0.350 | 20 | 0.906 | 1924 | 0.0674 | 1.10 | 1.33 |
+| 0.500 | 15 | 0.954 | 1928 | 0.0700 | 1.09 | 1.26 |
+| 0.800 | 10 | 0.997 | 1927 | 0.0670 | 1.06 | 1.16 |
+| 1.200 | 7 | 1.036 | 1925 | 0.0684 | 1.00 | 1.10 |
 
-`--v2-tarih-mikro` (aynı ölçüt, mikro katman takılı) **geçiyor**. Ama asıl
-ilginç olan yön:
+0.100 seçildi: yörüngeye en yakın, ve devrim 1918 ile çapanın 1923'ünden
+yalnızca beş yıl önce — tohum gürültüsünün içinde.
+
+**Kalan sapma dürüstçe yazılıyor:** 0.340'lık log sapma sıfır değil. Mikro
+kol geç on yıllarda çapadan **yavaş** kalıyor (q(1965) 3.29 / 5.69). Basamak
+çarpanı ile çağ tavanının birlikte belirlediği bir şey; tarihsel ölçüt ve
+devrim zamanlaması tuttuğu için B2b'den önce kovalanması gerekmiyor.
+
+### Erken devrim: gerçek bir zincirdi, kalibrasyon hatasıydı
+
+İlk kalibrasyonla (`maliyet = 0.05`) devrim 1903'e kayıyordu — kapalı formda
+1923. `--v2-uretim-iz` zinciri gösterdi ve teşhis **eleme yoluyla** yapıldı:
+
+| büyüklük | kapalı ↔ mikro | okuma |
+|---|---|---|
+| `pay` | 0.461 ↔ 0.461, 0.432 ↔ 0.435 | **aynı** — Goodwin kanalı değil |
+| `PR` | ~0.99 ↔ ~0.99 | ikisinde de **doymuş** — protesto riski değil |
+| `q` (1885) | 1.90 ↔ **3.70** | ayrışan bu |
+| çağ (1885) | 1 ↔ **2** | ve sonucu bu |
+
+Zincir: merdiven erken hızlı tırmanıyor → `q` çağın `q_esik`ini erken aşıyor
+→ **çağ geçişi erkene kayıyor** → her geçiş `Omega`'yı zıplatıyor
+(`gecis_omega`) → devrim erken geliyor.
+
+> **Devrim `PR` üzerinden değil, ÇAĞ ZAMANLAMASI üzerinden kaymıştı.** İki
+> aday kanalı (ücret pazarlığı, protesto riski) ölçüm eledi; ikisi de iki
+> kolda aynıydı. Kalibrasyon düzeltilince devrim 1918'e döndü, yani çapadan
+> beş yıl uzağa.
+
+Bu, `q`'nun bu motorda yalnızca bir üretkenlik değişkeni olmadığını da
+gösteriyor: **çağ tablosunun tetikleyicisi.** Mikro katmanın `q`'yu yazması,
+farkında olmadan tarihin hızını da yazması demektir.
+
+### Tarihsel kayıt mikro katmanla
+
+`--v2-tarih-mikro` (aynı ölçüt, mikro katman takılı) **geçiyor**:
 
 | | kapalı form | mikro katman | tarihsel |
 |---|---|---|---|
-| ham sicil toplamı (medyan) | 35.0 | **25.0** | 27 |
-| ayrık olay, 2 yıl (medyan) | 21.0 | 19.0 | 24 |
-| olay / 100 kapitalist yıl | 19.2 | 19.8 | 12.1 |
+| ham sicil toplamı (medyan) | 35.0 | **29.5** | 27 |
+| ayrık olay, 2 yıl (medyan) | 21.0 | 21.0 | 24 |
+| olay / 100 kapitalist yıl | 19.2 | 20.5 | 12.1 |
+| devrim (tohum 42) | 1923 | 1918 | — |
 
-Ham kriz toplamı 35.0'ten **25.0**'e iniyor, yani tarihsel 27'ye
-yaklaşıyor — B1a'nın "fazla kriz-yatkın" fazlalığını mikro katman kendiliğinden
-kısıyor. Sebebi tahminen sermayenin binalara gömülü ve departmanlar arası
-kaymanın yavaş olmasıdır, ama **ölçülmedi**; iddia edilmiyor.
-
-> **AÇIK KIRMIZI — devrim ~20 yıl erkene kayıyor.** Kapalı formda devrim
-> 1920–1926'da, mikro katmanla 1903–1905'te. Kapitalist süre 96–101 yıldan
-> 78–81 yıla iniyor, dolayısıyla "olay / 100 kapitalist yıl" ölçüsü
-> **iyileşmiş gibi görünmüyor** — payda küçüldü. Bu, B2b'ye (sınıf
-> kohortları) girmeden önce açıklanmalı: erken devrim gerçek bir mekanizma
-> sonucu mu, yoksa `pay`ın hâlâ çekirdekte olmasından doğan bir kuplaj
-> eseri mi? `pay` B2b'de pop katmanına geçecek ve bu soru orada
-> yanıtlanabilir hale gelecek.
+Ham kriz toplamı 35.0'ten **29.5**'e iniyor, yani tarihsel 27'ye yaklaşıyor —
+B1a'nın "fazla kriz-yatkın" fazlalığını mikro katman bir miktar kısıyor.
+Sebebi muhtemelen sermayenin binalara gömülü ve departmanlar arası kaymanın
+yavaş olmasıdır, ama **ölçülmedi**; iddia edilmiyor.
 
 ---
 

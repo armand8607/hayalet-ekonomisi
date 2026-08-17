@@ -50,6 +50,10 @@ func _ready() -> void:
 			"--v2-uretim-tarama":
 				# Yukseltme maliyetinin kalibrasyonu. Tani kapisi.
 				cikis = UretimTesti.tarama()
+			"--v2-uretim-iz":
+				# Mikro kol ile kapali form yan yana -- devrimin neden erkene
+				# kaydigini aramak icin. Tani kapisi.
+				cikis = UretimTesti.iz()
 			"--v2-tarih-mikro":
 				# Ayni tarihsel olcut, mikro uretim katmani TAKILI. B2'nin
 				# kendi olcutu: toplamlar mikro katmandan gelirken tarihsel

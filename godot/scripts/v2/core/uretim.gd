@@ -130,31 +130,46 @@ static func basamak_oto(mutlak_q: float) -> float:
 ## Burada odenen sey yalnizca FARKTIR: yeni teknigi kurmak, eskisini oldugu
 ## gibi yenilemekten ne kadar pahalidir.
 ##
-## OLCULDU VE ILK DEGER YANLISTI. Once 0.45 yazilmisti (binanin sermayesinin
-## %45'i). `--v2-uretim-tarama`, capa olarak cekirdegin KAPALI FORMUNU alarak
-## (o kalibrasyon `--v2-olcek` 23/23 ve `--v2-tarih`ten geciyor, yani
-## uretkenlik buyume hizi bu motorda zaten sinanmis):
+## OLCULDU, VE IKI KEZ DUZELTILDI.
 ##
-##   CAPA (mikro yok): q = 55.43,  ort r = 0.0425
+## Once 0.45 yazilmisti (binanin sermayesinin %45'i) -- teknigin TAM bedeli.
+## Cifte sayimdi; 200 yilda 15 yukseltme, q 1.00 -> 1.33.
 ##
-##   maliyet   yukseltme   q(2036)   q/capa    ort r
-##     0.450          15     1.331     0.02   0.06698
-##     0.200          35     1.949     0.04   0.06728
-##     0.100          80     4.595     0.08   0.06000
-##    *0.050         203    48.524     0.88   0.04100
-##     0.020         225    72.890     1.32   0.02744
-##     0.010         225    72.890     1.32   0.02833
-##     0.005         225    72.890     1.32   0.02892
+## Sonra 0.05'e cekildi. O da yanlisti ama sebebi baskaydi: TARAMA YANLIS
+## SEYI OLCUYORDU. Kalibrasyon 1836/cag-2 kurulumunda ve yalnizca UC NOKTA
+## (q(2036)) uzerinden yapilmisti; oysa karar verilen olcut `--v2-tarih`tir
+## ve o 1825'te CAG 1'den baslar. Uc nokta capaya yakin cikarken YORUNGE
+## ayrisiyordu -- mikro kol 1865'te 2.59'a, kapali form 1.58'e varmisti.
 ##
-## 0.050 secildi: capaya en yakin (log-uzaklik 0.133) ve ortalama kar orani
-## da capayla ortusuyor (0.0410 / 0.0425).
+## Sonucu `--v2-uretim-iz` ile goruldu: q erken buyuyunce cagin `q_esik`i
+## erken asiliyor, cag gecisi erkene kayiyor, her gecis `Omega`yi zipliyor
+## ve DEVRIM 20 YIL ERKEN geliyor. `pay` iki kolda neredeyse ayni, `PR`
+## ikisinde de doymus -- yani kanal ucret pazarligi degil, CAG ZAMANLAMASI.
 ##
-## ESIGIN ALTI DOYUYOR. 0.02'nin altinda tablo DONUYOR -- 225 yukseltme,
-## q = 72.89, hepsi ayni. Baglayici kisit artik maliyet degil CAGIN
-## `q_tavan`i; daha ucuz teknik daha hizli gelisme uretmiyor. Bu, merdivenin
-## cag tablosuna dogru bagli oldugunun kaniti: ucuzluk teknolojiyi
-## sinirsizlastirmiyor.
-var yukseltme_maliyeti: float = 0.05
+## Tarama artik `--v2-tarih` kurulumunda kosuyor ve yirmi yillik orneklerin
+## ORTALAMA LOG SAPMASINA bakiyor:
+##
+##   CAPA (mikro yok): devrim 1923, ort r 0.0653
+##   q yorungesi:  1.27  1.58  1.90  2.24  3.23  4.33  5.69  8.58
+##
+##   maliyet  yukselt  log-sapma  devrim   ort r   q(1885)  q(1965)
+##     0.050      177      0.694    1903  0.0401     3.70    15.86
+##    *0.100       81      0.340    1918  0.0594     1.61     3.29
+##     0.200       35      0.764    1922  0.0660     1.21     1.69
+##     0.350       20      0.906    1924  0.0674     1.10     1.33
+##     0.500       15      0.954    1928  0.0700     1.09     1.26
+##     0.800       10      0.997    1927  0.0670     1.06     1.16
+##     1.200        7      1.036    1925  0.0684     1.00     1.10
+##
+## 0.100 secildi: yorungeye en yakin, ve devrim 1918 ile capanin 1923'unden
+## yalnizca bes yil once -- tohum gurultusunun icinde.
+##
+## KALAN SAPMA DURUSTCE YAZILIYOR: 0.340'lik log sapma sifir degildir.
+## Mikro kol gec on yillarda capadan YAVAS kaliyor (q(1965) 3.29 / 5.69).
+## Merdivenin gec doymasi, basamak carpani ile cag tavaninin birlikte
+## belirledigi bir sey; B2b'den once kovalanmasi gerekmiyor cunku tarihsel
+## olcut ve devrim zamanlamasi tutuyor.
+var yukseltme_maliyeti: float = 0.10
 
 ## Brut yatirimin yukseltmeye ayrilan payi. Kalani yeni kapasiteye gider.
 ## Yogun (intensive) ve yaygin (extensive) birikim arasindaki bolusme.

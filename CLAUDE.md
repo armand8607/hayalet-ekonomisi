@@ -88,7 +88,7 @@ Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
 katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
 (mikro üretim katmanı, 17 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim` ve
 `--v2-uretim-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
-`--v2-iz[=YIL[:baş[:dönem]]]` (teşhis izi).
+`--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
 
 > **v2'de SAYAÇLAR dönem cinsindendir, tur cinsinden DEĞİL.** v4.4'ün bütün
 > `*_sure` sabitleri 0.27 yıllık tur cinsindendir; haftalık döngüye olduğu gibi
@@ -356,6 +356,19 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   mantığı tersine çevirir: üretim yöntemi merdiveni bir kez öyle yazıldı ve
   1836–1975 arası 139 yıl tek basamakta dondu (200 yılda q 1.00 → 1.33, kapalı
   form 55.4 verirken). Kapı `q_tavan` olmalı — tabloyu tekrarlamaz, okur.
+- **v2'de `q` yalnızca üretkenlik değil, ÇAĞ TABLOSUNUN TETİKLEYİCİSİDİR.**
+  Çağ geçişi `q > E["q_esik"]` şartına bakar ve her geçiş `Omega`'yı zıplatır
+  (`gecis_omega`). Yani `q`'nun büyüme hızını değiştiren her mekanizma, farkında
+  olmadan **devrimin zamanlamasını** da değiştirir. Bir kez yaşandı: mikro
+  katmanın merdiveni erken hızlı tırmanınca devrim 1923'ten 1903'e kaydı. Teşhis
+  eleme ile yapıldı — `pay` ve `PR` iki kolda da aynıydı, ayrışan `q` ve çağdı
+  (`--v2-uretim-iz`).
+- **Kalibrasyonu KARAR VERİLEN kurulumda ve YÖRÜNGE üzerinden yap.** Bu ikisi
+  ayrı ayrı hataya yol açtı. `--v2-uretim-tarama` önce 1836/çağ-2'den koşuyordu
+  ama ölçüt `--v2-tarih` ve o 1825/çağ-1'den başlıyor — çağların `q_tavan`ı
+  farklı olduğu için sabit taşınmıyor. Ve tarama yalnızca uç noktaya bakıyordu:
+  uç nokta çapaya %88 yakınken yörünge iki kat ayrışıyordu. **Bir eğriyi tek
+  noktadan eşleştirmek onu eşleştirmez.**
 - **Toplu bedeli haftalık akımla karşılaştırma.** Bir yatırım kararının bedeli
   stok cinsindense (binanın sermayesinin şu kadarı) ve bütçe akım cinsindense
   (haftalık yatırımın şu kadarı), koşul hiç sağlanmaz. Bir kez yaşandı:

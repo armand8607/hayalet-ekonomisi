@@ -286,6 +286,77 @@ static func _bilimsel(x: float) -> String:
 
 
 # ===========================================================================
+# TESHIS IZI  --  mikro kolu ile kapali form yan yana
+# ===========================================================================
+
+## Devrim mikro katmanla ~20 yil erken geliyor. Sebebini ARAMAK icin, iddia
+## etmek icin degil.
+##
+## Devrim `PR = sg(kappa*(b_pay*(1-pay) + b_iss*iss - theta))` uzerinden
+## gelir, yani YALNIZCA `pay` ve `e`'ye bakar. Ikisi de hala cekirdekte;
+## mikro katman onlari dogrudan yazmiyor. O halde etki dolayli olmali:
+## `q` -> `Y_L` -> `e` -> Goodwin -> `pay`. Bu iz o zinciri gorunur kilar.
+##
+## `--v2-tarih` ile ayni baslangici kullanir (cag 1, 1825), yoksa olculen
+## sey devrim tarihi degil baslangic farki olur.
+static func iz() -> int:
+	print("=".repeat(78))
+	print("MIKRO KOL ILE KAPALI FORM YAN YANA   (--v2-tarih baslangici, tohum 42)")
+	print("=".repeat(78))
+
+	var kollar := {}
+	for mikro_acik in [false, true]:
+		var d := KrizDurumu.new()
+		d.L_etkin = 110.0
+		d.pay = 0.52
+		d.era = 1
+		d.q = 1.0
+		d.yil = 1825.0
+		d.varlik = 0.5
+		var c := KrizCekirdegi.new(null, 42)
+		c.baslat(d)
+		if mikro_acik:
+			var m := UretimKatmani.new()
+			m.baslat(d)
+			c.mikro = m
+		var satirlar := []
+		var n := Oran.donem_sayisi(198.0, HAFTA)
+		var sonraki := 1825.0
+		for _i in range(n):
+			c.adim(d, HAFTA)
+			if d.yil >= sonraki:
+				satirlar.append({
+					"yil": d.yil, "q": d.q, "e": d.e, "pay": d.pay,
+					"r": d.r_yil, "Omega": d.Omega, "PR": d.PR,
+					"era": d.era, "org": d.org, "gerg": d.emek_gerginlik,
+					"devrim": d.devrim_yil,
+				})
+				sonraki += 20.0
+		kollar[mikro_acik] = {"satirlar": satirlar, "devrim": d.devrim_yil}
+
+	print("\n  yil |          KAPALI FORM              |         MIKRO KATMAN")
+	print("      |   q     e    pay    r    PR  cag |   q     e    pay    r    PR  cag")
+	print("  " + "-".repeat(74))
+	var a: Array = kollar[false]["satirlar"]
+	var b: Array = kollar[true]["satirlar"]
+	for i in range(mini(a.size(), b.size())):
+		var x: Dictionary = a[i]
+		var y: Dictionary = b[i]
+		print("  %4d | %5.2f %5.3f %5.3f %6.4f %5.3f %2d | %5.2f %5.3f %5.3f %6.4f %5.3f %2d" % [
+				int(x["yil"]),
+				x["q"], x["e"], x["pay"], x["r"], x["PR"], int(x["era"]),
+				y["q"], y["e"], y["pay"], y["r"], y["PR"], int(y["era"])])
+
+	print("\n  devrim yili : kapali form %.0f,  mikro katman %.0f"
+			% [float(kollar[false]["devrim"]), float(kollar[true]["devrim"])])
+	print("\n  OKUMA. PR yalnizca `pay` ve `e`'ye bakar. Iki kolda hangisinin")
+	print("  once ayristigi, etkinin hangi zincirden geldigini soyler:")
+	print("    `e` once ayrisiyorsa  -> q -> Y_L -> istihdam kanali")
+	print("    `pay` once ayrisiyorsa -> Goodwin/emek gerginligi kanali")
+	return 0
+
+
+# ===========================================================================
 # KALIBRASYON TARAMASI  --  ayri kapi, ana testten yavas
 # ===========================================================================
 
@@ -300,57 +371,106 @@ static func _bilimsel(x: float) -> String:
 ## Bu, B1b'de `vt_siddet` icin kullanilan gerekcenin aynisidir: yeni
 ## mekanizmanin agirligi keyfi secilemez, var olan ve sinanmis bir olcume
 ## oturtulur.
+##
+## ------------------------------------------------------------------------
+## IKI KEZ DUZELTILDI -- ilk tasarim yanlis seyi olcuyordu
+## ------------------------------------------------------------------------
+## 1. YANLIS KONFIGURASYON. Tarama once bu dosyanin kendi baslangicindan
+##    (1836, cag 2) kosuyordu; oysa uzerinde karar verilen olcut
+##    `--v2-tarih`tir ve o 1825'te CAG 1'den baslar. Cag 1'in `q_tavan`i 4.0,
+##    cag 2'ninki 8.0 -- yani merdivenin tavani bastan farkli. Baska bir
+##    kurulumda kalibre edilen sabit, karar verilen kurulumda gecerli degildir.
+##
+## 2. YANLIS OLCU. Yalnizca UC NOKTA (q(2036)) karsilastiriliyordu. Olculdu
+##    (`--v2-uretim-iz`): uc nokta 0.88 oraniyla capaya yakin cikarken
+##    YORUNGE tamamen ayrisiyordu -- mikro kol 1865'te 2.59'a, kapali form
+##    1.58'e varmisti, yani erken on yillarda IKI KAT hizli. Sonucu devrimin
+##    20 yil erkene kaymasiydi: q erken buyuyunce cagin `q_esik`i erken
+##    asiliyor, cag gecisi erken oluyor, her gecis `Omega`yi zipliyor.
+##    Bir egriyi tek noktadan eslestirmek onu eslestirmez.
+##
+## Olcu artik yirmi yillik orneklerin ORTALAMA LOG SAPMASIDIR.
 static func tarama() -> int:
-	print("=".repeat(66))
-	print("YUKSELTME MALIYETI TARAMASI   (capa: cekirdegin kapali formu)")
-	print("=".repeat(66))
+	print("=".repeat(72))
+	print("YUKSELTME MALIYETI TARAMASI   (capa: kapali form, --v2-tarih kurulumu)")
+	print("=".repeat(72))
 
-	# Capa: mikro katman TAKILI DEGIL. Cekirdegin kendi q yorungesi.
-	var d_ref := _baslangic()
-	var c_ref := KrizCekirdegi.new()
-	c_ref.baslat(d_ref)
-	var n := Oran.donem_sayisi(BITIS - BAS, HAFTA)
-	var r_ref := 0.0
-	for _i in range(n):
-		c_ref.adim(d_ref, HAFTA)
-		r_ref += d_ref.r_yil * HAFTA
-	r_ref /= maxf(float(n) * HAFTA, 1e-9)
-	print("\n  CAPA (mikro yok, kapali form): q = %.3f, ort r = %.5f, c/v = %.3f\n"
-			% [d_ref.q, r_ref, d_ref.cv])
+	var ornek_yillari := [1845.0, 1865.0, 1885.0, 1905.0, 1925.0, 1945.0, 1965.0, 1985.0]
 
-	print("  maliyet   yukseltme    q(2036)   q/capa    ort r     ort c/v")
-	print("  " + "-".repeat(58))
-	var adaylar := [0.45, 0.20, 0.10, 0.05, 0.02, 0.01, 0.005, 0.002]
+	var capa := _yorunge(-1.0, ornek_yillari)
+	print("\n  CAPA (mikro yok): devrim %.0f, ort r %.5f" % [
+			float(capa["devrim"]), float(capa["r_ort"])])
+	print("  q yorungesi:  " + _yorunge_yaz(capa["q"]))
+
+	print("\n  maliyet  yukselt   log-sapma   devrim   ort r    q(1885)  q(1965)")
+	print("  " + "-".repeat(64))
+	var adaylar := [0.05, 0.10, 0.20, 0.35, 0.50, 0.80, 1.20]
 	var en_iyi := 0.0
 	var en_iyi_fark := INF
 	for maliyet in adaylar:
-		var d := _baslangic()
-		var c := KrizCekirdegi.new()
-		c.baslat(d)
-		var m := UretimKatmani.new()
-		m.baslat(d)
-		m.yukseltme_maliyeti = float(maliyet)
-		c.mikro = m
-		var r_top := 0.0
-		var cv_top := 0.0
-		for _i in range(n):
-			c.adim(d, HAFTA)
-			r_top += d.r_yil * HAFTA
-			cv_top += d.cv * HAFTA
-		var oran := d.q / maxf(d_ref.q, 1e-9)
-		# Karsilastirma LOGARITMIKTIR: q bilesik buyudugu icin "iki kat hizli"
-		# ile "yari hizli" ayni uzaklikta olmalidir. Dogrusal fark alsaydik
-		# tarama sistematik olarak yavas adaylari secerdi.
-		var fark := absf(log(maxf(oran, 1e-9)))
-		if fark < en_iyi_fark:
-			en_iyi_fark = fark
+		var kol := _yorunge(float(maliyet), ornek_yillari)
+		var q: Array = kol["q"]
+		var q0: Array = capa["q"]
+		# LOGARITMIK: q bilesik buyudugu icin "iki kat hizli" ile "yari
+		# hizli" ayni uzaklikta olmali. Dogrusal fark alsaydik tarama
+		# sistematik olarak yavas adaylari secerdi.
+		var sapma := 0.0
+		for i in range(mini(q.size(), q0.size())):
+			sapma += absf(log(maxf(float(q[i]), 1e-9) / maxf(float(q0[i]), 1e-9)))
+		sapma /= maxf(float(q.size()), 1.0)
+		if sapma < en_iyi_fark:
+			en_iyi_fark = sapma
 			en_iyi = float(maliyet)
-		print("  %7.3f   %9d   %8.3f   %6.2f   %8.5f   %8.3f" % [
-				float(maliyet), m.yukseltme_sayisi, d.q, oran,
-				r_top / maxf(float(n) * HAFTA, 1e-9),
-				cv_top / maxf(float(n) * HAFTA, 1e-9)])
+		print("  %7.3f %8d %11.3f %8.0f %8.5f %8.2f %8.2f" % [
+				float(maliyet), int(kol["yukseltme"]), sapma,
+				float(kol["devrim"]), float(kol["r_ort"]),
+				float(q[2]) if q.size() > 2 else 0.0,
+				float(q[6]) if q.size() > 6 else 0.0])
 
-	print("\n  capaya en yakin: %.3f  (q orani log-uzakligi %.3f)" % [en_iyi, en_iyi_fark])
+	print("\n  capaya en yakin: %.3f  (ortalama log sapma %.3f)" % [en_iyi, en_iyi_fark])
 	print("\n  NOT: bu bir kapi degil TANIDIR. Secim tasarim belgesine yazilir;")
 	print("       kod varsayilani elle guncellenir, tarama otomatik degistirmez.")
 	return 0
+
+
+## `--v2-tarih` kurulumunda bir kampanya kosar ve q yorungesini ornekler.
+## `maliyet < 0` ise mikro katman TAKILMAZ (capa kolu).
+static func _yorunge(maliyet: float, ornek_yillari: Array) -> Dictionary:
+	var d := KrizDurumu.new()
+	d.L_etkin = 110.0
+	d.pay = 0.52
+	d.era = 1
+	d.q = 1.0
+	d.yil = 1825.0
+	d.varlik = 0.5
+	var c := KrizCekirdegi.new(null, 42)
+	c.baslat(d)
+	var m: UretimKatmani = null
+	if maliyet >= 0.0:
+		m = UretimKatmani.new()
+		m.baslat(d)
+		m.yukseltme_maliyeti = maliyet
+		c.mikro = m
+	var n := Oran.donem_sayisi(198.0, HAFTA)
+	var q_ornek: Array = []
+	var sonraki := 0
+	var r_top := 0.0
+	for _i in range(n):
+		c.adim(d, HAFTA)
+		r_top += d.r_yil * HAFTA
+		if sonraki < ornek_yillari.size() and d.yil >= float(ornek_yillari[sonraki]):
+			q_ornek.append(d.q)
+			sonraki += 1
+	return {
+		"q": q_ornek,
+		"devrim": d.devrim_yil,
+		"r_ort": r_top / maxf(float(n) * HAFTA, 1e-9),
+		"yukseltme": m.yukseltme_sayisi if m != null else 0,
+	}
+
+
+static func _yorunge_yaz(q: Array) -> String:
+	var s := ""
+	for x in q:
+		s += "%6.2f" % float(x)
+	return s
