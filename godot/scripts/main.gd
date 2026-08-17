@@ -47,6 +47,14 @@ func _ready() -> void:
 				# tuzagi -- bina defterinde karli gorunen yukseltme toplam
 				# kar oranini dusuruyor mu.
 				cikis = UretimTesti.kos()
+			"--v2-nufus-tarama":
+				# Yedek ordu etkisinin kalibrasyonu. Tani kapisi.
+				cikis = NufusTesti.tarama()
+			"--v2-nufus":
+				# Sinif kohortlari (B2b): nufus korunumu, bilesim kanali ve
+				# yedek sanayi ordusu -- ucret payi pazarlanan bir skaler mi,
+				# yoksa bilesim x duzey mi.
+				cikis = NufusTesti.kos()
 			"--v2-uretim-tarama":
 				# Yukseltme maliyetinin kalibrasyonu. Tani kapisi.
 				cikis = UretimTesti.tarama()
@@ -55,12 +63,14 @@ func _ready() -> void:
 				# kaydigini aramak icin. Tani kapisi.
 				cikis = UretimTesti.iz()
 			"--v2-tarih-mikro":
-				# Ayni tarihsel olcut, mikro uretim katmani TAKILI. B2'nin
-				# kendi olcutu: toplamlar mikro katmandan gelirken tarihsel
+				# Ayni tarihsel olcut, IKI mikro katman da TAKILI. B2'nin
+				# kendi olcutu: toplamlar mikro katmanlardan gelirken tarihsel
 				# kayit hala tutuyor mu.
 				TarihTesti.mikro_acik = true
+				TarihTesti.nufus_acik = true
 				cikis = TarihTesti.kos()
 				TarihTesti.mikro_acik = false
+				TarihTesti.nufus_acik = false
 			"--v2-dunya-ayrim":
 				# Dis konum gradyanindaki duzluk gercek mi, temerrut
 				# sikliginin eseri mi. 36 kampanya; ayri kapi.

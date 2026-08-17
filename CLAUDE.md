@@ -84,10 +84,11 @@ Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
 **Oyun**: `--oyna[=kayıt:tohum:ülke:tur]`, `--menu`, `--ss=DOSYA`.
 
 **v2** (hiçbiri v4.4'e dokunmaz): `--v2-olcek` (ölçek değişmezliği, 23 denetim),
-`--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-tarih-mikro` (aynısı, mikro
+`--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-tarih-mikro` (aynısı, iki mikro
 katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
-(mikro üretim katmanı, 17 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim` ve
-`--v2-uretim-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
+(üretim katmanı, 17 denetim), `--v2-nufus` (sınıf kohortları, 13 denetim),
+`--v2-dunya-siddet`, `--v2-dunya-ayrim`, `--v2-uretim-tarama` ve
+`--v2-nufus-tarama` (kalibrasyon taramaları — tanı, ana kapıdan yavaş),
 `--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
 
 > **v2'de SAYAÇLAR dönem cinsindendir, tur cinsinden DEĞİL.** v4.4'ün bütün
@@ -415,15 +416,25 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `KrizCekirdegi` | ülke-içi kriz teorisi. `adim(d, donem_yil, dis)` |
 | `Dunya` | ülkeler arası **korunumlu** değer akışı (C/L blokları) |
 | `UretimKatmani` | mikro katman: sektör, bina, üretim yöntemi merdiveni (B2a) |
+| `NufusKatmani` | sınıf kohortları: emek arzı, istihdam, ücret payı (B2b) |
 | `Oran` | dönem↔yıl dönüşümleri. Tur→hafta tuzağının tek savunması |
 
-**Mikro katman TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`
-`null` ise bütün kapalı formlar eskisi gibi koşar; B1a/B1b ölçümleri
-geçerliliğini korur. Takılıysa dört alanın otoritesi ona geçer — `K`, `q`,
-`oto`, `pay_I` — ve **otorite tablosu `uretim.gd`'nin başındadır**. Açık/kapalı
-olması bir test kolaylığı değil deney tasarımıdır: bir mekanizmanın etkisi
-ancak aynı tohumla açık ve kapalı koşulup karşılaştırılarak ölçülebilir
+**Mikro katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`
+ve `cekirdek.nufus` `null` ise bütün kapalı formlar eskisi gibi koşar;
+B1a/B1b ölçümleri geçerliliğini korur. **İkisi birbirinden bağımsız takılır** —
+etkileri ancak öyle ayrı ölçülebilir; B2a'da devrimin 20 yıl kaymasının sebebi
+tam da bu ayrılabilirlik sayesinde eleme yoluyla bulundu. Takılıysa otorite
+geçer: `mikro` → `K`, `q`, `oto`, `pay_I`; `nufus` → `L_etkin`, `e`,
+`emek_gerginlik`, `pay`. **Otorite tabloları `uretim.gd` ve `nufus.gd`'nin
+başındadır.** Açık/kapalı olması bir test kolaylığı değil deney tasarımıdır
 (B1b'de kesitsel ölçüm bir kez yanlış sonuç verdi).
+
+**Bir mekanizmanın YÖNÜ doğru çıkabilir ve mekanizma yine de ÖLÜ olabilir.**
+B2b'de yaşandı: `pay` kampanyanın %74'ünü tabana çakılmış geçiriyordu, bileşim
+kanalı hiç iş görmüyordu, ve kapı yön denetimleriyle **yeşil veriyordu**. Yön
+testleri bunu yakalamaz; **bant denetimleri** yakalar. Yeni bir kapı yazarken
+"mekanizma canlı mı" denetimini ayrıca koy — yoksa "eşik gevşetilmedi" cümlesi
+boş kalır.
 
 **Birim sözleşmesi v4.4'ten en önemli ayrılıktır.** v4.4'te akımlar *tur
 başına* tanımlıydı ve dönem uzunluğu değişince sessizce yanlışlanan tek şey

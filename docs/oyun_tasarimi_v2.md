@@ -478,7 +478,7 @@ yok" bulmak demekti.
 | ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
 | **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ✅ | **KURULDU** — beş kanal da yerinde, `--v2-dunya` 17/17 |
 | **B2a** | **ÜRETİM KATMANI.** Sektör, bina, üretim yöntemi merdiveni (§5.11) | **KURULDU** — `--v2-uretim` 17/17, `--v2-tarih-mikro` geçiyor |
-| **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | Goodwin otoritesi pop katmanına geçer, salınım ölmez |
+| **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | **KURULDU** — `--v2-nufus` 13/13, `--v2-tarih-mikro` iki katmanla geçiyor |
 | **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | Gerçekleşme krizi bir sayı değil, depoda **kütle** olarak okunur |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | Altı yeni yön testi yeşil |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | Savaş sonrası kâr oranı yukarı, nüfus aşağı |
@@ -1076,6 +1076,119 @@ Ham kriz toplamı 35.0'ten **29.5**'e iniyor, yani tarihsel 27'ye yaklaşıyor �
 B1a'nın "fazla kriz-yatkın" fazlalığını mikro katman bir miktar kısıyor.
 Sebebi muhtemelen sermayenin binalara gömülü ve departmanlar arası kaymanın
 yavaş olmasıdır, ama **ölçülmedi**; iddia edilmiyor.
+
+---
+
+## 6c. B2b — sınıf kohortları
+
+### Ölçüt üçüncü kez düzeltildi
+
+Tablodaki ölçüt "Goodwin otoritesi pop katmanına geçer, salınım ölmez"di. Bu
+da ayırt etmiyor: salınım B2b hiç yokken de var. Kohortlar olmadan
+**kurulamayan** iddia şudur:
+
+> Ücret payı pazarlanan bir skaler değildir. Pazarlık hiç olmasa bile **sınıf
+> bileşimi** değiştiğinde ücret payı değişir.
+
+`pay` bir skalerken "bileşim" diye bir şey yoktur; cümle telaffuz edilemez.
+Kapı: **`--v2-nufus`**, 13/13.
+
+### Saklanan dört, türetilen iki
+
+§5.9 altı kohort sayıyor; burada dördü saklanır (`sermayedar`,
+`kucuk_burjuva`, `kir_emegi`, `emek_gucu`), ikisi türer: `issiz =
+emek_gucu·(1−e)` ve `hapis = emek_gucu·cezaevi_orani`. İşsizi saklamak bir
+**döngü** kurardı — işsizlik istihdamdan, istihdam emek arzından, emek arzı da
+işsizi içeren emek gücünden gelir. Türetmek o döngüyü yapısal olarak imkânsız
+kılıyor.
+
+**Geçişler çift üzerinde tanımlı**, `Dunya`nın kuralının aynısı: bir geçiş tek
+yerde hesaplanır ve iki kohorta ters işaretle yazılır, yani `sum(kohort) ==
+toplam_nufus` bir özdeşliktir. Ölçülen sapma **6.3e-15** (10 300 adım).
+
+### Ölçülen
+
+| iddia | ölçüm |
+|---|---|
+| kuruluşta emek arzı ve `pay` çekirdekle özdeş | **0.0** (ikisi de) |
+| nüfus korunumu, kampanya boyunca | **6.3e-15** |
+| küçük burjuva payı düşer (tasfiye) | 0.220 → 0.035 |
+| kır emeği payı düşer (kentleşme) | 0.550 → 0.356 |
+| emek gücü payı yükselir (**proleterleşme**) | 0.200 → **0.579** |
+| **bileşim kanalı** (pazarlık donduruldu, karşı-olgusal) | **+0.0201** |
+
+Bileşim kanalının ölçülme biçimi önemli: `pazarlik_sabit` bayrağı
+`w_nom_buyume_yil`'i enflasyona eşitliyor, yani reel ücret düzeyi donuyor ve
+`pay`ı hareket ettirebilecek **tek** şey bileşim kalıyor. Bayrak olmadan test
+dışından dondurma işlemiyor — `_goodwin` her adımda yeniden hesaplıyor.
+
+### Ücret payı bir DÜZEY değil, GÖRELİ ücret — bir kez yanlış kuruldu
+
+İlk yazımda `pay = w · kütle / V` biçiminde, `w` bir ücret **düzeyi** olarak
+kuruldu. Cebirsel olarak `pay ~ w/q` ediyor: `V` üretkenlikle büyüyor ama bir
+düzey olarak `w` onu takip etmiyor. Ölçüldü — `pay` kampanyanın **%74'ünü**
+`pay_taban`a çakılmış geçiriyor, bileşim kanalı ölü kalıyor (+0.00064) ve
+**kapı yine de yeşil veriyordu**: yön doğru, mekanizma ölü.
+
+Doğrusu: `w` bir **göreli** ücret (üretkenliğe oran), dinamiği çekirdeğin kendi
+`d_pay`i, ve `pay = w · bileşim_çarpanı`. Bileşim dondurulunca çekirdeğe **tam
+indirgeniyor** — "yeni katman eskisini özel durum olarak içerir" disiplini.
+Düzeltmeden sonra bileşim etkisi 30 kat büyüdü (+0.0201) ve tabanda geçen süre
+%74'ten **%23**'e indi.
+
+> **Bir mekanizmanın YÖNÜ doğru çıkabilir ve mekanizma yine de ölü olabilir.**
+> Yön denetimleri bunu yakalamaz. `--v2-nufus`'a bu yüzden **yozlaşma
+> denetimleri** eklendi: ortalama işsizlik bandı, ve `pay`ın tabanda geçirdiği
+> sürenin yarıyı aşmaması. Kapı ancak yozlaşmayı görebiliyorsa "yeşile boyamak
+> için eşik gevşetilmedi" cümlesi anlam taşır.
+
+### Yedek sanayi ordusu: yönü doğru, ADOPTE EDİLMEDİ
+
+Marx'ta ücreti disipline eden şey istihdam düzeyi değil işsiz kütlesidir. Kanal
+kuruldu ve yönü ölçüldü (açıkken ücret düzeyi daha düşük, −0.36). Ama çapaya
+karşı tarandığında:
+
+> **ÇAPA (nüfus katmanı yok): ort pay 0.4433**
+
+| etki | ort pay | pay/çapa | tabanda | devrim |
+|---|---|---|---|---|
+| **0.00** | **0.3802** | **0.86** | **0.23** | **1926** |
+| 0.05 | 0.3525 | 0.80 | 0.29 | 1924 |
+| 0.20 | 0.3071 | 0.69 | 0.43 | 1924 |
+| 0.60 | 0.2564 | 0.58 | 0.54 | 1925 |
+
+Çapaya **en yakın olan 0.00**; her pozitif ağırlık ücret payını çapadan
+uzaklaştırıyor.
+
+> **Sebep çifte sayım — B2a'daki hatanın yeni kılığı.** Çekirdeğin Goodwin
+> terimi `bos_e = emek_gerginlik − e_norm` üzerinden işsizlik kanalını **zaten**
+> taşıyor. Üzerine ikinci bir işsizlik terimi eklemek aynı kuvveti iki kez
+> saymaktır; B2a'da "sermaye yoğunluğu iki kez yazılmaz" diye kayda geçen
+> kuralın aynısı.
+
+Kanal **silinmedi, adopte edilmedi**: varsayılan 0.0, yönü ölçülmeye devam
+ediyor. Goodwin'in kendi terimiyle **yer değiştirmesi** gerekir ve pazarlık
+bloğunu yeniden yazmak B3'ün işi — örgütlü/örgütsüz ayrımı ve `bolunme` orada
+kurulacak, özgün kanal orada tanımlanabilir hale gelecek.
+
+Bir ara adım da denendi ve yetmedi: sabit `issiz_norm` yerine **hareketli**
+norm (çekirdeğin `e_norm`u ile aynı gerekçe — kalıcı bir işsizlik kalıcı bir
+kesinti değil yeni bir normal üretir). Ücret düzeyini 1.10'dan 1.15'e taşıdı,
+yani sorunu çözmedi; hareketli norm yine de korundu çünkü kendi başına doğru.
+
+### Kalan sapma
+
+| | çapa | B2a+B2b |
+|---|---|---|
+| ort istihdam `e` | 0.6831 | **0.7752** |
+| ort ücret payı | 0.4433 | **0.3802** (0.86) |
+| devrim (tohum 42) | 1923 | 1926 |
+
+İstihdam çapadan **daha iyi**, ücret payı çapanın %86'sı, devrim üç yıl geç.
+Ücret payındaki fark kapatılmadı ve sebebi biliniyor: proleterleşme emek arzını
+nüfus artışının üstünde büyütüyor (emek gücü nüfusun 0.75'inden 0.93'üne), yani
+**yedek ordu kohortlardan kendiliğinden doğuyor**. Bu bir kusur değil B3'ün
+zemini; orada `pay`ın tabanı `org` ile birlikte hareket edecek.
 
 ---
 

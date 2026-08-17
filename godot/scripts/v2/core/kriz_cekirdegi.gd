@@ -54,6 +54,14 @@ var cag_sabit := false
 ## yitirir -- o zaman test donem cevrimini degil DOYUM EGRISINI olcer.
 var doyum_sabit := false
 
+## Ucret PAZARLIGINI dondurur: `w_nom_buyume_yil` enflasyona esitlenir, yani
+## reel ucret duzeyi sabit kalir. YALNIZCA TEST ICINDIR ve B2b'nin asil
+## kapisinin dayandigi yer: pazarlik dondurulunca `pay`i hareket ettirebilecek
+## TEK sey kohort BILESIMI kalir. Bu bayrak olmadan bilesim etkisi pazarligin
+## gurultusunden ayrilamaz -- disaridan `w_nom_buyume_yil` yazmak islemez,
+## `_goodwin` onu her adimda yeniden hesaplar.
+var pazarlik_sabit := false
+
 ## Devrim gibi ayrik olaylar icin. Motorun kendi RNG'si degil -- v2'nin
 ## belirlenimciligi kendi tohumundan gelir.
 var rng: PyRandom
@@ -69,6 +77,22 @@ var rng: PyRandom
 ## etkisiyle yapisal farki birbirine karistirir ve bir kez yanlis sonuc
 ## verdi (§6, "Kesitsel degil karsi-olgusal").
 var mikro: UretimKatmani = null
+
+## NUFUS KATMANI (B2b). Takili degilse cekirdek eski kapali formlarla calisir.
+## Takiliysa emek arzi, istihdam ve ucret payi otoritesi ona gecer:
+## `L_etkin`, `e`, `emek_gerginlik`, `pay` (otorite tablosu: `nufus.gd`).
+##
+## MIKRO'DAN BAGIMSIZ TAKILIR. Ikisi ayri ayri acilip kapanabilmeli, yoksa
+## B2a ile B2b'nin etkileri ayri olculemez ve "hangisi yaptI" sorusu
+## yanitsiz kalir. B2a'da devrimin 20 yil kaymasinin sebebini eleme yoluyla
+## bulmamiz tam da bu ayrilabilirlik sayesinde oldu.
+var nufus: NufusKatmani = null
+
+## Goodwin blogunun bu adimda hesapladigi UCRET PAYI DEGISIM ORANI (yillik,
+## kirpilmis). Nufus katmani onu okur; pazarlik orani cekirdekte kalsin ama
+## uygulandigi yer degissin diye ayri bir alanda durur. Nufus takili degilse
+## yalnizca tanidir.
+var son_d_pay: float = 0.0
 
 
 func _init(p_param: KrizParam = null, tohum: int = 42) -> void:
@@ -185,12 +209,25 @@ func adim(d: KrizDurumu, donem_yil: float, dis: Dictionary = {}) -> void:
 	_merkez_bankasi(d, donem_yil)
 	var talep := _efektif_talep(d, donem_yil, Y_pot, VT_net_yil)
 	_hasila_ve_istihdam(d, donem_yil, Y_pot, talep, Y_onceki)
+	# EMEK PIYASASI hasiladan SONRA temizlenir: istihdam gerceklesen hasilanin
+	# istedigi emek ile kohortlarin sundugu emegin orani. `u` cekirdekte kalir
+	# (sermaye kullanimi), `e` ve gerginlik nufus katmanina gecer.
+	if nufus != null:
+		nufus.emek_piyasasi(d, mikro)
 	_etg(d, donem_yil)
 	_arti_deger_ve_kar(d, donem_yil, VT_net_yil)
 	_minsky(d, donem_yil)
 	_birikim(d, donem_yil, VT_net_yil)
 	_phillips(d, donem_yil)
 	_goodwin(d, donem_yil)
+	# BOLUSUM Goodwin'DEN SONRA. Sira zorunludur: Goodwin pazarlik ORANINI
+	# (`w_nom_buyume_yil`) hesaplar, nufus katmani onu bir ucret DUZEYINE
+	# uygular ve `pay`i kohort bilesiminden turetir. Once cagrilsa oran bir
+	# donem eski kalirdi.
+	if nufus != null:
+		nufus.bolusum(d, donem_yil, son_d_pay)
+		d.pay = nufus.pay_hesapla(d)
+		pay_sinirla(d)
 	_kriz_tescili(d, donem_yil)
 	_orgutlenme(d, donem_yil)
 	_protesto_ve_devrim(d, donem_yil, dis)
@@ -245,9 +282,14 @@ func _uretkenlik(d: KrizDurumu, donem_yil: float) -> void:
 	d.q *= (1.0 + Oran.donem_buyume(P.qg_yil * doyum, donem_yil))
 
 
-## Nufus. B2'de mikro katman (pop'lar) uretecek; burada toplam bir oran.
+## Nufus. Katman takiliysa kohortlar buyur ve aralarinda gecis olur (B2b);
+## takili degilse toplam emek arzi tek bir oranla buyur.
 func _nufus(d: KrizDurumu, donem_yil: float) -> void:
-	d.L_etkin *= (1.0 + Oran.donem_buyume(Oran.v44_buyume(P.v44.nufus_artis), donem_yil))
+	var artis := Oran.v44_buyume(P.v44.nufus_artis)
+	if nufus != null:
+		nufus.nufus_adim(d, donem_yil, artis)
+		return
+	d.L_etkin *= (1.0 + Oran.donem_buyume(artis, donem_yil))
 
 
 ## CAG GECISI -- takvim yili VE uretkenlik esigi birlikte belirler.
@@ -997,17 +1039,36 @@ func _goodwin(d: KrizDurumu, donem_yil: float) -> void:
 				+ P.v44.w_org_e * d.org * (d.e - P.v44.e0) + aktarim * P.qg_yil)
 		if d.kontrol > 0:
 			d.w_nom_buyume_yil *= (1.0 - P.v44.kont_etki)
+		if pazarlik_sabit:
+			d.w_nom_buyume_yil = d.pi_inf
 
-		var d_pay := clampf(d.w_nom_buyume_yil - d.pi_inf - P.qg_yil,
+		# NUFUS KATMANI TAKILIYSA `pay` BURADA YAZILMAZ. Pazarlik ORANI
+		# (`w_nom_buyume_yil`) yukarida hesaplandi ve otoritesi burada kaldi;
+		# onu bir ucret DUZEYINE uygulamak ve `pay`i kohort bilesiminden
+		# turetmek nufus katmaninin isi (§8.2, otorite tablosu).
+		son_d_pay = clampf(d.w_nom_buyume_yil - d.pi_inf - P.qg_yil,
 				-P.v44.pay_degisim_tavani, P.v44.pay_degisim_tavani)
-		d.pay *= (1.0 + Oran.donem_akim(d_pay, donem_yil))
-	else:
+		if nufus == null:
+			d.pay *= (1.0 + Oran.donem_akim(son_d_pay, donem_yil))
+	elif nufus == null:
 		var hedef := P.v44.sos_pay_taban
 		d.pay += Oran.donem_akim(P.v44.sos_pay_hiz, donem_yil) * (hedef - d.pay)
 
-	# Illegal sektorun super-somurusu ucret payinin TABANINI dusurur (SEVIYE
-	# etkisi; bir buyume orani drenaji DEGIL -- oyle kurulunca yuz yilda
-	# bilesiklenip payi sifira suruyordu).
+	if nufus == null:
+		pay_sinirla(d)
+
+
+## UCRET PAYININ TABANI VE TAVANI.
+##
+## Ayri bir fonksiyon cunku IKI YERDEN cagrilir: `pay` cekirdekte
+## pazarlaniyorsa `_goodwin`in sonundan, nufus katmani turetiyorsa `adim`dan.
+## Tek bir yerde tanimli olmasi zorunlu -- iki kopya olsaydi biri gunceLLenip
+## digeri kalir ve iki kol sessizce ayri sinirlarla kosardi.
+##
+## Illegal sektorun super-somurusu TABANI dusurur (SEVIYE etkisi; bir buyume
+## orani drenaji DEGIL -- oyle kurulunca yuz yilda bilesiklenip payi sifira
+## suruyordu).
+func pay_sinirla(d: KrizDurumu) -> void:
 	var etg_taban := P.v44.etg_taban_dus * d.etg * (1.0 - d.etg_metasiz)
 	var pay_taban := maxf(0.10, P.v44.pay_taban0 + P.v44.pay_taban_org * d.org
 			- P.v44.gasp_taban * d.lumpen_pay - etg_taban)

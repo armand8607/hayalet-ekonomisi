@@ -131,6 +131,10 @@ static func _ozet() -> Dictionary:
 ## tarihsel kayit hala tutar".
 static var mikro_acik := false
 
+## NUFUS KATMANI KOLU (B2b). Ayni gerekce: tarihsel olcut degistiginde butun
+## kollar birlikte degissin.
+static var nufus_acik := false
+
 
 static func _kos(vt_pay: float, tohum: int = 42) -> KrizDurumu:
 	var d := KrizDurumu.new()
@@ -146,6 +150,10 @@ static func _kos(vt_pay: float, tohum: int = 42) -> KrizDurumu:
 		var m := UretimKatmani.new()
 		m.baslat(d)
 		cekirdek.mikro = m
+	if nufus_acik:
+		var np := NufusKatmani.new()
+		np.baslat(d)
+		cekirdek.nufus = np
 	var n := Oran.donem_sayisi(BITIS - BAS, OlcekTesti.HAFTA)
 	for _i in range(n):
 		# Deger transferi burada TEK PARAMETREYLE taklit ediliyor: amac dunyayi
@@ -160,8 +168,12 @@ static func _kos(vt_pay: float, tohum: int = 42) -> KrizDurumu:
 static func kos() -> int:
 	var sure := BITIS - BAS
 	print("")
-	print("V2 CEKIRDEK -- TARIHSEL KALIBRASYON%s"
-			% ("   [MIKRO KATMAN TAKILI]" if mikro_acik else ""))
+	var etiket := ""
+	if mikro_acik:
+		etiket += "   [URETIM KATMANI]"
+	if nufus_acik:
+		etiket += "   [NUFUS KATMANI]"
+	print("V2 CEKIRDEK -- TARIHSEL KALIBRASYON%s" % etiket)
 	print("==================================================================")
 	print("Kaynak: Marksist Sistematikte Kapitalist Krizler, %d-%d" % [int(BAS), int(BITIS)])
 	print("")
