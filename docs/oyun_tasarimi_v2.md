@@ -472,6 +472,10 @@ yok" bulmak demekti.
 > **Yeni kural: kriz makinesinin canlı olduğu, üstüne bir şey inşa edilmeden
 > ÖNCE kanıtlanır.** Risk öne alınır.
 
+> **B5'in satırı düzeltildi.** Tablo "eyalet geometrisi" diyordu; §5.8 eyalet
+> katmanını kaldırmıştı ve tablo güncellenmemişti. Ekonominin tek mekânsal
+> birimi ülkedir, harita da ülke çizer.
+
 | aşama | iş | biter dediğimiz an |
 |---|---|---|
 | ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
@@ -481,8 +485,8 @@ yok" bulmak demekti.
 | **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | **KURULDU** — `--v2-nufus` 13/13, `--v2-tarih-mikro` iki katmanla geçiyor |
 | **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | **KURULDU** — `--v2-mal` 7/7 |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | **KURULDU** — `--v2-bolunme` 33/33; §4.3 ve §4.1'in birer iddiası ölçülüp düzeltildi (§6e) |
-| **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | **SAVAŞ KURULDU** — `--v2-savas` 16/16; ittifak/abluka/ambargo kalan iş (§6f) |
-| **B5** | **Harita.** Eyalet geometrisi, harita modları, ülke seçimi | 20+ ülke, dokuz mod, bağlar çizili |
+| **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | **KURULDU** — `--v2-savas` 16/16; ittifak/abluka/ambargo da yerinde (§6f) |
+| **B5** | **Harita.** ~~Eyalet~~ ülke geometrisi, harita modları, ülke seçimi | **KURULDU** — `--v2-harita` 44/44; 156 ülke çizili / 54 simüle / 19 oynanabilir, dokuz mod, dört bağ türü (§6g) |
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | ~100 ülke, kabul edilebilir tik süresi |
 | **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce | Ekran `--ss=` ile çizdirilip bakılmış |
 
@@ -1771,3 +1775,208 @@ Sıklık 5'e çıkarılınca iki denetim düştü, ikisi de **ölçüm tasarım�
 > Bu ailenin dört üyesi oldu: mutlak `NX` yerine `NX/Y`, ham `l_etkin` yerine
 > çarpan, kampanya ortalaması yerine eş-zamanlı kesit, dünya toplamı yerine
 > çift hacmi. **Düzey karşılaştırması trendi ölçer, mekanizmayı değil.**
+
+---
+
+## 6g. B5 — harita
+
+### Ölçüt: üç sayı yetmiyordu
+
+§6'nın tablosu "20+ ülke, dokuz mod, bağlar çizili" diyor. Sayılabilir ama
+**tek başına kapı değil**: üçünü de tutturan, üstelik yanlış yeri gösteren bir
+harita yazmak kolaydır. Haritada yanlış olmanın üç yolu var ve üçü de
+**oynayarak fark edilmez**:
+
+1. **Geometri bozuk olabilir** — üçgenlemesi boşa düşen bir halka. Ekranda bir
+   ülke eksik olur ve kimse hangisinin eksik olduğunu bilmez.
+2. **İsabet testi kayabilir** — tıklanan yer ile seçilen ülke ayrışır. Komşu
+   ülkeyi seçmek doğru görünür.
+3. **Mod ölü olabilir** — B2b'nin dersi. Bütün dünyayı tek renge boyayan bir
+   mod "çalışıyor" görünür ve hiçbir şey anlatmaz.
+
+Kapı (`--v2-harita`, **44 denetim**) üçünü de ölçer, ve dördüncü bir şeyi daha:
+haritanın motora **dokunmadığını** (aynı tohum, bir kolda harita her tik
+sorgulanıyor → iki dünya birebir aynı).
+
+**Kapı gerçekten düşebiliyor** — deponun kuralı gereği bir kez bozuldu:
+izdüşüm bir derece kaydırılınca `--v2-harita-veri` `18 geçti, 2 kaldı` ve
+`rc=1` verdi. İlginç olan hangi ikisinin düştüğü: gidiş-dönüş ve birim kare
+oturması. Başkent çapaları **düşmedi**, çünkü isabet testi derece uzayında
+çalışır ve izdüşümden bağımsızdır — yani iki denetim ailesi gerçekten ayrı
+şeyler ölçüyor.
+
+İki kapı var ve ayrılmaları bilinçli: `--v2-harita-veri` (geometri, izdüşüm,
+isabet — **~2 sn**, dünya koşmaz) ve `--v2-harita` (hepsi + tam kampanya,
+**~4 dk**). Geometri her değiştiğinde dört dakika beklemek üreticiyi elle
+doğrulamaktan yavaş olurdu.
+
+### Ne kuruldu
+
+| parça | ne |
+|---|---|
+| `tools/gen_harita.py` | Natural Earth 110m → `harita_verisi.gd` (üretilmiş) |
+| `HaritaVerisi` | 156 ülke, 201 halka, 4490 nokta, 1/16° tam sayı ızgara |
+| `Harita` | izdüşüm, isabet testi, ülke kaydı, dünya kurulumu, bağlar |
+| `HaritaModu` | dokuz mod: değer, aralık, renk, efsane |
+| `HaritaGorunum` | `_draw()` — sıfır asset, pan/zoom, seçim, efsane |
+
+**Sıfır asset kuralı §5.1'in izin verdiği kadar gevşedi**: `.png` yok, üretilmiş
+vektör tablosu var. Kaynak **kamu malı** (Natural Earth), Türkçe adlar
+kaynağın kendi `NAME_TR` alanından — elle çevrilmedi.
+
+**Elle yazılan tek şey kimlik tablosudur**: 19 oynanabilir ülkenin 1836 adı
+(§5.8b'nin tablosu) ve 54 ülkenin dünya sistemindeki 1836 konumu. Konum bir
+kalibrasyon değil, B1b'nin ölçülmüş merdiveninden hangi basamağın seçileceği:
+merkez 1.60/0.42, yarı 1.00/0.30, çevre 0.65/0.18. **Ülkelere büyüklük
+verilmedi** (`L_etkin` hepsinde aynı) — tarihsel büyüklük B6'nın işi, ve o
+yapılana kadar haritadaki ayrışma yalnızca üretkenlik farkından ve kaotik
+ayrışmadan geliyor.
+
+**Çizilen ≠ simüle edilen.** 156 ülke çizilir, 54'ü simüle edilir; kalanı
+"veri yok" rengindedir. Grönland'ı ya da Batı Sahra'yı çizmemek dünyada delik
+açardı ve oyunun egemenlik tartışmasında tarafı yok.
+
+### Üç sessiz hata — üçü de ölçümle yakalandı
+
+**1. Kendini kesen iki halka, iki ayrı sebep.** Godot'un
+`triangulate_polygon`u kendini kesen halkada **boş döner**; o ülke ekranda hiç
+görünmez. İki halka bunu yaptı ve sebepleri farklıydı:
+
+| halka | kaynak halka | sebep | çözüm |
+|---|---|---|---|
+| SAH (Batı Sahra) | temiz | Douglas-Peucker'ın kendisi yarattı | tolerans küçült (şekil korunur) |
+| SDN (Sudan) | **kendini kesiyor** | Natural Earth'ün veri kusuru | 2-opt düğüm çözme |
+
+**Sıra önemli.** SAH'ta 2-opt önce denenseydi alan **%49** şişerdi (ölçüldü);
+tolerans küçültme şekli koruyor. SDN'de hiçbir tolerans düzeltmiyor, 2-opt ise
+alanı %0.2 oynatıyor.
+
+**2. Üçgenleme eşiği MUTLAKTIR — birim uzayda küçük ada kayboluyor.**
+`Geometry2D.triangulate_polygon` `real_t` (float32) çalışır ve iç eşikleri
+mutlaktır. [0,1]² birim uzayda küçük bir adanın alanı ~2e-5'e düşüyor ve kulak
+kırpma üçgenleri sessizce atlıyor. Ölçüldü: Endonezya'nın 5 numaralı halkası
+10 noktalı, üçgenleme **8 üçgen** (yani doğru sayıda) döndürüyor ama kapladığı
+alan poligonun **%35'i**. Aynı halka 1000 kat büyütülünce sapma 1.8e-7'ye
+iniyor. Üçgen sayısına bakan bir denetim bunu **göremezdi**; yakalayan şey
+alan ölçümü oldu.
+
+**3. En/boy oranı normalizasyonda kayboldu.** `yansit` iki ekseni de ayrı ayrı
+[0,1]'e indiriyor; oran orada kaybolur ve çizim tarafında geri verilmezse dünya
+dikeyde **1.57 kat** gerilir. Ölçüldü: Brezilya'nın etiketi 489 piksel yerine
+768'e düştü, güney yarıküre ekranın altından taştı. Ekranda "biraz uzun"
+görünen bir dünya ile doğru olan arasındaki farkı gözle ayırmak zor — bu yüzden
+ölçek artık iki bileşenli ve sebebi kodda yazılı.
+
+### Pencere asimetrik: +84 / −58
+
+Kırpma zorunlu (Miller'ın y'si kutupta sonsuza gider) ama **simetrik kırpmak
+için sebep yok**: Antarktika dışarıda (nüfus yok) ve verideki en güney nokta
+−55.6 (Tierra del Fuego). Simetrik kırpınca ekranın alt beşte biri boş
+kalıyordu. Sınırlar veriden seçildi, sonuçta en/boy **1.99** — dünya
+haritasının doğal oranı. Kapı ayrıca "pencere bütün veriyi kapsıyor mu" diye
+sorar: veri değişip sınırlar unutulursa bir ülke kırpma çizgisine yapışır ve
+haritada düz bir kenar olarak görünür.
+
+### Dokuz mod
+
+| mod | okuduğu alan | tip |
+|---|---|---|
+| Siyasi | `rejim` + `kurum` | kategorik |
+| Kâr oranı | `r_yil` | ayrışan (medyan) |
+| Bunalım | `1 − Y_ort/Y_trend` | sıralı |
+| İşsizlik | `iss_duzeltilmis()` | sıralı |
+| Bölünme | `bolunme` | sıralı |
+| Örgütlenme | `orgutlu` | sıralı |
+| Dış ticaret | `NX/Y` | ayrışan (sıfır) |
+| Dış konum | `toplam_dis/Y` | ayrışan (sıfır) |
+| Otomasyon | `oto` | sıralı |
+
+**Hiçbiri türetilmiş bir skor değil**; dokuzu da motorun kendi alanı ya da
+motorun kendi kullandığı ifade. Bunalım modu `_kriz_tescili`nin *kendi*
+derinlik ifadesini okur — ayrıca hesaplasaydı harita motorun bunalım
+tanımından sessizce ayrışırdı.
+
+**Ölçek veriden gelir, sabit aralıktan değil** (`Chart`in dersi). Bedeli
+bilinçli: renkler kampanya boyunca yeniden ölçeklenir, bu yüzden efsane her
+zaman **sayıyı da** yazar.
+
+**Sadakat ayrı ölçülür.** Canlılık testinin yakalayamadığı hata şu: iki alan da
+hareket ediyorsa yanlış alanı okuyan bir mod da "canlı" görünür. Kapı bu yüzden
+dokuz alanı **doğrudan yazıp** modun o yazıyı gösterdiğini sınar.
+
+### İki mod düz — ve ikisi de haritanın değil dünyanın durumu
+
+Kampanya boyunca (54 ülke, 1836–2100, yıllık örnekleme) yedi mod ayrışıyor,
+ikisi düz kalıyor. İkisi de sadakat testini geçiyor, yani okudukları alan
+doğru; o alanlar hareket etmiyor.
+
+**1. `bolunme` sürücüsüz.** Karanlık devletin sekiz taktiğini (`t_*`) yazan bir
+aktör yok: ne oyuncu var, ne AI politika katmanı. `KaranlikDevlet.otomatik`
+yalnızca `mafya_tolerans`ı sürüyor, taktikleri değil. Mekanizma B3'te kuruldu
+ve `--v2-bolunme` onu **taktikleri kendi yazarak** sınıyor — dünyada
+sürücülüğünü yapan bir şey yok. Politika aktörü B7'nin işi.
+
+**2. `otomasyon` eşiğe varmıyor — ve bu B5'ten büyük bir bulgu.**
+`UretimKatmani` takılıyken `oto` otoritesi ona geçer ve `basamak_oto` **mutlak
+q ≥ 36** ister. Karşı-olgusal ölçüldü (3 ülke, 1836–2100, tohum 42, GBR kolu):
+
+| | q (1836 → 2100) | `oto` (2100) | `r` (2100) |
+|---|---|---|---|
+| mikro katman **takılı** | 1.60 → **12.4** | **0.000** | ~0.02 |
+| mikro katman **takılı değil** | 1.60 → **156.3** | **0.489** | 0.0016 |
+
+Yani üretim merdiveni kapalı formun **bir mertebe altında** kalıyor ve
+otomasyon — §5.3'ün "LTRPF'nin doruk noktası" dediği şey — oyun dünyasında
+**hiç başlamıyor**. §6b'nin kaydı merdivenin `era_min` kapısıyla dondurulduğunu
+ve düzeltildiğini anlatıyor (200 yılda q 1.00 → 1.33, kapalı form 55.4); bu
+ölçüm düzeltmeden **sonraki** hâli veriyor ve arayı kapatmadığını gösteriyor.
+
+`--v2-tarih-mikro` geçmeye devam ediyor, yani **1825–2023 kriz kaydı** mikro
+katmanla tutuyor; ayrışan şey geç kampanya (2023–2100). Düzeltmek merdiven
+kalibrasyonunu oynatmak demek, o da kriz kaydını oynatır — **B5'in işi değil**,
+B2a/B6'ya kayıt.
+
+> **Kapılar bilerek ters yönde.** İki denetim de "hâlâ düz mü" diye sorar ve
+> sebep ortadan kalktığı gün **düşer**. Gevşek bırakılsalardı (`>= 0`) o gün
+> hiçbir şey haber vermezdi.
+
+### Bağlar: tam ilişki çizilemez
+
+Dört bağ türü de dünyanın kendi durumundan okunur — savaş (`d.savas`), ittifak
+(`d.muttefik`), abluka (`w.abluka`), ticaret (`w.cift_hacmi`). Kampanya boyunca
+dördü de doğuyor (en yüksek eşzamanlı sayılar: savaş 13, ittifak 703, abluka
+730, ticaret 40 — kapı dördünü de görmeyi şart koşuyor).
+
+**İttifak bir KLİKTİR ve çizilemez.** Sosyalist pakt herkesi herkesle
+bağlıyor: 38 sosyalist ülke 38·37/2 = **703** çift eder. Yıldıza indirgenince
+**37** çizgi kalıyor ve 38 ülkenin 38'i de çizimde bir bağ taşıyor (kapı bunu
+ayrıca sınıyor). Bu yüzden model ile
+çizim ayrıldı: `baglar()` ilişkinin tamamını verir (kapı onu denetler),
+`gorunur_baglar()` bir **seçim** yapar —
+
+- savaş: hepsi (nadir, ve en önemlisi)
+- abluka: en şiddetli 40
+- ittifak: **kapsayan yıldız** — her ülke yalnızca en küçük indisli
+  müttefiğine bağlanır; blok üyeliği görünür, klik çizilmez (n üye → n−1 çizgi)
+- ticaret: en büyük 40 çift
+
+Politika `RefCounted` içinde durur, çizimde değil — **çizime bağlanan hiçbir
+şey CI'da ölçülemez** (`--headless` `_draw()` koşturmaz). Kapı ayrıca
+"ittifakı olan her ülkenin çizimde bir bağı var" der: yıldız bir bloğu
+düşürseydi harita eksik görünürdü ve bunu gözle fark etmek imkânsızdır.
+
+### Tik maliyeti — B6'nın girdisi
+
+54 ülke × 264 yıl = 13 728 tik, **227 sn**, yani **16.5 ms/tik** (tam katman
+yığını takılı: üretim, nüfus, mal, karanlık devlet + dünya katmanı). B5'te
+**eşik yok**, kayıt var. B6'nın sorusu tam olarak budur ve ~100 ülkede maliyet
+çift bileşenli büyür: ülke döngüsü doğrusal, ticaret çifti karesel
+(54 ülke → 1431 çift).
+
+### B5'in yapmadıkları
+
+- **Ekonomik tohumlama yok** — bütün ülkeler aynı `L_etkin` ile başlar. B6.
+- **Politika aktörü yok** — AI ne taktik yazar ne politika ilan eder. B7.
+- **Blok gösterimi yok** — ittifak yıldızla çizilir; dolgu/kabuk gösterimi B7.
+- **Ad değişimi yok** — oynanabilir ülkeler kampanya boyunca 1836 adını taşır;
+  "Osmanlı → Türkiye" geçişinin takvimi B7.

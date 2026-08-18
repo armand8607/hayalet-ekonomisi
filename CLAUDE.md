@@ -56,6 +56,13 @@ de **üretilmiştir** (`python tools/gen_gdscript.py`). 355 kalibrasyon sabitini
 elle kopyalamak kabul edilemez bir risktir — tek basamak hatası motoru sessizce
 değiştirir ve oynayarak fark edilmez.
 
+Üçüncü üretilmiş dosya **`godot/scripts/v2/data/harita_verisi.gd`**
+(`python tools/gen_harita.py`) — B5'in harita geometrisi, kaynağı **Natural
+Earth 110m** (kamu malı). Elle çizilmiş bir dünya haritası hem binlerce sayı
+hem de **kaynaksız** olurdu. `--check` kaynağı yeniden indirip karşılaştırır
+ama **CI'da koşmaz**: denetim bizim dışımızdaki bir deponun `master` dalına
+bağlanırdı. Verinin doğruluğunu `--v2-harita` **yapısal** olarak sınar.
+
 ## Nasıl çalıştırılır
 
 Oyunu **oynamak** için (Windows): `tools\oyna.bat`. Godot'u `%GODOT%` →
@@ -92,7 +99,10 @@ bölünme ve karşı hareket, 33 denetim), `--v2-savas` (savaş bir kriz çıkı
 olarak, 16 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
 `--v2-uretim-tarama`, `--v2-nufus-tarama`, `--v2-mal-tarama`,
 `--v2-bolunme-tarama` ve `--v2-savas-tarama` (kalibrasyon taramaları — tanı,
-ana kapıdan yavaş),
+ana kapıdan yavaş), `--v2-harita` (harita, 44 denetim — **tam kampanya koşar,
+~4 dk**), `--v2-harita-veri` (yalnızca geometri/izdüşüm/isabet, ~2 sn — tanı),
+`--v2-harita-goster[=yıl[:tohum[:mod]]]` (haritayı **çizer**, `--ss=` ile
+birlikte; `--headless` çizmez),
 `--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
 
 **Godot yoksa (Linux / uzak oturum):** binary'yi indirmek yeterli, kurulum
@@ -168,7 +178,7 @@ Sonuçları:
 
 | iş akışı | ne zaman | çıktı |
 |---|---|---|
-| `.github/workflows/v2-kapilar.yml` | **her dala** push + PR | sekiz v2 kapısı + iki v4.4 kapısı + türetilmiş dosya denetimi (~7 dk) |
+| `.github/workflows/v2-kapilar.yml` | **her dala** push + PR | dokuz v2 kapısı + iki v4.4 kapısı + türetilmiş dosya denetimi (~12 dk) |
 | `.github/workflows/deploy.yml` | `main`'e push | Web export → GitHub Pages |
 | `.github/workflows/android.yml` | `main`'e push | Debug APK → koşu **Artifacts**'ı, `v*` etiketinde **GitHub Release** |
 
@@ -484,6 +494,10 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `KaranlikDevlet` | rıza/zor aygıtları, `bolunme`, karşı hareket (B3) |
 | `SavasKatmani` | savaş: ilan, seferberlik, yıkım, yenilgi, karşı-devrim (B4) |
 | `Oran` | dönem↔yıl dönüşümleri. Tur→hafta tuzağının tek savunması |
+| `HaritaVerisi` | **üretilmiş** geometri: 156 ülke, 201 halka, 1/16° tam sayı ızgara |
+| `Harita` | izdüşüm (Miller), isabet testi, ülke kaydı, dünya kurulumu, bağlar (B5) |
+| `HaritaModu` | dokuz harita modu: değer, aralık, renk, efsane (B5) |
+| `HaritaGorunum` | `ui/` — haritayı `_draw()` ile çizer. Tek `Control`, sıfır asset |
 
 **Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
 `cekirdek.nufus`, `cekirdek.mal` ve `cekirdek.karanlik` `null` ise bütün kapalı
@@ -534,7 +548,8 @@ v4.4'ün L bloğunu bozan şey tam olarak buydu (ölçüldü: korunum hatası %5
 
 - Tipli GDScript, **tab** girinti, `##` doc yorumları.
 - **Sıfır asset**, tower-defense projesindeki gibi: her görsel `_draw()` kodu.
-  `.png`/`.wav` eklemeden önce sor.
+  `.png`/`.wav` eklemeden önce sor. **Tek istisna vektör geometri verisidir**
+  (§5.1): harita poligonları `.png` değil, **üretilmiş** bir tablodur.
 - Yorumlar ASCII (Türkçe karaktersiz), kullanıcıya görünen metinler tam Türkçe.
 - **Motorda mekanizma değişikliği yapma.** Belge "v4.4 ÖZELLİK AÇISINDAN
   DONDURULDU" diyor (§10). Port sırasında davranış düzeltmesi yapılmaz;

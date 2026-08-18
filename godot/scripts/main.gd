@@ -58,6 +58,14 @@ func _ready() -> void:
 				# Savas SIKLIGININ tarihsel capaya karsi kalibrasyonu.
 				# Tani kapisi.
 				cikis = SavasTesti.tarama()
+			"--v2-harita-veri":
+				# Harita veri katmani tanisi: geometri + izdusum + isabet,
+				# dunya kosmadan. Ana kapi kampanya kosar, bu kosmaz.
+				cikis = HaritaTesti.veri()
+			"--v2-harita":
+				# Harita (B5): geometri, izdusum, isabet testi, dokuz mod,
+				# baglar -- ve haritanin motora DOKUNMADIGI.
+				cikis = HaritaTesti.kos()
 			"--v2-savas":
 				# Savas bir kriz cikisi olarak (B4): §3.2'nin muhasebesi --
 				# savastan sonra kar orani yukari, nufus asagi. Ayrica B3'ten
@@ -162,6 +170,16 @@ func _ready() -> void:
 						int(o.get_slice(":", 3)) if o.count(":") >= 3 else 0)
 				_ss_kontrol(argumanlar)
 				return
+			_ when a.begins_with("--v2-harita-goster"):
+				# --v2-harita-goster[=YIL[:tohum[:mod]]] -- haritayi CIZER.
+				# `--ss=` ile birlikte kullanilir; `--headless` cizmez.
+				var hg := a.get_slice("=", 1) if a.contains("=") else ""
+				_haritayi_goster(
+						float(hg.get_slice(":", 0)) if hg != "" else 40.0,
+						int(hg.get_slice(":", 1)) if hg.count(":") >= 1 else 42,
+						hg.get_slice(":", 2) if hg.count(":") >= 2 else "siyasi")
+				_ss_kontrol(argumanlar)
+				return
 			"--menu":
 				_menuyu_ac()
 				_ss_kontrol(argumanlar)
@@ -182,6 +200,22 @@ func _dogrudan_oyna(senaryo: String, tohum: int, ulke: String, tur: int) -> void
 	_kosuyu_baslat(senaryo, tohum, ulke)
 	if tur > 0:
 		Sim.ilerle(tur)
+
+
+## Haritayi kurar, `yil` kadar ilerletir ve cizer. B5'in GORSEL kapisi:
+## `--headless` `_draw()` KOSTURMAZ, yani bozuk bir harita butun headless
+## kapilardan gecer. Ekrani gormenin tek yolu budur.
+func _haritayi_goster(yil: float, tohum: int, mod: String) -> void:
+	_ekrani_temizle()
+	var hafta := 1.0 / 52.0
+	var w := Harita.dunya_kur(PackedStringArray(), tohum, 1836.0)
+	for _i in range(Oran.donem_sayisi(yil, hafta)):
+		w.adim(hafta)
+	var g := HaritaGorunum.new()
+	g.set_anchors_preset(Control.PRESET_FULL_RECT)
+	g.mod_id = mod
+	add_child(g)
+	g.kur(w)
 
 
 ## Ekran goruntusu alir ve cikar. Paneli GERCEKTEN gormenin tek yolu budur:

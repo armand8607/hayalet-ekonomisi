@@ -33,7 +33,7 @@ jobs:
   kapilar:
     name: Butun v2 kapilari
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     container:
       image: barichello/godot-ci:4.7
 
@@ -91,10 +91,21 @@ jobs:
       - name: 'B4: savas bir kriz cikisi olarak (16 denetim)'
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-savas
 
+      - name: 'B5: harita verisi (geometri, izdusum, isabet)'
+        # ~2 sn. Ana harita kapisindan AYRI ve ONCE: geometri bozuldugunda
+        # dort dakikalik kampanyayi beklemeden dussun.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-harita-veri
+
       - name: 'B1b: dunya katmani (17 denetim)'
-        # En pahalisi (~220 sn): bes ulke x 198 yil x haftalik tik, birden
-        # cok kampanya. En sona birakildi.
+        # Bes ulke x 198 yil x haftalik tik, birden cok kampanya (~220 sn).
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-dunya
+
+      - name: 'B5: harita (44 denetim)'
+        # EN PAHALISI (~260 sn): 54 ulke x 264 yil, tam katman yigini.
+        # Kampanya boyu kosmasi zorunlu -- `otomasyon` 1836'da sifirdir ve
+        # savas/ittifak/abluka baglari ancak savas ciktiginda dogar; kisa
+        # kosuda "olu mod" ile "henuz baslamamis mod" ayirt edilemez.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-harita
 
   kahin:
     # AYRI IS, VE KAPSIZ BIR RUNNER'DA.
