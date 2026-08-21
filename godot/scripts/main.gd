@@ -58,6 +58,9 @@ func _ready() -> void:
 				# Savas SIKLIGININ tarihsel capaya karsi kalibrasyonu.
 				# Tani kapisi.
 				cikis = SavasTesti.tarama()
+			"--v2-olcek-tarama":
+				# B6: tik maliyeti ulke sayisiyla nasil buyuyor. Tani kapisi.
+				cikis = BasarimTesti.tarama()
 			"--v2-harita-veri":
 				# Harita veri katmani tanisi: geometri + izdusum + isabet,
 				# dunya kosmadan. Ana kapi kampanya kosar, bu kosmaz.
