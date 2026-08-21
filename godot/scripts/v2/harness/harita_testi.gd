@@ -65,7 +65,11 @@ static func kos() -> int:
 	_izdusum()
 	_isabet()
 
-	var w := Harita.dunya_kur(PackedStringArray(), 42, BAS)
+	# KAPI DUNYASI SINIRLI (54 ulke), kadro degil. B6 kadroyu 113'e cikardi;
+	# tam kadroda tam kampanya bu kapiyi ~620 saniyeye tasirdi ve olctugu
+	# sey (mod canliligi, bag kapsami) ulke sayisina bagli degil. Olcek
+	# B6'nin kapisinda, tam kadroda olculur.
+	var w := Harita.dunya_kur(Harita.kapi_kodlar(), 42, BAS)
 	var basla := Time.get_ticks_msec()
 	var kampanya := _kampanya(w)
 	var sure := Time.get_ticks_msec() - basla
@@ -685,7 +689,7 @@ static func _okuyucu() -> void:
 	# etkisi kaotik olarak buyur ve hicbir kapiya takilmazdi.
 	var yil := 12.0
 	var n := Oran.donem_sayisi(yil, HAFTA)
-	var kodlar := Harita.simule_kodlar()
+	var kodlar := Harita.kapi_kodlar()
 
 	var a := Harita.dunya_kur(kodlar, 7, BAS)
 	var b := Harita.dunya_kur(kodlar, 7, BAS)

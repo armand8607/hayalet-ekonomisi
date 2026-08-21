@@ -102,7 +102,9 @@ olarak, 23 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
 ana kapıdan yavaş), `--v2-harita` (harita, 44 denetim — **tam kampanya koşar,
 ~4 dk**), `--v2-harita-veri` (yalnızca geometri/izdüşüm/isabet, ~2 sn — tanı),
 `--v2-harita-goster[=yıl[:tohum[:mod]]]` (haritayı **çizer**, `--ss=` ile
-birlikte; `--headless` çizmez),
+birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
+7 denetim — **~5 dk**), `--v2-olcek-tarama` ve
+`--v2-savas-siklik=DEĞER[:ülke]` (B6 tanıları),
 `--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
 
 **Godot yoksa (Linux / uzak oturum):** binary'yi indirmek yeterli, kurulum
@@ -178,7 +180,7 @@ Sonuçları:
 
 | iş akışı | ne zaman | çıktı |
 |---|---|---|
-| `.github/workflows/v2-kapilar.yml` | **her dala** push + PR | dokuz v2 kapısı + iki v4.4 kapısı + türetilmiş dosya denetimi (~12 dk) |
+| `.github/workflows/v2-kapilar.yml` | **her dala** push + PR | on v2 kapısı + iki v4.4 kapısı + türetilmiş dosya denetimi (~17 dk) |
 | `.github/workflows/deploy.yml` | `main`'e push | Web export → GitHub Pages |
 | `.github/workflows/android.yml` | `main`'e push | Debug APK → koşu **Artifacts**'ı, `v*` etiketinde **GitHub Release** |
 
@@ -435,6 +437,17 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   on yıllarda yakın duruyor, ayrışma geç kampanyada açılıyor. "Bir eğriyi tek
   noktadan eşleştirmek onu eşleştirmez" dersinin zaman eksenindeki hâli —
   **yarım pencerede eşleştirmek de eşleştirmez.**
+- **KAPI DÜNYASI KADRODAN AYRI TUTULUR.** B6 kadroyu 54'ten 113'e çıkarınca
+  tam kampanya koşan kapıların maliyeti üçe katlandı (harita kapısı 227 →
+  ~620 sn). `Harita.kapi_kodlar()` sabit bir alt küme verir. Ayrım iş
+  bölümüdür: harita kapısı **mod canlılığı ve bağ kapsamı** ölçer, ölçeği
+  değil — ölçek `--v2-b6`nın işidir ve o tam kadroda koşar.
+- **OPTİMİZASYON SONUCU DEĞİŞTİRMEMELİ, ve bu ÖLÇÜLEREK gösterilir.**
+  `ticaret()`in iç döngüsünde üç ifade yalnızca `i`'ye bağlıydı ve n² kez
+  hesaplanıyordu (113 ülkede tik başına 6328 gereksiz `_itki` çağrısı);
+  dışarı alınınca karesel katsayı %39 düştü. **İfade sırası korunmalı**:
+  `(yog·Ya)·Yb / Yd` ile `(yog·Ya/Yd)·Yb` kayan noktada aynı sayı değildir.
+  Kanıt `--v2-dunya` çıktısının bayt bayt karşılaştırılmasıdır.
 - **Bir BANDIN neyi ölçtüğünü, düştüğü gün ÇAPALARI ölçerek anla.** B2b'nin
   `iss_ort < 0.25` yozlaşma bandı merdiven kalibre edilince düştü. Bandı
   gevşetmek yerine çapalar ölçüldü: çekirdeğin kendi kapalı formu 0.3169,
@@ -521,6 +534,7 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `Harita` | izdüşüm (Miller), isabet testi, ülke kaydı, dünya kurulumu, bağlar (B5) |
 | `HaritaModu` | dokuz harita modu: değer, aralık, renk, efsane (B5) |
 | `HaritaGorunum` | `ui/` — haritayı `_draw()` ile çizer. Tek `Control`, sıfır asset |
+| `BasarimTesti` | `harness/` — B6: ölçek altında maliyet, korunum, savaş sıklığı |
 
 **Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
 `cekirdek.nufus`, `cekirdek.mal` ve `cekirdek.karanlik` `null` ise bütün kapalı

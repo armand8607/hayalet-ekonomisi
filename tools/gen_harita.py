@@ -120,6 +120,14 @@ OYNANABILIR = {
 #
 # ABD 1836'da yari-cevredir: sanayilesme baslamistir ama Britanya'nin
 # hammadde tedarikcisidir. Yukselisi oyunda OLCULMELIDIR, verilmemelidir.
+#
+# B6 KAPSAM DURUSTLUGU. Kadro 54'ten 100'e cikarken listeye 1836'da EGEMEN
+# OLMAYAN topraklar da girdi (Cekya, Beyaz Rusya, Ozbekistan, Zimbabve...).
+# Bu bir anakronizm degil bir SOYUTLAMADIR ve adi konmali: simule edilen
+# birim DEVLET degil, o topragin ekonomisidir. §5.6'nin "dinamik kurulma /
+# ilhak" mekanizmasi YOK; olsaydi bu topraklar imparatorluklarin icinde
+# baslar ve zamanla ayrilirdi. §3.4'un kapsam durustlugu geregi: kurulmamis
+# bir mekanizmayi varmis gibi gostermektense, birimin ne oldugunu yazariz.
 KONUM = {
     # --- merkez ---
     "GBR": "merkez", "FRA": "merkez", "NLD": "merkez", "BEL": "merkez",
@@ -128,6 +136,10 @@ KONUM = {
     "ITA": "yari", "ESP": "yari", "PRT": "yari", "SWE": "yari",
     "DNK": "yari", "CHE": "yari", "POL": "yari", "GRC": "yari",
     "NOR": "yari", "CAN": "yari", "AUS": "yari",
+    # B6 ile eklenenler -- 1836'da Avrupa imparatorluklarinin ici
+    "FIN": "yari", "HUN": "yari", "CZE": "yari", "BGR": "yari",
+    "SRB": "yari", "HRV": "yari", "IRL": "yari", "BLR": "yari",
+    "SVK": "yari", "LTU": "yari", "EST": "yari", "LVA": "yari",
     # --- cevre ---
     "TUR": "cevre", "CHN": "cevre", "IND": "cevre", "JPN": "cevre",
     "KOR": "cevre", "IDN": "cevre", "SAU": "cevre", "IRN": "cevre",
@@ -138,6 +150,21 @@ KONUM = {
     "ZAF": "cevre", "THA": "cevre", "VNM": "cevre", "PHL": "cevre",
     "PAK": "cevre", "BGD": "cevre", "AFG": "cevre", "MMR": "cevre",
     "UKR": "cevre", "ROU": "cevre", "NZL": "cevre",
+    # B6 ile eklenenler
+    "KAZ": "cevre", "UZB": "cevre", "TKM": "cevre", "IRQ": "cevre",
+    "SYR": "cevre", "YEM": "cevre", "OMN": "cevre", "ARE": "cevre",
+    "ISR": "cevre", "JOR": "cevre", "MYS": "cevre", "LAO": "cevre",
+    "KHM": "cevre", "NPL": "cevre", "PRK": "cevre", "MNG": "cevre",
+    "LKA": "cevre", "AZE": "cevre", "GEO": "cevre",
+    "LBY": "cevre", "MLI": "cevre", "AGO": "cevre", "NER": "cevre",
+    "TZA": "cevre", "MOZ": "cevre", "ZMB": "cevre", "MDG": "cevre",
+    "SOM": "cevre", "CMR": "cevre", "ZWE": "cevre", "CIV": "cevre",
+    "GHA": "cevre", "TUN": "cevre", "TCD": "cevre", "MRT": "cevre",
+    "NAM": "cevre",
+    "BOL": "cevre", "PRY": "cevre", "ECU": "cevre", "URY": "cevre",
+    "GTM": "cevre", "DOM": "cevre", "NIC": "cevre", "HND": "cevre",
+    "PAN": "cevre", "CRI": "cevre",
+    "PNG": "cevre",
 }
 
 KITA_TR = {

@@ -332,14 +332,43 @@ func ticaret() -> void:
 
 	_son_hacim.clear()
 	_son_hacim.resize(n * n)
+
+	# CIFTTEN BAGIMSIZ BUYUKLUKLER DONGUDEN ONCE (B6). Ic dongu n^2 kez
+	# kosuyor ve icindeki uc ifade yalnizca `i`ye baglıydı: `_itki(i)`,
+	# `eps/pi_m` bolumu ve `maxf(Y,0)`. 113 ulkede bu, tik basina 6328
+	# gereksiz `_itki` cagrisi demekti.
+	#
+	# HOIST SONUCU DEGISTIRMEZ, ve bu KONTROL EDILDI: `--v2-dunya` ciktisi
+	# optimizasyon oncesi ve sonrasi BAYT BAYT ayni. Ifade sirasi bilerek
+	# korundu -- `(yog * Ya) * Yb / Yd` ile `(yog * Ya / Yd) * Yb` ayni sayi
+	# DEGILDIR (kayan nokta), o yuzden bolum yerinde birakildi.
+	var Y_poz := PackedFloat64Array()
+	var k_rekabet := PackedFloat64Array()
+	Y_poz.resize(n)
+	k_rekabet.resize(n)
 	for i in range(n):
+		var d := ulkeler[i]
+		Y_poz[i] = maxf(d.Y_yil, 0.0)
+		k_rekabet[i] = d.eps / maxf(d.pi_m, 1e-6) * _itki(i)
+	var abluka_var := abluka.size() == n * n
+
+	for i in range(n):
+		var a := ulkeler[i]
+		var a_yog := ticaret_yogunlugu * Y_poz[i]
+		var a_aciklik := aciklik[i]
+		var ka := k_rekabet[i]
+		# `a`nin toplamlari YERELDE birikir, dongu bitince bir kez yazilir.
+		# Toplama SIRASI ayni (j artan), dolayisiyla sonuc bit-birebir ayni;
+		# kazanc cift basina dort mulk yazmasindan ikisini silmek.
+		var a_X := a.X_yil
+		var a_M := a.M_yil
 		for j in range(i + 1, n):
-			var a := ulkeler[i]
 			var b := ulkeler[j]
-			var hacim := (ticaret_yogunlugu
-					* maxf(a.Y_yil, 0.0) * maxf(b.Y_yil, 0.0) / Y_dunya)
+			var hacim := a_yog * Y_poz[j] / Y_dunya
 			# Abluka ve savas ciftin HACMINI keser (bkz. `abluka`).
-			hacim *= minf(aciklik[i], aciklik[j]) * _engel(i, j)
+			var engel := (clampf(1.0 - abluka[i * n + j], 0.0, 1.0)
+					if abluka_var else 1.0)
+			hacim *= minf(a_aciklik, aciklik[j]) * engel
 			if hacim <= 0.0:
 				continue
 			# Thirlwall orani: rekabet gucu -- CARPANI gerceklesme baskisidir.
@@ -349,18 +378,19 @@ func ticaret() -> void:
 			# tek basina iten kazanir, iki taraf da iterse paylar degismez.
 			# Pazar kavgasinin cikmaz olmasi buradan gelir, bir olay
 			# tablosundan degil.
-			var ka := a.eps / maxf(a.pi_m, 1e-6) * _itki(i)
-			var kb := b.eps / maxf(b.pi_m, 1e-6) * _itki(j)
+			var kb := k_rekabet[j]
 			var pay := ka / maxf(ka + kb, 1e-9)
 			var X_ab := hacim * pay              # a -> b
 			var X_ba := hacim * (1.0 - pay)      # b -> a
-			a.X_yil += X_ab
+			a_X += X_ab
 			b.M_yil += X_ab
 			b.X_yil += X_ba
-			a.M_yil += X_ba
+			a_M += X_ba
 			# Deger transferi GERCEKLESEN ticaretin uzerinde yurur; ayri bir
 			# vekil buyukluk degil. Esitsiz mubadele mubadelede olur.
 			_son_hacim[i * n + j] = hacim
+		a.X_yil = a_X
+		a.M_yil = a_M
 
 	for d in ulkeler:
 		d.NX_yil = d.X_yil - d.M_yil
@@ -615,19 +645,26 @@ func transferler() -> PackedFloat64Array:
 
 	if _son_hacim.size() != n * n:
 		return vt
+	# `cv` bir kez okunur: ic dongude n^2 kez mulk erisimi yapiliyordu.
+	var cv := PackedFloat64Array()
+	cv.resize(n)
 	for i in range(n):
+		cv[i] = ulkeler[i].cv
+
+	for i in range(n):
+		var cv_a := cv[i]
+		var vt_i := vt[i]
 		for j in range(i + 1, n):
-			var a := ulkeler[i]
-			var b := ulkeler[j]
 			# GERCEKLESEN ticaret hacmi. `ticaret()` yazdi; esitsiz mubadele
 			# mubadelede olur, ayri bir vekil buyuklukte degil.
 			var hacim := _son_hacim[i * n + j]
-			var toplam_cv := a.cv + b.cv
+			var toplam_cv := cv_a + cv[j]
 			if toplam_cv <= 0.0 or hacim <= 0.0:
 				continue
-			var t := siddet * hacim * (a.cv - b.cv) / toplam_cv
-			vt[i] += t
+			var t := siddet * hacim * (cv_a - cv[j]) / toplam_cv
+			vt_i += t
 			vt[j] -= t
+		vt[i] = vt_i
 	return vt
 
 

@@ -100,6 +100,11 @@ jobs:
         # Bes ulke x 198 yil x haftalik tik, birden cok kampanya (~220 sn).
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-dunya
 
+      - name: 'B6: olcek -- tam kadro (7 denetim)'
+        # ~280 sn: 113 ulke x 100 yil. Korunum ozdeslikleri OLCEK ALTINDA
+        # burada sinanir; `--v2-dunya` onlari bes ulkede olcuyor.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-b6
+
       - name: 'B5: harita (44 denetim)'
         # EN PAHALISI (~260 sn): 54 ulke x 264 yil, tam katman yigini.
         # Kampanya boyu kosmasi zorunlu -- `otomasyon` 1836'da sifirdir ve

@@ -487,7 +487,7 @@ yok" bulmak demekti.
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | **KURULDU** — `--v2-bolunme` 33/33; §4.3 ve §4.1'in birer iddiası ölçülüp düzeltildi (§6e) |
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | **KURULDU** — `--v2-savas` 23/23; ittifak/abluka/ambargo da yerinde (§6f) |
 | **B5** | **Harita.** ~~Eyalet~~ ülke geometrisi, harita modları, ülke seçimi | **KURULDU** — `--v2-harita` 44/44; 156 ülke çizili / 54 simüle / 19 oynanabilir, dokuz mod, dört bağ türü (§6g) |
-| **B6** | **Ölçek.** Tam dünya, başarım ölçümü | ~100 ülke, kabul edilebilir tik süresi |
+| **B6** | **Ölçek.** Tam dünya, başarım ölçümü | **KURULDU** — `--v2-b6` 7/7; 113 ülke, 45.6 ms/tik, korunum ölçekten bağımsız (§6h) |
 | **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce | Ekran `--ss=` ile çizdirilip bakılmış |
 
 **B1a bitti ve kendi ölçütünü fazlasıyla aştı.** Kriz teorisi bu mimaride
@@ -2083,3 +2083,113 @@ yığını takılı: üretim, nüfus, mal, karanlık devlet + dünya katmanı). 
 - **Blok gösterimi yok** — ittifak yıldızla çizilir; dolgu/kabuk gösterimi B7.
 - **Ad değişimi yok** — oynanabilir ülkeler kampanya boyunca 1836 adını taşır;
   "Osmanlı → Türkiye" geçişinin takvimi B7.
+
+---
+
+## 6h. B6 — ölçek
+
+### "Kabul edilebilir" tek başına ölçülemez
+
+Tablo B6 için "~100 ülke, kabul edilebilir tik süresi" diyor. İkinci yarısı
+olduğu gibi ölçülebilir değil — hangi makinede, hangi kurulumda? Ölçüm bu
+yüzden üç parçalı: **mutlak maliyet** (makineye bağlı, kayıt), **ölçeklenme
+biçimi** (makineden bağımsız, asıl soru) ve **korunumun ölçek altındaki
+davranışı**.
+
+### Kadro 54 → 113
+
+Harita zaten 156 ülke çiziyordu; simüle edilen küme 54'ten **113'e** çıktı
+(§5.6'nın "~100+" hedefi). Eklenenlerin bir kısmı 1836'da egemen değildi
+(Çekya, Beyaz Rusya, Özbekistan, Zimbabve…) ve bu **adı konması gereken bir
+soyutlamadır**: simüle edilen birim devlet değil, o toprağın ekonomisidir.
+§5.6'nın "dinamik kurulma / ilhak" mekanizması yok; §3.4'ün kapsam dürüstlüğü
+gereği kurulmamış bir mekanizmayı varmış gibi göstermektense birimin ne
+olduğunu yazarız.
+
+### Maliyetin iki bileşeni, ve nerede kesiştikleri
+
+Ülke döngüsü doğrusal (her ülke kendi çekirdeğini koşar), çift döngüsü
+karesel (ticaret, transfer, abluka matrisi). Beş boyda ölçülüp
+`ms = a·n + b·n²` çözüldü:
+
+| | a (doğrusal) | b (karesel) | başabaş n | n=113 |
+|---|---|---|---|---|
+| optimizasyon öncesi | 0.1969 | 0.00302 | 65 | 59.8 ms |
+| **sonrası** | 0.2014 | **0.00178** | **113** | **45.6 ms** |
+
+**Kazanç sonucu değiştirmeden alındı.** `ticaret()`'in iç döngüsünde üç ifade
+yalnızca `i`'ye bağlıydı — `_itki(i)`, `eps/pi_m` bölümü ve `maxf(Y,0)` — ve
+n² kez hesaplanıyordu: 113 ülkede tik başına 6328 gereksiz `_itki` çağrısı.
+Döngü dışına alındılar; `transferler()`'de `cv` aynı şekilde.
+
+> **İfade sırası bilerek korundu.** `(yog·Ya)·Yb / Yd` ile `(yog·Ya/Yd)·Yb`
+> kayan noktada **aynı sayı değildir**. Bölüm yerinde bırakıldı ve sonuç
+> `--v2-dunya` çıktısının **bayt bayt** karşılaştırılmasıyla doğrulandı:
+> optimizasyon öncesi ve sonrası birebir aynı.
+
+Tik başına 45.6 ms oynanabilirlik açısından sorun değil (saniyede ~22 hafta,
+tür normunun kat kat üstünde); tam kampanya 626 sn.
+
+### Korunum ölçekten bağımsız — ölçüldü
+
+`--v2-dunya` korunum özdeşliklerini **beş** ülkede ölçüyor. Risk tam da
+ölçekte: 6328 çiftte biriken yuvarlama beş çiftte görünmez. Ölçüldü (113
+ülke, 100 yıl): değer transferi, ticaret ve borç korunumunda en büyük bağıl
+hata **tam olarak 0.0**. Özdeşlik gerçekten özdeşlikmiş.
+
+### B4'ün savaş çapası taşınmadı — ve sebep beklenen sebep değil
+
+B4 `savas_siklik = 5.0`'i 20 ülkelik bir kolda seçmiş ve notu düşmüştü:
+"ölçüt B6'da ~100 ülkeyle yeniden okunmalıdır". Okundu. B4 ülke sayısının
+sıklığı **artırdığını** bulmuştu (5 ülke 0.27 → 20 ülke 0.79), dolayısıyla
+~100'de yükselmesi bekleniyordu. Ölçülen bunun tersi:
+
+| ülke | 10 | 20 | 40 | 113 |
+|---|---|---|---|---|
+| savaş/ülke-yüzyıl | 0.20 | 0.30 | 0.33 | 0.23 |
+
+Ayrışan şey **ülke sayısı değil kurulum**: B4'ün taraması sentetik bir dünyada
+koşuyordu (sürekli tek merdiven, **katmansız**); oyunun dünyası üç konum
+basamağı ve **tam katman yığını**. Aynı sabit iki kurulumda 4–7 kat farklı
+sonuç veriyor. Bu, deponun kendi kuralının üçüncü kez doğrulanması:
+**kalibrasyon karar verilen kurulumda yapılır.**
+
+### Çarpan sıklığı satın alıyor, bedelini §3.1'in imzasından ödüyor
+
+Tam kadroda tarandı ve bandı sağlayan değer bulundu:
+
+| sıklık | savaş/ülke-yüzyıl | zaman payı |
+|---|---|---|
+| 5.0 | 0.23 | %2.0 |
+| **38.0** | **1.45** | **%11.1** |
+| 45.0 | 1.61 | %14.0 |
+| 60.0 | 2.16 | %18.2 |
+
+38.0 iki bandı da ortalıyor (çapa: 1–4 savaş, zamanın %5–15'i). **Ama
+alınmadı**, çünkü bedeli ölçüldü: `--v2-savas`'ın §3.1 denetimi —
+"savaşa girenin kâr oranı, o anda diğerlerinin altında" — işaret değiştiriyor.
+
+| | eş-zamanlı fark |
+|---|---|
+| sıklık 5.0 | **−0.0067** (doğru işaret) |
+| sıklık 38.0 | **+0.00235** (işaret dönüyor) |
+
+Sebep yapısal: ilan olasılığı `istek · sv_carpan · 0.10 · savas_siklik`.
+Çarpanı 7.6 kat büyütmek olasılığı **doyuruyor** ve krizdeki ülke ile sağlam
+ülke arasındaki farkı eziyor. Yani çarpan bir sıklık kolu değil, aynı zamanda
+bir **seçicilik** kolu — ve büyüdükçe seçmez oluyor.
+
+> **Karar deponun kendi hiyerarşisinden çıkıyor**: "bantlar ayarlanabilir,
+> yön ayarlanamaz" (§9.14). Sıklık bir bant, "kriz dışa iter" bir **yön**
+> iddiasıdır. `savas_siklik = 5.0` korundu ve gerçekleşen sıklık (0.23,
+> çapanın altı) açık bir eksiklik olarak kayda geçti. `--v2-b6` "hâlâ düşük
+> mü" diye soruyor: ilan olasılığının kriz duyarlılığı doyuma gitmeyen bir
+> biçimde yeniden yazıldığı gün **kapı düşer**. Bu B4'ün işi.
+
+### Kapı dünyası kadrodan ayrıldı
+
+Kadro 113'e çıkınca tam kampanya koşan kapıların maliyeti üçe katlandı
+(harita kapısı 227 → ~620 sn). `Harita.kapi_kodlar()` sabit bir alt küme
+(54 ülke) verir ve harita kapısı onu kullanır. Ayrım aynı zamanda doğru iş
+bölümü: haritanın kapısı **mod canlılığını ve bağ kapsamını** ölçer, ölçeği
+değil — ölçek B6'nın kapısıdır ve tam kadroda koşar.

@@ -109,6 +109,25 @@ static func simule_kodlar() -> PackedStringArray:
 	return c
 
 
+## KAPI DUNYASI -- sinirli ve SABIT. Kadronun ilk `n` kodu (kod sirasi
+## alfabetik, dolayisiyla ayni n her zaman ayni kumeyi verir).
+##
+## NEDEN GEREKLI. B6 kadroyu 54'ten 113'e cikardi ve tam kampanya kosan
+## kapilarin maliyeti ucе katlandi (harita kapisi 227 sn -> ~620 sn). Kapi
+## dunyasi kadrodan AYRILMAZSA her kadro genislemesi CI'yi yavaslatir ve
+## bir gun "kapiyi kisaltalim" denir -- olcum orada kaybedilir.
+##
+## Ayrim ayni zamanda dogru is bolumu: haritanin kapisi MOD CANLILIGINI ve
+## BAG KAPSAMINI olcer, olcegi degil. Olcek B6'nin kapisidir ve o tam
+## kadroda kosar.
+static func kapi_kodlar(n: int = 54) -> PackedStringArray:
+	var hepsi := simule_kodlar()
+	var c := PackedStringArray()
+	for i in range(mini(n, hepsi.size())):
+		c.append(hepsi[i])
+	return c
+
+
 static func oynanabilir_kodlar() -> PackedStringArray:
 	var c := PackedStringArray()
 	for u in kayit():

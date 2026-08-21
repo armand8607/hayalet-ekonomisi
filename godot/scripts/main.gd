@@ -58,6 +58,16 @@ func _ready() -> void:
 				# Savas SIKLIGININ tarihsel capaya karsi kalibrasyonu.
 				# Tani kapisi.
 				cikis = SavasTesti.tarama()
+			_ when a.begins_with("--v2-savas-siklik="):
+				# --v2-savas-siklik=DEGER[:ulke] -- kalibrasyon tek noktasi.
+				var sa := a.get_slice("=", 1)
+				cikis = BasarimTesti.savas_noktasi(
+						float(sa.get_slice(":", 0)),
+						int(sa.get_slice(":", 1)) if sa.contains(":") else -1)
+			"--v2-b6":
+				# B6: tam kadro (~100 ulke) -- olcek altinda korunum, maliyet
+				# bicimi ve B4'un savas capasinin yeniden okunmasi.
+				cikis = BasarimTesti.kos()
 			"--v2-olcek-tarama":
 				# B6: tik maliyeti ulke sayisiyla nasil buyuyor. Tani kapisi.
 				cikis = BasarimTesti.tarama()

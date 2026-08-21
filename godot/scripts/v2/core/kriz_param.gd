@@ -403,6 +403,60 @@ var savas_sure_ust_yil: float = 7.0
 ##
 ## BES ULKELIK KOLDA ORAN DAHA DUSUK KALIR ve bu beklenendir: test dunyasi
 ## oyunun dunyasi degil. Olcut B6'da ~100 ulkeyle YENIDEN olculmelidir.
+##
+## ------------------------------------------------------------------------
+## B6'DA YENIDEN OLCULDU -- VE TASINMADIGI GORULDU. 5.0 -> 38.0
+## ------------------------------------------------------------------------
+## Yukaridaki not "B6'da yeniden olculmelidir" diyordu; olculdu ve secim
+## tasinmadi. Ama sebep BEKLENEN sebep degil: B4 ulke sayisinin sikligi
+## artirdigini bulmustu (5 ulke 0.27, 20 ulke 0.79), dolayisiyla ~100
+## ulkede sikligin YUKSELMESI bekleniyordu. Olculen bunun tersi --
+## harita kadrosunda siklik ulke sayisindan neredeyse BAGIMSIZ
+## (`--v2-olcek-tarama`, ayni kurulum, 100 yil, siklik 5.0):
+##
+##   10 ulke 0.20   20 ulke 0.30   40 ulke 0.33   113 ulke 0.23
+##
+## Ayrisan sey ULKE SAYISI degil KURULUM: B4'un taramasi SENTETIK bir
+## dunyada kosuyordu (surekli tek merdiven, KATMANSIZ), oyunun dunyasi ise
+## uc konum basamagi ve TAM KATMAN YIGINI (uretim, nufus, mal, karanlik).
+## Ayni sabit iki kurulumda 4-7 kat farkli sonuc veriyor.
+##
+## TAM KADRODA (113 ulke, 100 yil, tohum 42) tarama:
+##
+##   siklik   savas/ulke-yuzyil   zaman_pay
+##      5.0                0.23       0.020
+##     38.0                1.45       0.111   <- secilen, iki eksende de bantta
+##     45.0                1.61       0.140
+##     60.0                2.16       0.182   <- zaman_pay bandi asiyor
+##
+## Capa degismedi: zamanin %5-15'i savasta, ulke basina yuzyilda 1-4 savas.
+## 38.0 ikisini de ortalar; 45 ve 60 siklik bandinda kalirken zaman bandini
+## zorluyor. Iki olcutun birlikte okunmasi sart -- yalnizca sikliga bakan
+## bir secim 60'i alirdi.
+##
+## AMA 38.0 ALINMADI, VE SEBEBI OLCULDU: carpan sikligi satin aliyor,
+## bedelini §3.1'in NEDENSEL IMZASINDAN oduyor.
+##
+## `--v2-savas` kapisinin bir denetimi "savasa GIRENIN kar orani, o anda
+## digerlerinin altinda" diyor -- yani krizin disa itmesi (§3.1). Olculdu:
+##
+##   siklik 5.0  : es-zamanli fark -0.0067  (dogru isaret, kapi gecer)
+##   siklik 38.0 : es-zamanli fark +0.00235 (isaret DONUYOR, kapi kalir)
+##
+## Sebep yapisal: ilan olasiligi `istek * sv_carpan * 0.10 * savas_siklik`.
+## Carpani 7.6 kat buyutmek olasiligi doyurur ve krizdeki ulke ile saglam
+## ulke arasindaki FARKI ezer. Yani carpan bir SIKLIK kolu degil, ayni
+## zamanda bir SECICILIK kolu -- ve buyudukce secmez olur.
+##
+## Deponun hiyerarsisi bu ikilemde acik: "bantlar ayarlanabilir, yon
+## ayarlanamaz" (belge §9.14). Siklik bir BANT, "kriz disa iter" bir YON
+## iddiasidir. Bu yuzden 5.0 KORUNDU ve gerceklesen siklik (0.23 /
+## ulke-yuzyil, tarihsel capanin alti) acik bir bulgu olarak kayda gecti.
+##
+## Kapanmasi icin gereken sey yeni bir sabit degil: ilan olasiliginin kriz
+## duyarliligi, doyuma gitmeyen bir bicimde yeniden yazilmali. Bu B4'un
+## isi, B6'nin degil -- ve `--v2-b6` "hala dusuk mu" diye sordugu icin
+## yazildigi gun kapi duser.
 var savas_siklik: float = 5.0
 
 ## ABLUKA VE AMBARGO (§3.3) -- cift bazli ticaret kesintisi [0,1].

@@ -127,4 +127,186 @@ static func tarama() -> int:
 				hedef, tahmin, tahmin * 13728.0 / 1000.0])
 	print("")
 	print("  NOT: bu bir kapi degil TANIDIR. Mutlak sayilar MAKINEYE baglidir.")
+
+	# --- SAVAS SIKLIGI ULKE SAYISIYLA NASIL DEGISIYOR -------------------
+	# B4 bunu SENTETIK bir dunyada olcmustu (katmansiz, tek merdiven) ve
+	# artan buldu: 5 ulke 0.27, 10 ulke 0.34, 20 ulke 0.79. B6'nin dunyasi
+	# baska: harita kadrosu, uc konum basamagi, TAM KATMAN YIGINI takili.
+	# Ayni sayiyi ayni kurulumda ulke sayisina gore okumak, "kadro mu
+	# degisti kurulum mu" sorusunu ayirmanin tek yolu.
+	print("")
+	print("  SAVAS SIKLIGI (ayni kurulum, 100 yil, tohum 42)")
+	print("   ulke   ilan   savas/ulke-yuzyil   zaman_pay")
+	print("  " + "-".repeat(48))
+	# 113 BURADA YOK: tam kadro olcumunu B6 KAPISI zaten yapiyor (0.23) ve
+	# burada tekrarlamak taramaya 240 saniye ekliyordu. Tablo ulke sayisinin
+	# bu kurulumda sikligi neredeyse hic degistirmedigini gostermeye yeter.
+	for n in [10, 20, 40]:
+		if n > kadro:
+			continue
+		print("  %5d %6d %18.2f %11.3f" % _savas_olc(n))
+
+	# SIKLIK CARPANI, OYUNUN DUNYASINDA. B4 bunu 20 ulkelik SENTETIK bir
+	# kolda secti (5.0); yukaridaki tablo o secimin buraya tasinmadigini
+	# gosteriyor. Tarama 40 ulkede kosuyor -- tablo ulke sayisinin bu
+	# kurulumda sikligi neredeyse hic degistirmedigini gosterdigi icin
+	# 113'te kosmanin bilgi degeri yok, maliyeti uc kat.
+	print("")
+	print("  SIKLIK CARPANI (40 ulke, ayni kurulum, 100 yil)")
+	print("  siklik   ilan   savas/ulke-yuzyil   zaman_pay")
+	print("  " + "-".repeat(48))
+	for siklik in [5.0, 15.0, 30.0, 60.0]:
+		var r := _savas_olc(40, 42, 100.0, float(siklik))
+		print("  %6.1f %6d %18.2f %11.3f" % [siklik, r[1], r[2], r[3]])
+	print("  tarihsel capa: 1-4 savas/ulke-yuzyil, zamanin %5-15'i")
+	return 0
+
+
+## Bir dunyada 100 yillik savas sikligini olcer.
+## Doner: [n, ilan, savas/ulke-yuzyil, zaman_pay]
+static func _savas_olc(n: int, tohum: int = 42, yil: float = 100.0,
+		siklik: float = -1.0) -> Array:
+	var hepsi := Harita.simule_kodlar()
+	var kodlar := PackedStringArray()
+	for i in range(mini(n, hepsi.size())):
+		kodlar.append(hepsi[i])
+	var w := Harita.dunya_kur(kodlar, tohum, BAS)
+	if siklik >= 0.0:
+		w.savas.P.savas_siklik = siklik
+	var tik := Oran.donem_sayisi(yil, HAFTA)
+	for _i in range(tik):
+		w.adim(HAFTA)
+	var savas_donem := 0
+	for d in w.ulkeler:
+		savas_donem += d.savas_toplam
+	var nf := float(w.ulkeler.size())
+	return [w.ulkeler.size(), w.savas.ilan_sayisi,
+			float(w.savas.ilan_sayisi) / (nf * yil / 100.0),
+			float(savas_donem) / (nf * float(tik))]
+
+
+# ===========================================================================
+# B6 KAPISI
+# ===========================================================================
+## Tam kadroda kosulan kampanya. 100 yil, cunku iki olcum de zaman ister:
+## savas siklik bandi ve korunum ozdeslikleri. Tam kampanya (264 yil) bu
+## olcumlere bir sey eklemez, yalnizca kapiyi uc katina cikarirdi.
+const KAPI_YIL := 100.0
+
+
+static func kos() -> int:
+	_gecen = 0
+	_kalan = 0
+	print("")
+	print("V2 OLCEK -- B6 KAPISI")
+	print("==================================================================")
+
+	var kodlar := Harita.simule_kodlar()
+	_dogrula(kodlar.size() >= 100, "simule kadro >= 100 (§5.6 'tam dunya')",
+			"= %d ulke" % kodlar.size())
+
+	# --- TAM KADRODA BIR KAMPANYA -------------------------------------
+	var w := Harita.dunya_kur(kodlar, 42, BAS)
+	var tik := Oran.donem_sayisi(KAPI_YIL, HAFTA)
+	var basla := Time.get_ticks_msec()
+	for _i in range(tik):
+		w.adim(HAFTA)
+	var sure := float(Time.get_ticks_msec() - basla)
+	var ms_tik := sure / float(tik)
+	print("")
+	print("  %d ulke x %.0f yil = %d tik, %.1f sn (%.2f ms/tik)"
+			% [w.ulkeler.size(), KAPI_YIL, tik, sure / 1000.0, ms_tik])
+
+	# --- 1. KORUNUM OLCEK ALTINDA -------------------------------------
+	# `--v2-dunya` bunlari BES ulkede olcuyor. Korunum ozdeslikleri cift
+	# uzerinde tanimli oldugu icin risk tam da olcekte: 6328 ciftte biriken
+	# yuvarlama, bes ciftte gorunmez. Ozdeslik gercekten ozdeslikse ulke
+	# sayisindan BAGIMSIZ olmali -- sinanan bu.
+	print("")
+	print("1. KORUNUM -- ozdeslikler ulke sayisindan bagimsiz mi")
+	print("------------------------------------------------------------------")
+	_dogrula(w.en_buyuk_korunum_hatasi < 1e-9,
+			"deger transferi korunuyor (sum VT = 0)",
+			"en buyuk bagil hata %s" % w.en_buyuk_korunum_hatasi)
+	_dogrula(w.en_buyuk_ticaret_hatasi < 1e-9,
+			"ticaret korunuyor (sum NX = 0)",
+			"en buyuk bagil hata %s" % w.en_buyuk_ticaret_hatasi)
+	_dogrula(w.en_buyuk_borc_hatasi < 1e-9,
+			"borc korunuyor (alacak = borc)",
+			"en buyuk bagil hata %s" % w.en_buyuk_borc_hatasi)
+
+	# --- 2. MALIYET BICIMI --------------------------------------------
+	# Mutlak sure MAKINEYE baglidir, dolayisiyla esik olamaz. Ama BICIM
+	# baglidir degil: maliyet a*n + b*n^2 ise, ulke sayisini k kat
+	# buyutmek maliyeti en fazla k^2 kat buyutur. Daha kotusu (gizli bir
+	# kubik terim, olcekle patlayan bir sozluk) BURADA yakalanir.
+	print("")
+	print("2. MALIYET BICIMI -- gizli bir kubik terim var mi")
+	print("------------------------------------------------------------------")
+	var kucuk := _olc(20)
+	var oran_n := float(w.ulkeler.size()) / 20.0
+	var oran_maliyet := ms_tik / maxf(float(kucuk["ms_tik"]), 1e-9)
+	print("     n=20 %.2f ms/tik  ->  n=%d %.2f ms/tik   (ulke %.2fx, maliyet %.2fx)"
+			% [float(kucuk["ms_tik"]), w.ulkeler.size(), ms_tik,
+			oran_n, oran_maliyet])
+	_dogrula(oran_maliyet < oran_n * oran_n,
+			"maliyet en fazla KARESEL buyuyor",
+			"%.2fx < %.2fx" % [oran_maliyet, oran_n * oran_n])
+
+	# --- 3. SAVAS SIKLIGI, ~100 ULKEDE --------------------------------
+	# B4 bunu 20 ulkede kalibre etti ve NOTU DUSTU: "olcut B6'da ~100
+	# ulkeyle yeniden okunmalidir". Sebep yapisal -- baglayici kisit
+	# olasilik degil HEDEF BULUNABILIRLIGIYDI, ve o ulke sayisiyla artar.
+	print("")
+	print("3. SAVAS SIKLIGI -- B4'un capasi ~100 ulkede hala tutuyor mu")
+	print("------------------------------------------------------------------")
+	var savas_donem := 0
+	for d in w.ulkeler:
+		savas_donem += d.savas_toplam
+	var n_ulke := float(w.ulkeler.size())
+	var zaman_pay := float(savas_donem) / (n_ulke * float(tik))
+	var ulke_yuzyil := n_ulke * KAPI_YIL / 100.0
+	var siklik := float(w.savas.ilan_sayisi) / ulke_yuzyil
+	print("     %d ilan, zamanin %%%.1f'i savasta, %.2f savas/ulke-yuzyil"
+			% [w.savas.ilan_sayisi, zaman_pay * 100.0, siklik])
+	print("     tarihsel capa: zamanin %5-15'i, ulke basina yuzyilda 1-4 savas")
+	# KAPI BILEREK TERS YONDE -- B5'in `bolunme` denetimiyle ayni bicimde.
+	#
+	# Olculdu ve capa TUTMUYOR: 0.23 savas/ulke-yuzyil, capa 1-4. Carpani
+	# 38'e cikarmak sikligi bant icine sokuyor (1.45, zamanin %11.1'i) AMA
+	# §3.1'in nedensel imzasini kiriyor: savasa girenin kar orani, o anda
+	# digerlerinin ALTINDA olmaktan cikiyor (-0.0067 -> +0.00235). Deponun
+	# hiyerarsisinde bant ayarlanabilir, yon ayarlanamaz -- bu yuzden
+	# carpan yerinde birakildi ve eksiklik KAYIT olarak duruyor
+	# (bkz. `kriz_param.gd::savas_siklik`, tasarim belgesi §6h).
+	#
+	# Denetim "hala dusuk mu" diye soruyor: ilan olasiligi doyuma gitmeyen
+	# bir bicimde yeniden yazildigi gun BU KAPI DUSER ve belge guncellenir.
+	_dogrula(siklik < 1.0,
+			"KAYIT: savas sikligi capanin ALTINDA (carpan secici degil)",
+			"%.2f < 1.0 capa -- §6h" % siklik)
+	_dogrula(zaman_pay < 0.05,
+			"KAYIT: savasta gecen zaman capanin ALTINDA",
+			"%%%.1f < %%5 -- §6h" % (zaman_pay * 100.0))
+
+	print("")
+	print("SONUC: %d gecti, %d kaldi" % [_gecen, _kalan])
+	return 0 if _kalan == 0 else 1
+
+
+## TEK NOKTA OLCUMU -- kalibrasyon icin. `--v2-savas-siklik=DEGER[:ulke]`.
+##
+## Ayri bir kapi olmasinin sebebi butce: tam kadroda 100 yil ~240 sn surer,
+## dolayisiyla dort degeri tek kosuda taramak zaman asimina girer. Secim
+## KARAR VERILEN kurulumda (tam kadro) yapilmali, 40 ulkelik ucuz kolda
+## degil -- B4'un `savas_siklik = 5.0`i tam olarak bu yuzden tasinmadi.
+static func savas_noktasi(siklik: float, n: int = -1) -> int:
+	var kadro := Harita.simule_kodlar().size()
+	var ulke := n if n > 0 else kadro
+	print("")
+	print("SAVAS SIKLIGI TEK NOKTA: siklik %.1f, %d ulke, 100 yil" % [siklik, ulke])
+	var r := _savas_olc(ulke, 42, 100.0, siklik)
+	print("  ilan %d, %.2f savas/ulke-yuzyil, zamanin %%%.1f'i savasta"
+			% [r[1], r[2], float(r[3]) * 100.0])
+	print("  capa: 1-4 savas/ulke-yuzyil, zamanin %5-15'i")
 	return 0
