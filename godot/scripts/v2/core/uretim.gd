@@ -171,6 +171,52 @@ static func basamak_oto(mutlak_q: float) -> float:
 ## olcut ve devrim zamanlamasi tutuyor.
 var yukseltme_maliyeti: float = 0.10
 
+## CAG TEKNIGI UCUZLATIR -- basamak bedelinin caga gore olcegi.
+##
+## NEDEN GEREKLI. Merdivenin tirmanma hizi yapisal olarak
+##
+##     basamak/yil = (yatirim * yukseltme_payi) / (K_bina * maliyet)
+##
+## yani BIRIKIM ORANIYLA orantilidir. Birikim orani kar oraniyla birlikte
+## DUSER (LTRPF), dolayisiyla merdiven kampanya ilerledikce YAVASLAR. Cagin
+## kendi `qg`si ise TERSINE hizlanir (0.0045 -> 0.0175). Iki egri zit yonlu
+## oldugu icin tek bir sabit maliyet ikisini birden tutturamaz -- olculdu:
+## 0.05 erken on yillari iki kat hizlandirirken, 0.10 gec kampanyayi bir
+## mertebe geride birakiyor.
+##
+## YENI SABIT DEGIL, TABLONUN OKUNMASI. Carpan cag tablosunun kendi `qg`
+## oranidir -- `q_tavan` kapisinda oldugu gibi tablo tekrarlanmaz, OKUNUR.
+## Birim onemsiz: oran alindigi icin tur/yil cevrimi sadelesir.
+##
+##     carpan = (qg[cag 1] / qg[cag]) ^ cag_esneklik
+##
+## 0.0 = kapali (bedel caga bagli degil), 1.0 = tam kuplaj. Kapaliyken
+## carpan OZDESLIKLE 1.0'dir -- karsi-olgusal olcum bu yuzden mumkun.
+##
+## SECILEN 1.00. Ortak tarama (`--v2-uretim-tarama`, 1825-2100, capa =
+## kapali form):
+##
+##   esneklik  log-sapma   q(2085)    oto    B2b issizlik
+##       0.00      0.963       6.1  0.000    0.2248
+##       0.70      0.509      25.5  0.000    0.2535
+##       0.80      0.370      45.3  0.767    0.2970
+##       0.90      0.168     114.5  0.800    0.3371
+##      *1.00      0.141     129.1  0.800    0.3815
+##       1.20      0.359     156.2  0.800       --
+##   (capa)           --     106.0  0.489    0.3169
+##
+## Bedel de ayrica tarandi (0.08-0.35 x esneklik 0.8-1.2): en iyi nokta
+## bedel 0.10, esneklik 1.00. Iki sey birden onemli -- BEDEL DEGISMEDI
+## (B2a'nin kalibre ettigi deger yerinde, eksik olan ikinci boyuttu) ve US
+## 1.00 CIKTI (carpan tam olarak cagin kendi `qg` oraninin tersi; ayarlanmis
+## bir sayi degil, ozdeslik gibi bir deger).
+##
+## BEDELI: B2b'nin yozlasma bandi bu kalibrasyonla dustu ve olculdu ki bandi
+## saglayan tek kol yavas merdivenli koldu (capanin kendisi 0.3169). Bant
+## capaya gore yeniden capalandi -- gerekcesi `nufus_testi.gd`de ve tasarim
+## belgesi §6b'de.
+var cag_esneklik: float = 1.0
+
 ## Brut yatirimin yukseltmeye ayrilan payi. Kalani yeni kapasiteye gider.
 ## Yogun (intensive) ve yaygin (extensive) birikim arasindaki bolusme.
 var yukseltme_payi: float = 0.35
@@ -500,7 +546,7 @@ func _yukselt(d: KrizDurumu, butce: float, ucret: float) -> float:
 		# `nitelik` 1.0 iken bolen 1.0'dir, yani katman takili degilken bu
 		# satir ozdesliktir.
 		binalar[secim].hedef_bedel = (binalar[secim].K * yukseltme_maliyeti
-				/ maxf(d.nitelik, 0.10))
+				* _cag_carpani(d) / maxf(d.nitelik, 0.10))
 
 	var b2 := binalar[secim]
 	# Taksit ANINDA sermayeye yazilir -- ozdeslik burada korunur.
@@ -523,6 +569,16 @@ func _yukselt(d: KrizDurumu, butce: float, ucret: float) -> float:
 		# olculmeden konulmaz.
 		b2.birikim = 0.0
 	return 0.0
+
+
+## Basamak bedelinin cag carpani (bkz. `cag_esneklik`). Esneklik 0 iken
+## OZDESLIKLE 1.0 doner -- yaklasik degil, birebir.
+func _cag_carpani(d: KrizDurumu) -> float:
+	if cag_esneklik == 0.0:
+		return 1.0
+	var qg_ref: float = float(Tables.ERAS[1]["qg"])
+	var qg: float = float(Tables.ERAS[clampi(d.era, 1, 6)]["qg"])
+	return pow(qg_ref / maxf(qg, 1e-9), cag_esneklik)
 
 
 ## Bir bina bir ust basamaga gecebilir mi: merdivenin sonunda mi, ve cagin

@@ -96,7 +96,7 @@ katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
 (üretim katmanı, 17 denetim), `--v2-nufus` (sınıf kohortları, 13 denetim),
 `--v2-mal` (mal piyasası, 7 denetim), `--v2-bolunme` (karanlık devlet,
 bölünme ve karşı hareket, 33 denetim), `--v2-savas` (savaş bir kriz çıkışı
-olarak, 16 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
+olarak, 23 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
 `--v2-uretim-tarama`, `--v2-nufus-tarama`, `--v2-mal-tarama`,
 `--v2-bolunme-tarama` ve `--v2-savas-tarama` (kalibrasyon taramaları — tanı,
 ana kapıdan yavaş), `--v2-harita` (harita, 44 denetim — **tam kampanya koşar,
@@ -420,6 +420,29 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   (`extract_sources.py --check`) o kapta `exit 127` ile düştü — on iki kapının
   on ikisi de geçtikten sonra. Godot gerektirmeyen adımlar kapsız bir runner'da
   ayrı iş olarak koşmalı.
+- **v2'de MERDİVEN İLE ÇAĞ TABLOSU ZIT YÖNLÜ, ve tek sabit ikisini tutmaz.**
+  Üretim merdiveninin tırmanma hızı yapısal olarak birikim oranıyla
+  orantılıdır (`basamak/yıl = yatırım·pay / (K_bina·bedel)`), birikim oranı da
+  kâr oranıyla birlikte **düşer** — LTRPF'nin kendisi. Çağ tablosunun `qg`si
+  ise **yükselir** (0.0045 → 0.0175). Ölçüldü: tek bir bedel ya erken on
+  yılları iki kat hızlandırıyor ya geç kampanyayı bir mertebe geride
+  bırakıyor; 2100'de q 12.4 kalırken kapalı form 156.3 veriyordu ve otomasyon
+  (mutlak q ≥ 36 ister) **hiç başlamıyordu**. Çözüm yeni bir sabit değil,
+  `q_tavan` kapısındaki ilkenin aynısı: basamak bedeli çağın kendi `qg`siyle
+  ölçeklenir — **tablo tekrarlanmaz, okunur** (`cag_esneklik = 1.0`).
+- **Kalibrasyon penceresi OYUNUN UFKUNU kapsamalı.** Merdiven taraması
+  1985'te bitiyordu ve tam bu yüzden asıl sapmayı göremiyordu: iki kol erken
+  on yıllarda yakın duruyor, ayrışma geç kampanyada açılıyor. "Bir eğriyi tek
+  noktadan eşleştirmek onu eşleştirmez" dersinin zaman eksenindeki hâli —
+  **yarım pencerede eşleştirmek de eşleştirmez.**
+- **Bir BANDIN neyi ölçtüğünü, düştüğü gün ÇAPALARI ölçerek anla.** B2b'nin
+  `iss_ort < 0.25` yozlaşma bandı merdiven kalibre edilince düştü. Bandı
+  gevşetmek yerine çapalar ölçüldü: çekirdeğin kendi kapalı formu 0.3169,
+  yalnız-nüfus kolu 0.3015 — yani bandı sağlayan **tek** kol yavaş merdivenli
+  koldu ve bant bağımsız bir ölçüt değil, o yavaşlığın parmak iziydi. Bant
+  çapaya göre yeniden yazıldı (`< çapa + 0.10`) ve ayırt ediciliği ayrıca
+  doğrulandı: kalibre kol 0.3815 geçiyor, aşırı kol (esneklik 1.5) 0.4706 ile
+  kalıyor.
 - **v2'de bir DÜZEY karşılaştırması trendi ölçer, mekanizmayı değil.** Bu
   ailenin dört üyesi oldu: mutlak `NX` yerine `NX/Y` (ekonomi küçülünce mutlak
   akım da küçülür), ham `l_etkin` yerine çarpan (nüfus sürükleniyor), kampanya

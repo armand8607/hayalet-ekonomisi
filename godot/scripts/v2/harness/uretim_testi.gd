@@ -392,50 +392,104 @@ static func iz() -> int:
 ## Olcu artik yirmi yillik orneklerin ORTALAMA LOG SAPMASIDIR.
 static func tarama() -> int:
 	print("=".repeat(72))
-	print("YUKSELTME MALIYETI TARAMASI   (capa: kapali form, --v2-tarih kurulumu)")
+	print("MERDIVEN TARAMASI   (capa: kapali form, --v2-tarih kurulumu, 1825-2100)")
 	print("=".repeat(72))
 
-	var ornek_yillari := [1845.0, 1865.0, 1885.0, 1905.0, 1925.0, 1945.0, 1965.0, 1985.0]
+	# PENCERE 2100'E UZATILDI. Onceki tarama 1985'te bitiyordu ve tam da bu
+	# yuzden asil sapmayi GOREMIYORDU: iki kol erken on yillarda yakin
+	# duruyor, ayrisma gec kampanyada aciliyor. Oyunun ufku 2100 oldugu
+	# icin olcut de oraya kadar bakmali (B5'in harita kapisi bunu bir
+	# "otomasyon hic baslamiyor" bulgusu olarak yakaladi).
+	var ornek_yillari := [1845.0, 1865.0, 1885.0, 1905.0, 1925.0, 1945.0,
+			1965.0, 1985.0, 2005.0, 2025.0, 2045.0, 2065.0, 2085.0]
 
 	var capa := _yorunge(-1.0, ornek_yillari)
-	print("\n  CAPA (mikro yok): devrim %.0f, ort r %.5f" % [
-			float(capa["devrim"]), float(capa["r_ort"])])
+	print("\n  CAPA (mikro yok): devrim %.0f, ort r %.5f, q(2085) %.1f, oto %.3f, iss %.3f" % [
+			float(capa["devrim"]), float(capa["r_ort"]),
+			float(capa["q"][capa["q"].size() - 1]), float(capa["oto"]),
+			float(capa["iss"])])
 	print("  q yorungesi:  " + _yorunge_yaz(capa["q"]))
 
-	print("\n  maliyet  yukselt   log-sapma   devrim   ort r    q(1885)  q(1965)")
-	print("  " + "-".repeat(64))
-	var adaylar := [0.05, 0.10, 0.20, 0.35, 0.50, 0.80, 1.20]
+	print("\n  --- 1. BEDEL (cag kuplaji KAPALI) ---")
+	print("  maliyet  yukselt   log-sapma   devrim   ort r   q(1885)  q(2085)   oto")
+	print("  " + "-".repeat(72))
+	for maliyet in [0.05, 0.10, 0.20, 0.35]:
+		_tarama_satiri(capa, float(maliyet), 0.0, ornek_yillari)
+
+	print("\n  --- 2. CAG KUPLAJI (bedel 0.10 sabit) ---")
+	print("  esneklik yukselt   log-sapma   devrim   ort r   q(1885)  q(2085)   oto   iss")
+	print("  " + "-".repeat(80))
 	var en_iyi := 0.0
 	var en_iyi_fark := INF
-	for maliyet in adaylar:
-		var kol := _yorunge(float(maliyet), ornek_yillari)
-		var q: Array = kol["q"]
-		var q0: Array = capa["q"]
-		# LOGARITMIK: q bilesik buyudugu icin "iki kat hizli" ile "yari
-		# hizli" ayni uzaklikta olmali. Dogrusal fark alsaydik tarama
-		# sistematik olarak yavas adaylari secerdi.
-		var sapma := 0.0
-		for i in range(mini(q.size(), q0.size())):
-			sapma += absf(log(maxf(float(q[i]), 1e-9) / maxf(float(q0[i]), 1e-9)))
-		sapma /= maxf(float(q.size()), 1.0)
+	for esneklik in [0.0, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.5]:
+		var sapma := _tarama_satiri(capa, 0.10, float(esneklik), ornek_yillari)
 		if sapma < en_iyi_fark:
 			en_iyi_fark = sapma
-			en_iyi = float(maliyet)
-		print("  %7.3f %8d %11.3f %8.0f %8.5f %8.2f %8.2f" % [
-				float(maliyet), int(kol["yukseltme"]), sapma,
-				float(kol["devrim"]), float(kol["r_ort"]),
-				float(q[2]) if q.size() > 2 else 0.0,
-				float(q[6]) if q.size() > 6 else 0.0])
+			en_iyi = float(esneklik)
 
-	print("\n  capaya en yakin: %.3f  (ortalama log sapma %.3f)" % [en_iyi, en_iyi_fark])
+	print("\n  capaya en yakin esneklik: %.2f  (ortalama log sapma %.3f)"
+			% [en_iyi, en_iyi_fark])
+
+	# ORTAK TARAMA. Iki dial ayni egrinin FARKLI ucunu tutuyor: bedel erken
+	# on yillari, esneklik gec kampanyayi. Ayri ayri tarandiklarinda ikisi
+	# de "iyi" gorunur ama birlikte en iyi noktayi kaciririz.
+	print("\n  --- 3. ORTAK (bedel x esneklik) ---")
+	print("  bedel  esnek  yukselt  log-sapma  devrim   ort r   q(1885) q(2085)   oto")
+	print("  " + "-".repeat(74))
+	var en_b := 0.0
+	var en_e := 0.0
+	var en_f := INF
+	for maliyet in [0.08, 0.10, 0.13, 0.17]:
+		for esneklik in [0.8, 1.0, 1.2]:
+			var kol := _yorunge(float(maliyet), ornek_yillari, float(esneklik))
+			var q: Array = kol["q"]
+			var q0: Array = capa["q"]
+			var sapma := 0.0
+			for i in range(mini(q.size(), q0.size())):
+				sapma += absf(log(maxf(float(q[i]), 1e-9) / maxf(float(q0[i]), 1e-9)))
+			sapma /= maxf(float(q.size()), 1.0)
+			if sapma < en_f:
+				en_f = sapma
+				en_b = float(maliyet)
+				en_e = float(esneklik)
+			print("  %5.2f %6.2f %8d %10.3f %7.0f %8.5f %8.2f %7.1f %6.3f" % [
+					float(maliyet), float(esneklik), int(kol["yukseltme"]),
+					sapma, float(kol["devrim"]), float(kol["r_ort"]),
+					float(q[2]), float(q[q.size() - 1]), float(kol["oto"])])
+	print("\n  ORTAK EN IYI: bedel %.2f, esneklik %.2f (log sapma %.3f)"
+			% [en_b, en_e, en_f])
 	print("\n  NOT: bu bir kapi degil TANIDIR. Secim tasarim belgesine yazilir;")
 	print("       kod varsayilani elle guncellenir, tarama otomatik degistirmez.")
 	return 0
 
 
+## Tarama tablosunun bir satiri. Doner: ortalama log sapma.
+static func _tarama_satiri(capa: Dictionary, maliyet: float, esneklik: float,
+		ornek_yillari: Array) -> float:
+	var kol := _yorunge(maliyet, ornek_yillari, esneklik)
+	var q: Array = kol["q"]
+	var q0: Array = capa["q"]
+	# LOGARITMIK: q bilesik buyudugu icin "iki kat hizli" ile "yari hizli"
+	# ayni uzaklikta olmali. Dogrusal fark alsaydik tarama sistematik
+	# olarak yavas adaylari secerdi.
+	var sapma := 0.0
+	for i in range(mini(q.size(), q0.size())):
+		sapma += absf(log(maxf(float(q[i]), 1e-9) / maxf(float(q0[i]), 1e-9)))
+	sapma /= maxf(float(q.size()), 1.0)
+	print("  %7.2f %8d %11.3f %8.0f %8.5f %8.2f %8.1f %6.3f %5.3f" % [
+			esneklik if esneklik > 0.0 or maliyet == 0.10 else maliyet,
+			int(kol["yukseltme"]), sapma, float(kol["devrim"]),
+			float(kol["r_ort"]),
+			float(q[2]) if q.size() > 2 else 0.0,
+			float(q[q.size() - 1]) if q.size() > 0 else 0.0,
+			float(kol["oto"]), float(kol["iss"])])
+	return sapma
+
+
 ## `--v2-tarih` kurulumunda bir kampanya kosar ve q yorungesini ornekler.
 ## `maliyet < 0` ise mikro katman TAKILMAZ (capa kolu).
-static func _yorunge(maliyet: float, ornek_yillari: Array) -> Dictionary:
+static func _yorunge(maliyet: float, ornek_yillari: Array,
+		esneklik: float = 0.0) -> Dictionary:
 	var d := KrizDurumu.new()
 	d.L_etkin = 110.0
 	d.pay = 0.52
@@ -450,20 +504,32 @@ static func _yorunge(maliyet: float, ornek_yillari: Array) -> Dictionary:
 		m = UretimKatmani.new()
 		m.baslat(d)
 		m.yukseltme_maliyeti = maliyet
+		m.cag_esneklik = esneklik
 		c.mikro = m
-	var n := Oran.donem_sayisi(198.0, HAFTA)
+	var n := Oran.donem_sayisi(2100.0 - 1825.0, HAFTA)
 	var q_ornek: Array = []
 	var sonraki := 0
 	var r_top := 0.0
+	# ISSIZLIK, TARIHSEL PENCEREDE. B2b'nin yozlasma bandi (`iss_ort < 0.25`)
+	# 1825-2023'te olculur; merdiveni hizlandirmak orada issizligi ittigi
+	# icin iki olcut AYNI TARAMADA gorunmeli. Ayri ayri bakildiginda biri
+	# duzelirken otekinin bozuldugu fark edilmez.
+	var iss_top := 0.0
+	var iss_agirlik := 0.0
 	for _i in range(n):
 		c.adim(d, HAFTA)
 		r_top += d.r_yil * HAFTA
+		if d.yil <= 2023.0:
+			iss_top += (1.0 - d.e) * HAFTA
+			iss_agirlik += HAFTA
 		if sonraki < ornek_yillari.size() and d.yil >= float(ornek_yillari[sonraki]):
 			q_ornek.append(d.q)
 			sonraki += 1
 	return {
 		"q": q_ornek,
 		"devrim": d.devrim_yil,
+		"oto": d.oto,
+		"iss": iss_top / maxf(iss_agirlik, 1e-9),
 		"r_ort": r_top / maxf(float(n) * HAFTA, 1e-9),
 		"yukseltme": m.yukseltme_sayisi if m != null else 0,
 	}

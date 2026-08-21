@@ -428,17 +428,21 @@ static func _modlar(w: Dunya, kampanya: Dictionary) -> void:
 		if y <= 0.0:
 			olu.append(id)
 
-	# IKI MOD AYRI TUTULUR -- ve bu bir muafiyet degil, OLCULMUS iki bulgudur
-	# (tasarim belgesi §6g). Ikisi de haritanin degil DUNYANIN durumudur:
-	# modlar sadakat testini gectigi icin okuduklari alan dogru, o alanlar
-	# hareket etmiyor.
-	const BEKLENEN_DUZ := ["bolunme", "otomasyon"]
+	# BIR MOD AYRI TUTULUR -- ve bu bir muafiyet degil, OLCULMUS bir bulgudur
+	# (tasarim belgesi §6g). Haritanin degil DUNYANIN durumudur: mod sadakat
+	# testini gectigi icin okudugu alan dogru, o alan hareket etmiyor.
+	#
+	# BURASI BIR KEZ IKI MODDU. `otomasyon` da duzdu ve sebebi merdivenin
+	# kapali formun bir mertebe altinda kalmasiydi; kapi "hala duz mu" diye
+	# sordugu icin B2a'nin cag kuplaji acildigi gun DUSTU ve belge
+	# guncellendi (§6b). Ters yonlu kapinin ne ise yaradigi tam olarak budur.
+	const BEKLENEN_DUZ := ["bolunme"]
 	var olu_beklenmeyen := PackedStringArray()
 	for id in olu:
 		if not BEKLENEN_DUZ.has(id):
 			olu_beklenmeyen.append(id)
 	_dogrula(olu_beklenmeyen.is_empty(),
-			"yedi mod kampanya boyunca ayrisiyor",
+			"sekiz mod kampanya boyunca ayrisiyor",
 			"olu: %s" % str(olu_beklenmeyen) if not olu_beklenmeyen.is_empty() else "")
 
 	# KAPILAR BILEREK TERS YONDE. Ikisi de "hala duz mu" diye soruyor ki,
@@ -455,21 +459,18 @@ static func _modlar(w: Dunya, kampanya: Dictionary) -> void:
 			"KAYIT: bolunme surucusuz (politika aktoru yok)",
 			"-> §6g")
 
-	# (2) OTOMASYON -- mikro merdiven esige varamiyor. `UretimKatmani`
-	#     takiliyken `oto` otoritesi ona gecer ve `basamak_oto` MUTLAK
-	#     q >= 36 ister. Olculdu (3 ulke, 1836-2100, GBR kolu):
+	# (2) OTOMASYON ARTIK CANLI -- ve bu B5'in getirdigi bir bulgunun
+	#     cozumu. `UretimKatmani` takiliyken `oto` otoritesi ona gecer ve
+	#     `basamak_oto` MUTLAK q >= 36 ister; merdiven 2100'de 12.4'te
+	#     kaliyordu, yani §5.3'un "LTRPF'nin doruk noktasi" dedigi sey oyun
+	#     dunyasinda HIC baslamiyordu. B2a'nin cag kuplaji (§6b) merdiveni
+	#     kapali forma oturttu.
 	#
-	#         mikro TAKILI   : q 1.60 -> 12.4    oto 0.000
-	#         mikro TAKILI DEGIL: q 1.60 -> 156.3  oto 0.489
-	#
-	#     Yani merdiven kapali formun bir mertebe altinda kaliyor ve
-	#     otomasyon -- §5.3'un "LTRPF'nin doruk noktasi" dedigi sey --
-	#     oyun dunyasinda HIC baslamiyor. Bu bir harita hatasi degil,
-	#     B2a'nin merdiven kalibrasyonuna dair olculmus bir bulgudur;
-	#     duzeltmek kriz kaydini da oynatir, dolayisiyla B5'in isi degil.
-	_dogrula(float(yayilim["otomasyon"]) == 0.0,
-			"KAYIT: otomasyon esige varmiyor (mikro merdiven)",
-			"-> §6g")
+	#     Denetim yon degil BUYUKLUK sorar: otomasyon yalnizca kipirdamis
+	#     olmasin, anlamli bir paya varsin. Kampanya sonunda cag 6'dayiz.
+	_dogrula(float(yayilim["otomasyon"]) > 0.25,
+			"otomasyon kampanyada anlamli paya variyor",
+			"yayilim %.3f (§6b'nin cag kuplaji)" % float(yayilim["otomasyon"]))
 
 	var bos_efsane := PackedStringArray()
 	for m in HaritaModu.MODLAR:

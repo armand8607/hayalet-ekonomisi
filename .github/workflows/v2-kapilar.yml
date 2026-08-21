@@ -88,7 +88,7 @@ jobs:
       - name: 'B3: karanlik devlet ve bolunme (33 denetim)'
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-bolunme
 
-      - name: 'B4: savas bir kriz cikisi olarak (16 denetim)'
+      - name: 'B4: savas bir kriz cikisi olarak (23 denetim)'
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-savas
 
       - name: 'B5: harita verisi (geometri, izdusum, isabet)'

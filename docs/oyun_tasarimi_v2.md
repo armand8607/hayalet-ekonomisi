@@ -485,7 +485,7 @@ yok" bulmak demekti.
 | **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | **KURULDU** — `--v2-nufus` 13/13, `--v2-tarih-mikro` iki katmanla geçiyor |
 | **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | **KURULDU** — `--v2-mal` 7/7 |
 | **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | **KURULDU** — `--v2-bolunme` 33/33; §4.3 ve §4.1'in birer iddiası ölçülüp düzeltildi (§6e) |
-| **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | **KURULDU** — `--v2-savas` 16/16; ittifak/abluka/ambargo da yerinde (§6f) |
+| **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | **KURULDU** — `--v2-savas` 23/23; ittifak/abluka/ambargo da yerinde (§6f) |
 | **B5** | **Harita.** ~~Eyalet~~ ülke geometrisi, harita modları, ülke seçimi | **KURULDU** — `--v2-harita` 44/44; 156 ülke çizili / 54 simüle / 19 oynanabilir, dokuz mod, dört bağ türü (§6g) |
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | ~100 ülke, kabul edilebilir tik süresi |
 | **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce | Ekran `--ss=` ile çizdirilip bakılmış |
@@ -1065,7 +1065,108 @@ Bu, `q`'nun bu motorda yalnızca bir üretkenlik değişkeni olmadığını da
 gösteriyor: **çağ tablosunun tetikleyicisi.** Mikro katmanın `q`'yu yazması,
 farkında olmadan tarihin hızını da yazması demektir.
 
-### Tarihsel kayıt mikro katmanla
+### Merdiven ikinci kez kalibre edildi — çağ kuplajı
+
+**B5'in haritası bir bulgu çıkardı ve o bulgu B2a'ya aitti**: otomasyon modu
+tam kampanya boyunca düz kalıyordu. Sebep, mikro katman takılıyken `oto`
+otoritesinin `UretimKatmani`'ne geçmesi ve `basamak_oto`nun **mutlak q ≥ 36**
+istemesiydi; merdiven 2100'de 12.4'te kalıyordu.
+
+**Teşhis: iki eğri zıt yönlü.** Merdivenin tırmanma hızı yapısal olarak
+
+```
+basamak/yıl = (yatırım · yukseltme_payi) / (K_bina · yukseltme_maliyeti)
+```
+
+yani **birikim oranıyla orantılıdır**. Birikim oranı kâr oranıyla birlikte
+düşer — LTRPF'nin kendisi — dolayısıyla merdiven kampanya ilerledikçe
+**yavaşlar**. Çağ tablosunun `qg`si ise tersine **hızlanır** (0.0045 → 0.0175).
+Tek bir sabit bedel bu ikisini birden tutturamaz, ve ölçüm bunu gösteriyordu:
+0.05 erken on yılları iki kat hızlandırırken (q(1885) 3.70, çapa 1.90),
+0.10 geç kampanyayı bir mertebe geride bırakıyordu (q(2085) 6.1, çapa 106.0).
+
+> **Eski tarama bunu göremezdi, ve sebebi penceresiydi.** Ölçüm 1985'te
+> bitiyordu; iki kol erken on yıllarda yakın duruyor, ayrışma geç kampanyada
+> açılıyor. **Kalibrasyon penceresi oyunun ufkunu kapsamalı** — 1825–2100.
+> Bu, "bir eğriyi tek noktadan eşleştirmek onu eşleştirmez" dersinin zaman
+> eksenindeki hâli: bir eğriyi yarım pencerede eşleştirmek de eşleştirmez.
+
+**Çözüm yeni bir sabit değil, tablonun okunması.** Basamağın bedeli çağın
+kendi `qg`siyle ters orantılı ölçeklenir:
+
+```
+carpan = (qg[çağ 1] / qg[çağ]) ^ cag_esneklik
+```
+
+`q_tavan` kapısındaki ilkenin aynısı: **tablo tekrarlanmaz, okunur.** Çağ zaten
+"üretkenliğin ne kadar hızlı büyüyebileceğini" söylüyordu; merdiven onu
+görmezden geliyordu.
+
+**Ortak tarama** (`--v2-uretim-tarama`, 1825–2100, çapa = kapalı form):
+
+| esneklik | log sapma | q(2085) | `oto` | ort. `r` | devrim | **B2b işsizlik** |
+|---|---|---|---|---|---|---|
+| 0.00 | 0.963 | 6.1 | 0.000 | 0.04596 | 1918 | 0.2248 ✓ |
+| 0.70 | 0.509 | 25.5 | 0.000 | 0.04520 | 1917 | 0.2535 ✗ |
+| 0.80 | 0.370 | 45.3 | 0.767 | 0.04487 | 1917 | 0.2970 ✗ |
+| 0.90 | 0.168 | 114.5 | 0.800 | 0.04424 | 1917 | 0.3371 ✗ |
+| **1.00** | **0.141** | **129.1** | **0.800** | 0.04370 | 1917 | 0.3815 ✗ |
+| çapa | — | 106.0 | 0.489 | 0.04863 | 1923 | **0.3169 ✗** |
+
+Bedel ayrıca tarandı (0.08–0.35 × esneklik 0.8–1.2): en iyi nokta **bedel
+0.10, esneklik 1.00**. İki şey birden önemli — **bedel değişmedi** (B2a'nın
+kalibre ettiği değer yerinde, eksik olan ikinci boyuttu) ve **üs 1.00 çıktı**
+(çarpan tam olarak çağın kendi `qg` oranının tersi; ayarlanmış bir sayı değil).
+
+### İki ölçüt çakıştı — ve B2b'nin bandı çapaya taşındı
+
+Merdiven düzeliyor: log sapma **0.963 → 0.141**, otomasyon 0.000 → 0.800.
+Buna karşılık **B2b'nin yozlaşma bandı** (`iss_ort < 0.25`) düşüyordu —
+üstelik daha **esneklik 0.70'te**, yani otomasyon canlanmadan önce. Aradaki
+hiçbir değer ikisini birden sağlamıyor.
+
+Bandı gevşetmek yerine **çapalar ölçüldü**, ve ölçüm bandın ne olduğunu
+gösterdi:
+
+| kol | ort. işsizlik |
+|---|---|
+| çekirdeğin kendi kapalı formu (çapa) | **0.3169** |
+| yalnız nüfus katmanı | **0.3015** |
+| nüfus+üretim, yavaş merdiven (esneklik 0) | 0.2248 |
+| nüfus+üretim, kalibre merdiven (esneklik 1) | 0.3815 |
+
+`< 0.25`'i sağlayan **tek** kol yavaş merdivenli koldu; çapanın kendisi de,
+nüfus katmanının kendisi de bandın dışındaydı. Yani bant bağımsız bir ölçüt
+değil, **yavaş merdivenin parmak iziydi**.
+
+Deponun dört kez tekrarlanan dersi burada da geçerli: **bir düzey
+karşılaştırması trendi ölçer, mekanizmayı değil.** Doğru soru "işsizlik mutlak
+olarak küçük mü" değil, "katmanları takmak çekirdeğin *kendi* işsizliğini ne
+kadar aşıyor". Bant bu yüzden **çapaya göre** yeniden yazıldı:
+
+```
+iss_ort < çapa + 0.10
+```
+
+Yön de teorik olarak beklenen yön: hızlanan teknik değişme **yedek sanayi
+ordusunu büyütür**. Eski davranışta üretim katmanı işsizliği nüfus-tek koluna
+göre 6 puan *düşürüyordu* — anomali o taraftaydı.
+
+> **Bandın hâlâ bir şey iddia ettiği doğrulandı.** Pay 0.10 keyfi değil
+> ayırt edici seçildi: kalibre merdiven **0.3815** ile geçiyor (payı 0.035),
+> aşırı kol (esneklik 1.5) **0.4706** ile **kalıyor**. Gevşetilmiş bir bant
+> ikisini de geçirirdi.
+
+Bandın yakalamak için kurulduğu yozlaşma zaten **bileşikti**: yüksek işsizlik
+*ve* `pay`ın tabana çakılması. `pay` denetimleri yeni kolda da geçiyor (ücret
+payı 0.3878, kampanyanın yalnızca %22'sinde kırpma).
+
+**Kapılar:** `--v2-uretim` 17/17, `--v2-nufus` 13/13, `--v2-tarih-mikro`
+geçiyor, `--v2-tarih` ve `--v2-olcek` etkilenmiyor (mikro katman takılı
+değil), `--v2-harita` otomasyon modunu artık **canlı** ölçüyor (yayılım
+0.794).
+
+### Tarihsel kayıt mikro katmanla### Tarihsel kayıt mikro katmanla### Tarihsel kayıt mikro katmanla
 
 `--v2-tarih-mikro` (aynı ölçüt, mikro katman takılı) **geçiyor**:
 
@@ -1906,9 +2007,9 @@ dokuz alanı **doğrudan yazıp** modun o yazıyı gösterdiğini sınar.
 
 ### İki mod düz — ve ikisi de haritanın değil dünyanın durumu
 
-Kampanya boyunca (54 ülke, 1836–2100, yıllık örnekleme) yedi mod ayrışıyor,
-ikisi düz kalıyor. İkisi de sadakat testini geçiyor, yani okudukları alan
-doğru; o alanlar hareket etmiyor.
+Kampanya boyunca (54 ülke, 1836–2100, yıllık örnekleme) ölçüldüğünde **iki**
+mod düz çıktı. İkisi de sadakat testini geçiyordu, yani okudukları alan doğru;
+o alanlar hareket etmiyordu. Biri sonradan çözüldü, öteki duruyor.
 
 **1. `bolunme` sürücüsüz.** Karanlık devletin sekiz taktiğini (`t_*`) yazan bir
 aktör yok: ne oyuncu var, ne AI politika katmanı. `KaranlikDevlet.otomatik`
@@ -1916,29 +2017,31 @@ yalnızca `mafya_tolerans`ı sürüyor, taktikleri değil. Mekanizma B3'te kurul
 ve `--v2-bolunme` onu **taktikleri kendi yazarak** sınıyor — dünyada
 sürücülüğünü yapan bir şey yok. Politika aktörü B7'nin işi.
 
-**2. `otomasyon` eşiğe varmıyor — ve bu B5'ten büyük bir bulgu.**
+**2. `otomasyon` eşiğe varmıyordu — ÇÖZÜLDÜ, ve çözümü B5'te değildi.**
 `UretimKatmani` takılıyken `oto` otoritesi ona geçer ve `basamak_oto` **mutlak
 q ≥ 36** ister. Karşı-olgusal ölçüldü (3 ülke, 1836–2100, tohum 42, GBR kolu):
 
-| | q (1836 → 2100) | `oto` (2100) | `r` (2100) |
-|---|---|---|---|
-| mikro katman **takılı** | 1.60 → **12.4** | **0.000** | ~0.02 |
-| mikro katman **takılı değil** | 1.60 → **156.3** | **0.489** | 0.0016 |
+| | q (1836 → 2100) | `oto` (2100) |
+|---|---|---|
+| mikro katman **takılı** | 1.60 → **12.4** | **0.000** |
+| mikro katman **takılı değil** | 1.60 → **156.3** | **0.489** |
 
-Yani üretim merdiveni kapalı formun **bir mertebe altında** kalıyor ve
-otomasyon — §5.3'ün "LTRPF'nin doruk noktası" dediği şey — oyun dünyasında
-**hiç başlamıyor**. §6b'nin kaydı merdivenin `era_min` kapısıyla dondurulduğunu
-ve düzeltildiğini anlatıyor (200 yılda q 1.00 → 1.33, kapalı form 55.4); bu
-ölçüm düzeltmeden **sonraki** hâli veriyor ve arayı kapatmadığını gösteriyor.
+Yani üretim merdiveni kapalı formun bir mertebe altında kalıyordu ve otomasyon
+— §5.3'ün "LTRPF'nin doruk noktası" dediği şey — oyun dünyasında hiç
+başlamıyordu. **Bu bir harita hatası değildi**; haritanın yaptığı tek şey onu
+görünür kılmaktı, çünkü geç kampanyanın bütün dünyasını aynı anda çizen ilk
+şey oydu.
 
-`--v2-tarih-mikro` geçmeye devam ediyor, yani **1825–2023 kriz kaydı** mikro
-katmanla tutuyor; ayrışan şey geç kampanya (2023–2100). Düzeltmek merdiven
-kalibrasyonunu oynatmak demek, o da kriz kaydını oynatır — **B5'in işi değil**,
-B2a/B6'ya kayıt.
+Teşhis ve düzeltme **B2a'ya** aitti ve orada yapıldı (§6b, "çağ kuplajı"):
+merdivenin tırmanma hızı birikim oranıyla orantılıdır ve LTRPF onu düşürür,
+çağ tablosunun `qg`si ise yükselir — iki zıt eğri. Basamağın bedeli çağın
+kendi `qg`siyle ölçeklenince log sapma 0.963'ten 0.141'e indi ve otomasyon
+canlandı: harita modunun kampanya yayılımı **0.000 → 0.794**.
 
-> **Kapılar bilerek ters yönde.** İki denetim de "hâlâ düz mü" diye sorar ve
-> sebep ortadan kalktığı gün **düşer**. Gevşek bırakılsalardı (`>= 0`) o gün
-> hiçbir şey haber vermezdi.
+> **Ters yönlü kapı işini gördü.** Denetim "hâlâ düz mü" diye soruyordu;
+> kuplaj açıldığı gün **düştü**, belge güncellendi ve denetim yerine
+> "otomasyon anlamlı paya varıyor" iddiası kondu. Gevşek bırakılsaydı
+> (`>= 0`) o gün hiçbir şey haber vermezdi.
 
 ### Bağlar: tam ilişki çizilemez
 

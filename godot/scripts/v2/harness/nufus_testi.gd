@@ -282,9 +282,37 @@ static func kos() -> int:
 			float(capa["e_ort"]), float(capa["pay_ort"])])
 	print("  nufus+uretim            : ort e %.4f, ort pay %.4f" % [
 			1.0 - float(ikisi["iss_ort"]), float(ikisi["pay_ort"])])
-	_dogrula(float(ikisi["iss_ort"]) < 0.25,
-			"ortalama issizlik makul bantta (< 0.25)",
-			"(%.4f)" % float(ikisi["iss_ort"]))
+	# BANT CAPAYA GORE, MUTLAK DEGIL -- ve bu bir gevsetme degil duzeltme.
+	#
+	# Ilk yazimda esik `< 0.25` idi ve o gun gecerliydi. B2a'nin merdiven
+	# kalibrasyonu (cag kuplaji) acilinca dustu: 0.2248 -> 0.3815. Once
+	# "kalibrasyon yanlis" diye bakildi, sonra CAPALAR olculdu:
+	#
+	#     cekirdegin kendi kapali formu (capa) : 0.3169
+	#     yalniz nufus katmani                 : 0.3015
+	#     nufus+uretim, YAVAS merdiven         : 0.2248
+	#     nufus+uretim, kalibre merdiven       : 0.3815
+	#
+	# Yani `< 0.25`i saglayan TEK kol yavas merdivenli koldu; capanin
+	# kendisi de, nufus katmaninin kendisi de bandin disindaydi. Bant
+	# bagimsiz bir olcut degil, YAVAS MERDIVENIN PARMAK IZIYDI.
+	#
+	# Deponun dort kez tekrarlanan dersi burada da gecerli: bir DUZEY
+	# karsilastirmasi trendi olcer, mekanizmayi degil. Dogru soru "issizlik
+	# mutlak olarak kucuk mu" degil, "katmanlari takmak cekirdegin KENDI
+	# issizligini ne kadar asiyor" -- ve o soru capaya gore sorulur.
+	#
+	# Yon de teorik olarak beklenen yon: hizlanan teknik degisme YEDEK
+	# SANAYI ORDUSUNU buyutur. Eski davranista uretim katmani issizligi
+	# nufus-tek koluna gore 6 puan DUSURUYORDU; anomali o taraftaydi.
+	#
+	# Pay 0.10 keyfi degil ayirt edici secildi: kalibre merdiven 0.3815 ile
+	# geciyor (payi 0.035), esneklik 1.5'lik asiri kol 0.4706 ile KALIYOR.
+	# Bandin hala bir sey iddia ettigi boyle dogrulandi.
+	var capa_iss := 1.0 - float(capa["e_ort"])
+	_dogrula(float(ikisi["iss_ort"]) < capa_iss + 0.10,
+			"issizlik cekirdegin kendi capasini asmiyor (capa + 0.10)",
+			"(%.4f, capa %.4f)" % [float(ikisi["iss_ort"]), capa_iss])
 	_dogrula(float(ikisi["taban_pay"]) < 0.50,
 			"`pay` kampanyanin yarisindan fazlasini TABANDA gecirmiyor",
 			"(tabanda gecen sure %.2f)" % float(ikisi["taban_pay"]))
