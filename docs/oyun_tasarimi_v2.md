@@ -488,7 +488,9 @@ yok" bulmak demekti.
 | **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | **KURULDU** — `--v2-savas` 23/23; ittifak/abluka/ambargo da yerinde (§6f) |
 | **B5** | **Harita.** ~~Eyalet~~ ülke geometrisi, harita modları, ülke seçimi | **KURULDU** — `--v2-harita` 44/44; 156 ülke çizili / 54 simüle / 19 oynanabilir, dokuz mod, dört bağ türü (§6g) |
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | **KURULDU** — `--v2-b6` 7/7; 113 ülke, 45.6 ms/tik, korunum ölçekten bağımsız (§6h) |
-| **B7** | **Arayüz.** Victoria düzeni: harita ana ekran, paneller, günce | Ekran `--ss=` ile çizdirilip bakılmış |
+| **B7a** | **Oyun kabuğu.** Oturum, geçmiş, günce, oyuncu kolları, Victoria düzeni | **KURULDU** — `--v2-oyun` 35/35; ekran `--ss=` ile çizdirilip bakıldı (§6i) |
+| **B7b** | **Politika aktörü.** AI kendi krizine göre taktik yazsın (§4.5) — `bolunme` modunun eksik sürücüsü | açık |
+| **B7c** | **Sunum artıkları.** Blok gösterimi (dolgu/kabuk), ad değişimi takvimi (Osmanlı → Türkiye) | açık |
 
 **B1a bitti ve kendi ölçütünü fazlasıyla aştı.** Kriz teorisi bu mimaride
 çalışıyor: kapalı ekonomi 100 kapitalist yılda 19.2 ayrık kriz olayı üretiyor.
@@ -2193,3 +2195,99 @@ Kadro 113'e çıkınca tam kampanya koşan kapıların maliyeti üçe katlandı
 (54 ülke) verir ve harita kapısı onu kullanır. Ayrım aynı zamanda doğru iş
 bölümü: haritanın kapısı **mod canlılığını ve bağ kapsamını** ölçer, ölçeği
 değil — ölçek B6'nın kapısıdır ve tam kadroda koşar.
+
+---
+
+## 6i. B7a — oyun kabuğu
+
+### Kabuk motoru değiştirmez — ve bu kapının en sert kademesi
+
+B5 haritanın motora dokunmadığını kanıtlamıştı; kabuk için aynı soru daha
+ağır, çünkü kabuk motoru **sürüyor**. Gözlemci kipinde (`oyuncu < 0`) bir
+oturum yalnızca `dunya.adim()` çağırır ve okur; kapı onu doğrudan
+`Dunya.adim()` ile sürülen bir dünyayla **alan alan** karşılaştırır.
+
+Denetim dekoratif değil: `Gecmis.ornekle` içine `saldirganlik += 1e-12`
+konularak kırmızı olduğu doğrulandı ve kapı yakaladı. Örnekleme ya da günce
+toplama motora geri yazsaydı **B0–B6'nın bütün ölçümleri oyunun içinde
+sessizce geçersizleşirdi** ve bunu söyleyecek başka hiçbir şey yoktu.
+
+### Oynayarak fark edilmeyecek iki ekran hatası
+
+**Birinci örnek `t=0`'da alınıyordu.** Orada `r_yil` 0.0'dır — kâr oranı bir
+alan değil çekirdeğin **çıktısıdır** ve ilk `adim()` koşmadan hesaplanmamıştır.
+Her kâr oranı grafiği 1836'da sıfırdan başlayıp 1837'de 0.10'a sıçrayacaktı;
+olmayan bir çöküş ve toparlanma. Daha kötüsü **metriğin türüne göre
+değişiyordu**: `pay` ve `q` gerçek başlangıç alanları olduğu için bazı
+eğrilerde artefakt görünecek, bazılarında görünmeyecekti. Seri artık ilk yılın
+sonunda başlıyor.
+
+**Takvim yılı bir yıl geri kayıyordu.** `yil` her tik 1/52 ekleyerek birikir ve
+52 tikten sonra 1836.9999999999998'e varır; `int()` bunu 1836'ya kırpar.
+Örneğin yılı artık tik sayısından türetiliyor — eşiğe kayan nokta
+karşılaştırmak yerine tik saymanın aynı disiplini.
+
+### `borc` ve `varlik` STOKTUR — panel onları oran diye etiketliyordu
+
+Ekran görüntüsüne bakılınca yakalandı: Osmanlı'nın paneli **"Hanehalkı borcu /
+Y = 244.34"** gösteriyordu. v4.4'ün metrik listesi kopyalanmış, ama v2'de bu
+iki alan mutlak **stok**. Çekirdeğin kendisi ikisini de her kullandığı yerde
+`Y_yil`'e bölüyor (`kriz_cekirdegi.gd:499, 550, 966`); ekran da aynısını
+yapmalı, yoksa eksen adı ile eksendeki sayı ayrı şeyler anlatır. Düzeltmeden
+sonra 1.90.
+
+Bu üç hatanın üçü de headless kapıların hepsinden geçiyordu. **B7'nin ölçütü
+bu yüzden "ekran `--ss=` ile çizdirilip bakılmış"tır** — ve gerçekten bakmak
+gerekiyormuş.
+
+### §4.6 bir kapıya çevrildi
+
+Temsil ilkesi ("mağduru adlandırılmış, bedeli sayılmış politikalar") bir niyet
+olarak bırakılamazdı: panel kaydırmalı, ve listenin dibinde adsız kalan bir
+taktiği kimse görmez. Kapı sekiz taktiğin her biri için **adının, aygıtının
+(rıza/zor) ve bedelinin** yazılı olduğunu, alanın motorda gerçekten
+bulunduğunu, ve karanlık devletin altı çıktısının çizilen metrik kümesinde
+olduğunu sayarak denetliyor.
+
+Metinler `Oyun.TAKTIKLER`den, o da `KaranlikDevlet`in kendi tablosundan
+türetilmiştir — ekranda yazan bedel ile motorda işleyen kanal aynı kaynaktan
+gelir ve ayrışamaz.
+
+### Altı kol, altısı da karşı-olgusal olarak sınandı
+
+Ölü bir kol arayüzde çapraz görünmez: kaydırıcı kayar, sayı değişir, dünya
+değişmez. Her kol aynı tohumla açık/kapalı koşulup yörüngenin **ayrıştığı**
+doğrulandı. Merdiven kolu zincirin ucuna kadar sınanıyor — 30 yılda
+`q` 0.650 → 1.686, `c/v` 0.820 → 1.497, `r` 0.0814 → **0.0660**: §2.4'ün
+tuzağı kabuğun kolundan geçiyor.
+
+### Kapı penceresinde kâr oranı YÜKSELİR — ve bu LTRPF'yi çürütmez
+
+İlk yazımda kapıya "kâr oranı 60 yılda düşer" denetimi konmuştu ve **düştü**.
+Hak ettiği için: iddia o pencerede yanlış. `--v2-oyun-iz=230` aynı kadroda
+eğrinin biçimini veriyor:
+
+| | 1837 | zirve | 2065 |
+|---|---|---|---|
+| `r` | 0.027 | **0.380 @ 1948** | 0.033 |
+| `c/v` | 1.13 | | 6.87 |
+| `q` | 0.65 | | 76.3 |
+
+Zirveden **−%91.3**. Eğilim yerinde; altmış yıl onu görmek için çok kısa, ve
+ilk on yıllar başlangıç geçici rejiminin altında kalıyor. Bandın kapısı
+`--v2-tarih` ve `--v2-olcek`tir; **kabuğun kendi iddiası serilerinin SADIK
+olmasıdır**, eğilimin yönü değil. Denetim bu yüzden kayda çevrildi ve ters
+yönde bırakıldı: pencere gerçekten geçici rejimse başlangıç değeri zirvenin
+yarısının altında olmalı.
+
+### B7a'nın yapmadıkları
+
+- **Politika aktörü yok** — B7b. `bolunme` harita modu hâlâ düz, çünkü AI
+  ülkelerde taktikleri yazan bir şey yok; `KaranlikDevlet.otomatik` yalnızca
+  `mafya_tolerans`ı sürüyor. Oyuncunun ülkesinde kollar artık çalışıyor.
+- **Blok gösterimi ve ad değişimi takvimi yok** — B7c. Oynanabilir ülkeler
+  kampanya boyunca 1836 adını taşıyor.
+- **Kayıt/yükleme yok.** v4.4'ün `Save` otoloadı v2 oturumunu tanımıyor.
+- **Varsayılan giriş hâlâ v1.** `_oyunu_baslat()` v4.4 menüsünü açıyor; v2
+  `--v2-menu` ve `--v2-oyna` ile giriliyor. Devir B7 bitince yapılmalı —
+  Pages'e ve APK'ya çıkan sürüm yarım bir kabuk olmamalı.

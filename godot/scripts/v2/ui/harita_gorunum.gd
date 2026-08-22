@@ -49,6 +49,26 @@ const BAG_RENK := {
 const ETIKET_ALAN := 260.0
 
 var dunya: Dunya = null
+## Haritanin KENDI ust seridi (mod adi + yil). Oyun kabugu (B7) kendi, daha
+## genis ust barini cizdigi icin onu kapatir; `--v2-harita-goster` ve kapilar
+## icin ACIK kalir, yoksa B5'in gorsel kapisi bilgisini kaybederdi.
+var serit_acik: bool = true
+
+## PANELLERIN KAPLADIGI KENARLAR. Harita tam ekrandir ve paneller USTUNE
+## biner (§5.5); haritanin KENDI cizdikleri (efsane, bilgi kutusu) o
+## panellerin altinda kalmamali. Olculdu: gunce paneli acikken efsane
+## yarisina kadar orluyordu ve rejim renkleri okunmuyordu.
+##
+## Harita GEOMETRISI bilerek kaydirilmaz -- yalnizca HUD ogeleri. Dunyayi
+## panel acilinca kaydirmak, ulkelerin ekrandaki yerini panel durumuna bagli
+## hale getirirdi.
+var alt_bosluk: float = 0.0
+var sag_bosluk: float = 0.0
+
+## Haritanin bilgi kutusu SECILI ulke icin de cizilsin mi. Ulke paneli
+## acikken ayni bilgiyi iki yerde gostermek demektir ve kutu ust barin
+## uzerine biniyordu; panel aciksa yalnizca IMLEC ALTINDAKI ulke gosterilir.
+var bilgi_secili: bool = true
 var mod_id: String = "siyasi"
 ## Secili ulkenin KAYIT indeksi (dunya indeksi degil), -1 = yok.
 var secili: int = -1
@@ -262,16 +282,21 @@ func _hud_ciz() -> void:
 	var m := HaritaModu.mod(mod_id)
 
 	# --- ust serit: mod adi + yil ---
-	var serit := Rect2(0.0, 0.0, size.x, 28.0)
-	draw_rect(serit, Tema.PANEL)
-	draw_line(Vector2(0.0, 28.0), Vector2(size.x, 28.0), Tema.CIZGI, 1.0)
-	draw_string(yazi, Vector2(Tema.KENAR, 19.0), String(m["ad"]),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, boy, Tema.METIN)
-	draw_string(yazi, Vector2(Tema.KENAR + 120.0, 19.0), String(m["aciklama"]),
-			HORIZONTAL_ALIGNMENT_LEFT, size.x - 320.0, boy - 2, Tema.METIN_SOLUK)
-	if dunya != null:
-		draw_string(yazi, Vector2(size.x - 90.0, 19.0), "%d" % int(dunya.yil),
-				HORIZONTAL_ALIGNMENT_LEFT, -1, boy, Tema.VURGU)
+	if serit_acik:
+		var serit := Rect2(0.0, 0.0, size.x, 28.0)
+		draw_rect(serit, Tema.PANEL)
+		draw_line(Vector2(0.0, 28.0), Vector2(size.x, 28.0), Tema.CIZGI, 1.0)
+		draw_string(yazi, Vector2(Tema.KENAR, 19.0), String(m["ad"]),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, boy, Tema.METIN)
+		draw_string(yazi, Vector2(Tema.KENAR + 120.0, 19.0),
+				String(m["aciklama"]), HORIZONTAL_ALIGNMENT_LEFT,
+				size.x - 320.0, boy - 2, Tema.METIN_SOLUK)
+		if dunya != null:
+			# Birikmis kayan nokta hatasi yil sinirinda bir yil geri gosterir
+			# (1836.9999... -> 1836); epsilon toleransi onu yutar.
+			draw_string(yazi, Vector2(size.x - 90.0, 19.0),
+					"%d" % floori(dunya.yil + 1e-6),
+					HORIZONTAL_ALIGNMENT_LEFT, -1, boy, Tema.VURGU)
 
 	_efsane_ciz()
 	_secili_ciz()
@@ -286,7 +311,7 @@ func _efsane_ciz() -> void:
 	var kutu_en := 132.0
 	var kutu_boy := 16.0
 	var x := Tema.KENAR
-	var y := size.y - kutu_boy - Tema.KENAR
+	var y := size.y - kutu_boy - Tema.KENAR - alt_bosluk
 	draw_rect(Rect2(x - 4.0, y - 4.0,
 			kutu_en * girdiler.size() + 8.0, kutu_boy + 8.0), Tema.PANEL)
 	for g in girdiler:
@@ -299,7 +324,7 @@ func _efsane_ciz() -> void:
 
 
 func _secili_ciz() -> void:
-	var i := secili if secili >= 0 else _ustunde
+	var i := (secili if secili >= 0 else _ustunde) if bilgi_secili else _ustunde
 	if i < 0:
 		return
 	var u := Harita.kayit()[i]
@@ -330,7 +355,7 @@ func _secili_ciz() -> void:
 	for s in satirlar:
 		g = maxf(g, yazi.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1,
 				boy - 2).x)
-	var kutu := Rect2(size.x - g - 24.0, 38.0, g + 16.0,
+	var kutu := Rect2(size.x - g - 24.0 - sag_bosluk, 38.0, g + 16.0,
 			satirlar.size() * 16.0 + 12.0)
 	draw_rect(kutu, Tema.PANEL)
 	draw_rect(kutu, Tema.CIZGI, false, 1.0)

@@ -105,7 +105,25 @@ ana kapıdan yavaş), `--v2-harita` (harita, 44 denetim — **tam kampanya koşa
 birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
 7 denetim — **~5 dk**), `--v2-olcek-tarama` ve
 `--v2-savas-siklik=DEĞER[:ülke]` (B6 tanıları),
-`--v2-iz[=YIL[:baş[:dönem]]]` ve `--v2-uretim-iz` (teşhis izleri).
+`--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
+(teşhis izleri).
+
+**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (35 denetim, ~1 dk).
+`--v2-menu` kampanya kurulum ekranını,
+`--v2-oyna[=KOD[:tohum[:yıl[:kadro[:panel]]]]]` doğrudan oyun ekranını açar;
+`panel` = `ulke|politika|gunce|yok`. **İkisi de `--headless` ile anlamsızdır**
+(`_draw()` koşmaz) — `--ss=` ile birlikte `xvfb-run` altında koşulmalı:
+
+```bash
+xvfb-run -a -s "-screen 0 1600x900x24" ./Godot_v4.7-stable_linux.x86_64 \
+    --path godot res://scenes/Main.tscn --resolution 1600x900 \
+    -- --v2-oyna=TUR:42:60:16:politika --ss=/tmp/b7.png
+```
+
+> **`kadro` verilirse oyuncunun ülkesi kadroya ZORLA eklenir.**
+> `Harita.kapi_kodlar(n)` sabit bir alt kümedir ve TUR'u içermiyordu; görsel
+> kapı sessizce **gözlemci** kipine düşüyor, bütün kollar kapalı çıkıyordu —
+> yani sınanmak istenen ekran hiç çizilmiyordu.
 
 **Godot yoksa (Linux / uzak oturum):** binary'yi indirmek yeterli, kurulum
 gerekmiyor. Ölçüldü — `--headless` için xvfb bile gerekmez:
@@ -369,6 +387,22 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   res://scenes/Main.tscn -- --oyna=:42:Turkiye:600 --ss=panel.png` ile çalışır
   (Mesa llvmpipe yeter). Rapor ekranının sol boşluğunun hiç uygulanmadığı
   böyle yakalandı — beş doğrulama kapısının hepsi o hatayı geçiyordu.
+- **v4.4'ün metrik listesini v2'ye KOPYALAMA — birimler aynı değil.**
+  v2'de `borc` ve `varlik` mutlak **stoktur**; v4.4'te normalize edilmişti.
+  Panel "Hanehalkı borcu / Y" etiketiyle ham stoku gösteriyordu: Osmanlı'da
+  **244.34**, düzeltince 1.90. Çekirdek ikisini de her kullandığı yerde
+  `Y_yil`'e bölüyor (`kriz_cekirdegi.gd:499, 550, 966`). `Gecmis` metriğine
+  `"payda"` verilir. Beş headless kapının beşi de bu hatayı geçiyordu; ekrana
+  bakınca yakalandı.
+- **Türetilmiş metrikler `t=0`'da YOKTUR.** `r_yil`, `u`, `PR`, `Omega` alan
+  değil çekirdeğin çıktısıdır ve ilk `adim()` koşmadan 0.0'dır. Başlangıç
+  satırı örneklenirse her kâr oranı grafiği olmayan bir çöküşle başlar — ve
+  hata **metriğin türüne göre** değişir (`pay`, `q` gerçek başlangıç alanı
+  olduğu için onlarda görünmez). `Gecmis` ilk örneği ilk yılın sonunda alır.
+- **`yil` kayan noktada birikir: 52 tik sonra 1836.9999999999998.** `int()`
+  bunu 1836'ya kırpar ve grafiğin, güncenin, üst şeridin bütün yıl etiketleri
+  bir yıl geri kayar. Takvim yılı **tik sayısından** türetilir
+  (`Oyun.takvim_yili()` epsilon toleransı taşır).
 - **Android export ETC2/ASTC ister**: `project.godot` içinde
   `textures/vram_compression/import_etc2_astc=true` — oyunda hiç doku olmasa
   bile. Yoksa export "configuration error" ile durur.
@@ -535,6 +569,16 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `HaritaModu` | dokuz harita modu: değer, aralık, renk, efsane (B5) |
 | `HaritaGorunum` | `ui/` — haritayı `_draw()` ile çizer. Tek `Control`, sıfır asset |
 | `BasarimTesti` | `harness/` — B6: ölçek altında maliyet, korunum, savaş sıklığı |
+| `Oyun` | `oyun/` — oturum: dünya + oyuncu + tik + politika kolları (B7) |
+| `Gecmis` | `oyun/` — **yıllık** örneklenen sütun deposu; panelin grafikleri |
+| `Gunce` | `oyun/` — kriz tescillerinden **türetilen** günce (§0) |
+| `OyunEkrani` | `ui/` — Victoria düzeni: harita ana ekran, paneller üstüne |
+| `UlkePaneli` | `ui/` — 12 çekirdek metrik + karanlık devletin bedelleri |
+| `PolitikaPaneli` | `ui/` — oyuncunun kolları; §4.6'nın temsil ilkesi burada yaşar |
+| `GuncePaneli` | `ui/` — günce akışı, ülke süzgeciyle |
+| `ZamanGrafigi` | `ui/` — tek metriğin serisi; `Chart`ın aksine otoloada bağlı değil |
+| `OyunMenusu` | `ui/` — kampanya kurulumu: özne seçimi (senaryo yok, §5.3) |
+| `OyunTesti` | `harness/` — B7: kabuk motoru değiştirmiyor mu, kollar canlı mı |
 
 **Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
 `cekirdek.nufus`, `cekirdek.mal` ve `cekirdek.karanlik` `null` ise bütün kapalı

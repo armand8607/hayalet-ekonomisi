@@ -72,10 +72,21 @@ func ornekle(w: Dunya, takvim: float) -> void:
 ## (`iss_duzeltilmis()`), cunku haritanin `issizlik` modu de onu kullanir ve
 ## panel ile harita ayni ulke icin farkli sayi gosterirse hangisinin dogru
 ## oldugu sorusu ekranda cevaplanamaz.
+## `payda` verilirse deger BIR ORANDIR, ham alan degil.
+##
+## Olculdu ve ekranda yakalandi: `borc` ve `varlik` mutlak STOKTUR, ve panel
+## onlari "Hanehalki borcu / Y" diye etiketleyip HAM STOKU gosteriyordu --
+## Osmanli'da 244.34, yani hasilanin 244 kati gibi okunuyordu. Cekirdegin
+## kendisi bu iki buyuklugu her kullandigi yerde `Y_yil`e boluyor
+## (`kriz_cekirdegi.gd:499, 550, 966`); ekran da ayni seyi yapmali, yoksa
+## eksen adi ile eksendeki sayi ayri seyler anlatir.
 static func _oku(d: KrizDurumu, m: Dictionary) -> float:
 	if m.has("islev"):
 		return float(d.call(String(m["islev"])))
-	return float(d.get(String(m["anahtar"])))
+	var v := float(d.get(String(m["anahtar"])))
+	if m.has("payda"):
+		return v / maxf(float(d.get(String(m["payda"]))), 1e-9)
+	return v
 
 
 ## Bir ulkenin bir metrigi boyunca zaman serisi.

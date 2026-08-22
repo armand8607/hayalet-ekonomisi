@@ -202,6 +202,27 @@ func _ready() -> void:
 						hg.get_slice(":", 2) if hg.count(":") >= 2 else "siyasi")
 				_ss_kontrol(argumanlar)
 				return
+			_ when a.begins_with("--v2-oyna"):
+				# --v2-oyna[=KOD[:tohum[:yil[:kadro[:panel]]]]] -- OYUN EKRANI.
+				# `panel`: ulke | politika | gunce | yok -- gorsel kapi
+				# kapali bir panelin cizimini deneyemez.
+				# `kadro` verilirse dunya o kadar ulkeyle kurulur; ekran
+				# goruntusu icin tam kadro (113 ulke) gereksiz pahalidir.
+				# `--headless` `_draw()` KOSTURMAZ; bu kapi bayraksiz ya da
+				# `xvfb-run` altinda kosulmalidir.
+				var vo := a.get_slice("=", 1) if a.contains("=") else ""
+				_v2_oyna(
+						vo.get_slice(":", 0) if vo != "" else "",
+						int(vo.get_slice(":", 1)) if vo.count(":") >= 1 else 42,
+						int(vo.get_slice(":", 2)) if vo.count(":") >= 2 else 0,
+						int(vo.get_slice(":", 3)) if vo.count(":") >= 3 else 0,
+						vo.get_slice(":", 4) if vo.count(":") >= 4 else "")
+				_ss_kontrol(argumanlar)
+				return
+			"--v2-menu":
+				_v2_menuyu_ac()
+				_ss_kontrol(argumanlar)
+				return
 			"--menu":
 				_menuyu_ac()
 				_ss_kontrol(argumanlar)
@@ -238,6 +259,43 @@ func _haritayi_goster(yil: float, tohum: int, mod: String) -> void:
 	g.mod_id = mod
 	add_child(g)
 	g.kur(w)
+
+
+## v2'nin kampanya kurulum ekrani (B7).
+func _v2_menuyu_ac() -> void:
+	_ekrani_temizle()
+	var m := OyunMenusu.new()
+	m.kosu_istendi.connect(func(kod: String, tohum: int) -> void:
+		_v2_oyna(kod, tohum, 0, 0))
+	add_child(m)
+
+
+## v2 oyun ekranini kurar ve istege bagli olarak `yil` kadar ilerletir.
+##
+## `kur()` add_child'DAN SONRA cagrilir: ekran alt dugumlerini `_ready`de
+## kurar, once cagrilsaydi harita ve paneller henuz yok olurdu.
+func _v2_oyna(kod: String, tohum: int, yil: int, kadro: int,
+		panel: String = "") -> void:
+	_ekrani_temizle()
+	var o := Oyun.new()
+	var kodlar := PackedStringArray()
+	if kadro > 0:
+		# OYUNCUNUN ULKESI KADROYA ZORLA EKLENIR. `kapi_kodlar` sabit bir alt
+		# kumedir ve TUR'u icermiyordu; gorsel kapi sessizce GOZLEMCI kipine
+		# dusuyor, butun kollar kapali cikiyordu -- yani panelin asil sinanmak
+		# istenen hali hic cizilmiyordu.
+		kodlar = Harita.kapi_kodlar(kadro)
+		if kod != "" and not kodlar.has(kod):
+			kodlar.append(kod)
+	o.kur(kod, tohum, kodlar)
+	if yil > 0:
+		o.ilerle(yil * Oyun.YILDA_TIK)
+	var e := OyunEkrani.new()
+	e.menuye_don.connect(_v2_menuyu_ac)
+	add_child(e)
+	e.kur(o)
+	if panel != "":
+		e.panel_goster(panel)
 
 
 ## Ekran goruntusu alir ve cikar. Paneli GERCEKTEN gormenin tek yolu budur:

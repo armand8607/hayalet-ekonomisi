@@ -53,8 +53,13 @@ const CEKIRDEK_METRIKLER: Array[Dictionary] = [
 	{"anahtar": "issizlik", "ad": "İşsizlik", "bicim": "yuzde",
 			"islev": "iss_duzeltilmis"},
 	{"anahtar": "pay", "ad": "Ücret payı", "bicim": "yuzde"},
-	{"anahtar": "borc", "ad": "Hanehalkı borcu / Y", "bicim": "oran2"},
-	{"anahtar": "varlik", "ad": "Spekülatif varlık / Y", "bicim": "oran2"},
+	# IKISI DE STOK, ve `Y_yil`e BOLUNEREK gosterilir. Ham stok gosterilseydi
+	# eksen adi ("/ Y") ile sayi ayri seyler anlatirdi; cekirdek de bu iki
+	# buyuklugu her kullandigi yerde hasilaya boluyor.
+	{"anahtar": "borc", "payda": "Y_yil", "ad": "Hanehalkı borcu / Y",
+			"bicim": "oran2"},
+	{"anahtar": "varlik", "payda": "Y_yil", "ad": "Spekülatif varlık / Y",
+			"bicim": "oran2"},
 	{"anahtar": "Omega", "ad": "Siyasi öfke", "bicim": "yuzde"},
 	{"anahtar": "org", "ad": "Örgütlenme", "bicim": "yuzde"},
 	{"anahtar": "oto", "ad": "Otomasyon payı", "bicim": "yuzde"},

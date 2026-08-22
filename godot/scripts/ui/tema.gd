@@ -56,6 +56,21 @@ const KENAR := 12.0
 const SATIR := 20.0
 
 
+## Opak panel stili.
+##
+## GEREKLI, cunku `PanelContainer`in varsayilan temasi YARI SAYDAMDIR ve v2'nin
+## panelleri haritanin USTUNE biner (§5.5). Olculdu: politika paneli acikken
+## ulke adlari ("Kazakistan", "Cing Hanedani") metnin icinden geciyor ve panel
+## okunmuyordu. Arka plani olmayan bir panel, harita uzerinde panel degildir.
+static func panel_stili() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = PANEL
+	s.border_color = CIZGI
+	s.set_border_width_all(1)
+	s.set_content_margin_all(8)
+	return s
+
+
 static func rejim_rengi(rejim: String) -> Color:
 	return REJIM.get(rejim, METIN_SOLUK)
 

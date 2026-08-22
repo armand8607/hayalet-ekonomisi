@@ -105,6 +105,49 @@ jobs:
         # burada sinanir; `--v2-dunya` onlari bes ulkede olcuyor.
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-b6
 
+      - name: 'B7: oyun kabugu (32 denetim)'
+        # Oturum, gecmis, gunce ve oyuncu kollari. En sert kademesi kabugun
+        # motoru DEGISTIRMEDIGI: gozlemci kipinde surulen dunya, dogrudan
+        # `Dunya.adim()` ile surulen dunyayla alan alan karsilastirilir.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-oyun
+
+      - name: 'B7: oyun ekrani gercekten CIZILIYOR mu'
+        # `--headless` `_draw()` KOSTURMAZ, yani bozuk bir cizim butun
+        # yukaridaki kapilardan sessizce gecer. Ekrani cizdirmenin tek yolu
+        # gercek bir pencere; `xvfb-run` tam olarak bunun icin.
+        #
+        # GODOT SCRIPT HATASINDA SIFIR DONER, dolayisiyla cikis kodu tek
+        # basina bir sey soylemez: cikti "SCRIPT ERROR" iceriyor mu ve PNG
+        # gercekten yazildi mi, ikisi de denetlenir.
+        run: |
+          # Kabin xvfb tasidigi garanti degil; yoksa kurulur. Ekran boyutu
+          # ACIKCA verilir -- xvfb'nin varsayilani 1600x900'den kucuk olabilir
+          # ve pencere kirpilirsa paneller "cizilmemis" gibi gorunur.
+          command -v xvfb-run >/dev/null || {
+            apt-get update -qq && apt-get install -y -qq xvfb
+          }
+          cd godot
+          xvfb-run -a -s "-screen 0 1600x900x24" \
+              godot res://scenes/Main.tscn --resolution 1600x900 \
+              -- --v2-oyna=TUR:42:12:16 --ss=/tmp/b7.png 2>&1 | tee /tmp/b7.log
+          if grep -q "SCRIPT ERROR" /tmp/b7.log; then
+            echo "Oyun ekraninda script hatasi:"
+            grep -A 4 "SCRIPT ERROR" /tmp/b7.log
+            exit 1
+          fi
+          test -s /tmp/b7.png || { echo "Ekran goruntusu yazilmadi"; exit 1; }
+
+      - name: 'B7: ekran goruntusu'
+        # Kapi degil KAYIT: cizimin dogru gorunup gorunmedigine insan bakar.
+        # B7'nin olcutu belgede zaten oyle tanimli ("ekran `--ss=` ile
+        # cizdirilip BAKILMIS").
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b7-oyun-ekrani
+          path: /tmp/b7.png
+          if-no-files-found: warn
+
       - name: 'B5: harita (44 denetim)'
         # EN PAHALISI (~260 sn): 54 ulke x 264 yil, tam katman yigini.
         # Kampanya boyu kosmasi zorunlu -- `otomasyon` 1836'da sifirdir ve

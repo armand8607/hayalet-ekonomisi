@@ -343,6 +343,48 @@ static func kos() -> int:
 	_dogrula(not yazdi, "gozlemci kipinde kollar islemsiz")
 
 	# -----------------------------------------------------------------
+	print("\n--- 6. §4.6: hicbir taktik adlandirilmadan sunulamaz ---")
+	# TEMSIL ILKESI BIR KAPIDIR, bir niyet degil. §4.6 taktiklerin "etkinlik
+	# kolu gibi sunulmamasini", magdurun adlandirilmasini ve bedelin
+	# SAYILMASINI istiyor. Ekran goruntusuyle dogrulanamaz: panel kaydirmali,
+	# ve bir taktik listenin dibinde adsiz kalsa kimse gormez.
+	var eksik: Array[String] = []
+	var ornek := KrizDurumu.new()
+	for t in Oyun.TAKTIKLER:
+		var alan := String(t.get("alan", ""))
+		# (a) alan gercekten motorda var mi -- olu bir kol arayuzde
+		#     digerlerinden ayirt edilemez.
+		if alan == "" or not (alan in ornek):
+			eksik.append("%s: alan motorda yok" % alan)
+			continue
+		# (b) adi, aygiti ve BEDELI yazili mi.
+		if String(t.get("ad", "")).strip_edges() == "":
+			eksik.append("%s: adi yok" % alan)
+		if not String(t.get("aygit", "")) in ["rıza", "zor"]:
+			eksik.append("%s: aygiti yok" % alan)
+		if String(t.get("bedel", "")).strip_edges() == "":
+			eksik.append("%s: BEDELI yazilmamis" % alan)
+	_dogrula(eksik.is_empty(), "sekiz taktigin adi, aygiti ve bedeli yerinde",
+			"; ".join(eksik) if not eksik.is_empty() else
+			"%d taktik" % Oyun.TAKTIKLER.size())
+	_dogrula(Oyun.TAKTIKLER.size() == 8, "taktik sayisi 8 (§4.6'nin tablosu)",
+			"%d" % Oyun.TAKTIKLER.size())
+
+	# Bedeller AYRICA SAYILIR: karanlik devletin ciktilarinin hepsi cizilen
+	# metrik kumesinde olmali, yoksa "bedeli sayilmis" cumlesi bos kalir.
+	var sayilan := PackedStringArray()
+	for m in Oyun.KARANLIK_METRIKLER:
+		sayilan.append(String(m["anahtar"]))
+	var sayilmayan: Array[String] = []
+	for anah in ["bolunme", "cezaevi_orani", "uyusturucu_orani", "sehit",
+			"egitim", "karsi_hareket"]:
+		if not sayilan.has(anah):
+			sayilmayan.append(anah)
+	_dogrula(sayilmayan.is_empty(), "bedeller gorunur metrik olarak ciziliyor",
+			"eksik: " + ", ".join(sayilmayan) if not sayilmayan.is_empty()
+			else "%d metrik" % sayilan.size())
+
+	# -----------------------------------------------------------------
 	print("\n--- olcum: §2.4'un merkezi tuzagi kabuk uzerinden ---")
 	# Kapi degil KAYIT. Merdiven kolunun mekanizmasi B2a'nin kapisidir;
 	# burada olculen sey, kolun oradaki mekanizmaya GERCEKTEN ulastigidir.
