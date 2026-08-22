@@ -70,6 +70,18 @@ bilinen kurulum yolları → PATH sırasıyla arar, `.godot/` yoksa bir kez
 `--import` koşar ve oyunu açar. Masaüstüne kısayol:
 `powershell -ExecutionPolicy Bypass -File tools\masaustu_kisayolu.ps1`.
 
+> **Argümansız açılış artık v2'yi getirir** (B7 bitince yapılan devir).
+> v4.4 kaldırılmadı, bayrağa taşındı: `--menu` eski menüyü, `--oyna` eski
+> gösterge panelini açar. `--sim-test`, `--kabul` ve `--yon-testleri` hâlâ
+> onlara bağlı.
+
+Linux'ta / uzak oturumda oynamak için (aşağıdaki binary indirmesinden sonra):
+
+```bash
+xvfb-run -a -s "-screen 0 1280x720x24" ./Godot_v4.7-stable_linux.x86_64 \
+    --display-driver x11 --path godot --resolution 1280x720
+```
+
 Kâhin:
 
 ```bash
