@@ -80,6 +80,8 @@ var _suruklu := false
 var _kod_dunya := {}                   ## kod -> dunya indeksi
 var _aralik := Vector3.ZERO
 var _baglar: Array[Dictionary] = []
+## Kayit indeksi -> blok kimligi. Bos = o ulke bir blokta degil.
+var _blok: Dictionary = {}
 
 
 func _ready() -> void:
@@ -103,6 +105,16 @@ func yenile() -> void:
 	if dunya != null:
 		_aralik = HaritaModu.aralik(mod_id, dunya)
 		_baglar = Harita.gorunur_baglar(dunya)
+		# BLOK KABUGU (B7c). Kayit indeksine cevrilir: cizim kayit uzerinde
+		# doner, bloklar dunya indeksiyle gelir.
+		_blok = {}
+		var b := Harita.bloklar(dunya)
+		for di in range(b.size()):
+			if b[di] < 0:
+				continue
+			var ki := Harita.indeks(dunya.adlar[di])
+			if ki >= 0:
+				_blok[ki] = b[di]
 	queue_redraw()
 
 
@@ -173,9 +185,17 @@ func _draw() -> void:
 				RenderingServer.canvas_item_add_triangle_array(
 						get_canvas_item(), ucgen, ekran, renkler)
 			# Sinir: halka kapali ama son nokta tekrarlanmiyor, elle kapaniyor.
+			#
+			# BLOK KABUGU: uye ulkenin sinirini blok renginde ve kalin cizer
+			# (§3.3, B7c). Dolgu o anki modun degeri olarak KALIR -- ikisi
+			# ayri sorulara cevap verir ve ust uste binmez.
 			var kapali := ekran.duplicate()
 			kapali.append(ekran[0])
-			draw_polyline(kapali, SINIR, 1.0, true)
+			if _blok.has(i):
+				draw_polyline(kapali, HaritaModu.blok_rengi(int(_blok[i])),
+						2.0, true)
+			else:
+				draw_polyline(kapali, SINIR, 1.0, true)
 
 	_baglari_ciz()
 	_cerceve_ciz(secili, SINIR_SECILI, 2.0)
@@ -268,12 +288,12 @@ func _etiketleri_ciz() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, boy - 2, renk)
 
 
-## Kampanya 1836'da basladigi icin oynanabilir ulkeler TARIHSEL adiyla
-## gorunur (§5.8b). Ad degisiminin takvimi B7'nin isi; simdilik kayittaki
-## tarihsel ad varsa o yazilir.
+## Ad TEK KAYNAKTAN gelir (`Harita.gorunen_ad`): kampanya 1836'da basladigi
+## icin oynanabilir ulkeler tarihsel adiyla gorunur (§5.8b) ve takvim yili
+## gelince modern adina gecer (B7c).
 func _gorunen_ad(u: Dictionary) -> String:
-	var t := String(u["ad_1836"])
-	return t if t != "" else String(u["ad"])
+	return Harita.gorunen_ad(String(u["kod"]),
+			dunya.yil if dunya != null else Oyun.BAS_YIL)
 
 
 func _hud_ciz() -> void:

@@ -75,6 +75,25 @@ const MODLAR: Array[Dictionary] = [
 ]
 
 
+## BLOK KABUGU RENKLERI (B7c).
+##
+## Dolgudan AYRI bir palet olmasi zorunlu: dolgu o anki modun degeridir ve
+## bloklar HER modda gorunmeli. Ayni palet kullanilsaydi "bu ulke kirmizi
+## cunku kar orani dusuk mu, yoksa kirmizi blokta mi" sorusu ekranda
+## cevaplanamazdi. Renkler ayrica bag renklerinden (savas/ittifak/abluka/
+## ticaret) uzak tutuldu.
+const BLOK_RENKLERI: Array[Color] = [
+	Color("e8c25a"), Color("7ad1c8"), Color("c98ae0"),
+	Color("8fd96a"), Color("e09a6a"), Color("6a9ae0"),
+]
+
+
+## Blok kimliginden renk. Kimlik blogun en kucuk uye indeksidir, yani uyelik
+## degismedigi surece renk de sabit kalir.
+static func blok_rengi(kimlik: int) -> Color:
+	return BLOK_RENKLERI[absi(kimlik) % BLOK_RENKLERI.size()]
+
+
 static func mod(id: String) -> Dictionary:
 	for m in MODLAR:
 		if m["id"] == id:

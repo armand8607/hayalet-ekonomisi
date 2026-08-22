@@ -419,7 +419,11 @@ static func kos() -> int:
 
 	# -----------------------------------------------------------------
 	print("\n--- 7. B7b: politika aktoru (§4.5) ---")
-	_aktor_kademesi()
+	var aktorlu := _aktor_kademesi()
+
+	# -----------------------------------------------------------------
+	print("\n--- 8. B7c: bloklar ve ad takvimi ---")
+	_sunum_kademesi(aktorlu)
 
 	print("\n" + "-".repeat(70))
 	print("SONUC: %d gecti, %d kaldi" % [_gecen, _kalan])
@@ -432,7 +436,7 @@ static func kos() -> int:
 ## PENCERE TAM UFUKTUR ve bu pahali (iki kol x 264 yil). Kisaltilamaz: ilk
 ## kalibrasyon 150 yilda yapilmisti ve secilen kol 200 yilda devrimi
 ## sifirliyordu. Bu kademenin olctugu seyin yarisi GEC KAMPANYADA olur.
-static func _aktor_kademesi() -> void:
+static func _aktor_kademesi() -> Dunya:
 	var kodlar := Harita.kapi_kodlar(AKTOR_ULKE)
 	var acik := Harita.dunya_kur(kodlar, 42, Oyun.BAS_YIL)
 	var kapali := Harita.dunya_kur(kodlar, 42, Oyun.BAS_YIL)
@@ -531,6 +535,9 @@ static func _aktor_kademesi() -> void:
 	# BIRIKMIS izidir. Kapi degil kayit -- ve dogru adres B0-B3.
 	print("  KAYIT: es-zamanli kesit %+.4f -- gec kampanyada `Omega` doygun"
 			% _kesit(acik))
+	# B7c kademesi ayni dunyayi kullanir: ittifaklar burada zaten olusmus
+	# durumda ve ikinci bir 264 yillik kampanya kosmanin anlami yok.
+	return acik
 
 
 # ===========================================================================
@@ -879,3 +886,134 @@ static func _kesit(w: Dunya) -> float:
 			alt += d.riza_kolu
 			na += 1
 	return ust / maxf(nu, 1) - alt / maxf(na, 1)
+
+
+## B7c -- SUNUM KATMANI: blok gosterimi ve ad degisimi takvimi.
+##
+## Ikisi de motoru degistirmez; sinanan sey SOZLESMEDIR. Bir sunum hatasi
+## headless kapilarin hepsinden gecer (B7a'da uc tanesi oyle gecmisti), ama
+## bunlarin ikisi de EKRANA BAKMADAN sayilabilir: ad tablosu saf bir
+## fonksiyon, bloklar ise grafin bagli bilesenleri.
+static func _sunum_kademesi(w: Dunya) -> void:
+	# --- AD TAKVIMI ---
+	# (a) Tablodaki her kod haritada var ve TARIHSEL ADI da var mi. Yoksa
+	#     satir sessizce hicbir sey yapmaz -- ad hic degismez ve kimse
+	#     fark etmez.
+	var kotu: Array[String] = []
+	for kod in Harita.AD_DEGISIMI.keys():
+		var i := Harita.indeks(String(kod))
+		if i < 0:
+			kotu.append("%s: haritada yok" % kod)
+		elif String(Harita.kayit()[i]["ad_1836"]) == "":
+			kotu.append("%s: tarihsel adi yok" % kod)
+	_dogrula(kotu.is_empty(), "ad takvimindeki her kod haritada karsilikli",
+			"; ".join(kotu) if not kotu.is_empty() else
+			"%d kod" % Harita.AD_DEGISIMI.size())
+
+	# (b) TERSI DE DENETLENIR: tarihsel adi MODERN adindan FARKLI olan her
+	#     ulkenin takvimde bir yili olmali. Olmazsa o ulke 2100'de hala
+	#     1836 adiyla durur -- B7c'nin var olma sebebi tam olarak bu.
+	var takvimsiz: Array[String] = []
+	for u in Harita.kayit():
+		var t := String(u["ad_1836"])
+		if t == "" or t == String(u["ad"]):
+			continue
+		if not Harita.AD_DEGISIMI.has(String(u["kod"])):
+			takvimsiz.append(String(u["kod"]))
+	_dogrula(takvimsiz.is_empty(), "adi degisen her ulkenin takvimi var",
+			"takvimsiz: " + ", ".join(takvimsiz) if not takvimsiz.is_empty()
+			else "")
+
+	# (c) GECIS GERCEKTEN OLUYOR mu -- ve dogru yilda.
+	var yanlis: Array[String] = []
+	for kod in Harita.AD_DEGISIMI.keys():
+		var k := String(kod)
+		var y := float(Harita.AD_DEGISIMI[k])
+		var i := Harita.indeks(k)
+		var tarihsel := String(Harita.kayit()[i]["ad_1836"])
+		var modern := String(Harita.kayit()[i]["ad"])
+		if tarihsel == modern:
+			continue
+		if Harita.gorunen_ad(k, y - 1.0) != tarihsel:
+			yanlis.append("%s gecis oncesi" % k)
+		if Harita.gorunen_ad(k, y) != modern:
+			yanlis.append("%s gecis yilinda" % k)
+	_dogrula(yanlis.is_empty(), "ad gecisi takvim yilinda oluyor",
+			"; ".join(yanlis) if not yanlis.is_empty() else "")
+
+	# (d) EPSILON: `yil` haftalik birikimle gecis yilinin bir tik altina
+	#     duser (1922.9999999). Tam esitlik karsilastirmasi gecisi bir yil
+	#     geciktirirdi -- takvimin kendisi dogru olmasina ragmen.
+	_dogrula(Harita.gorunen_ad("TUR", 1923.0 - 1e-9) == "Türkiye",
+			"gecis yili kayan nokta hatasina dayanikli",
+			"1922.999999999 -> " + Harita.gorunen_ad("TUR", 1923.0 - 1e-9))
+
+	# --- BLOKLAR ---
+	var b := Harita.bloklar(w)
+	var uye := {}
+	for i in range(b.size()):
+		if b[i] >= 0:
+			uye[b[i]] = int(uye.get(b[i], 0)) + 1
+
+	_dogrula(not uye.is_empty(), "kampanya sonunda en az bir blok var",
+			"%d blok, %d uye" % [uye.size(), b.size() - _sifir_say(b)])
+
+	# (e) TEK UYELI BLOK YOK. Bir blok en az iki ulkedir; tek basina bir
+	#     ulkeyi renklendirmek haritayi anlamsiz renklerle doldururdu.
+	var tekli := 0
+	for k in uye.keys():
+		if int(uye[k]) < 2:
+			tekli += 1
+	_dogrula(tekli == 0, "tek uyeli blok yok", "%d tane" % tekli)
+
+	# (f) KIMLIK EN KUCUK UYE INDEKSI. Blok boyuna ya da olusum sirasina
+	#     gore numaralandirilsaydi bir ulke katildiginda butun renkler
+	#     kayardi.
+	var kimlik_hatasi: Array[String] = []
+	for kimlik in uye.keys():
+		var en_kucuk := 1 << 30
+		for i in range(b.size()):
+			if b[i] == kimlik:
+				en_kucuk = mini(en_kucuk, i)
+		if en_kucuk != int(kimlik):
+			kimlik_hatasi.append("%d != %d" % [kimlik, en_kucuk])
+	_dogrula(kimlik_hatasi.is_empty(), "blok kimligi = en kucuk uye indeksi",
+			"; ".join(kimlik_hatasi) if not kimlik_hatasi.is_empty() else "")
+
+	# (g) TUTARLILIK: muttefik olan iki ulke AYNI blokta olmali. Birlesim
+	#     hatasi burada yakalanir.
+	var ad_indeks := {}
+	for i in range(w.adlar.size()):
+		ad_indeks[w.adlar[i]] = i
+	var kopuk := 0
+	for i in range(w.ulkeler.size()):
+		for mut in w.ulkeler[i].muttefik:
+			var j := int(ad_indeks.get(mut, -1))
+			if j >= 0 and b[i] != b[j]:
+				kopuk += 1
+	_dogrula(kopuk == 0, "muttefik ciftler ayni blokta", "%d kopuk" % kopuk)
+
+	# (h) MUTTEFIKSIZ ULKE BLOKSUZ.
+	var yanlis_uye := 0
+	for i in range(w.ulkeler.size()):
+		if w.ulkeler[i].muttefik.is_empty() and b[i] >= 0:
+			yanlis_uye += 1
+	_dogrula(yanlis_uye == 0, "muttefiksiz ulke bloga girmiyor",
+			"%d tane" % yanlis_uye)
+
+	print("  KAYIT: %d blok, en buyugu %d ulke" % [uye.size(), _en_buyuk(uye)])
+
+
+static func _sifir_say(b: PackedInt32Array) -> int:
+	var c := 0
+	for v in b:
+		if v < 0:
+			c += 1
+	return c
+
+
+static func _en_buyuk(uye: Dictionary) -> int:
+	var m := 0
+	for k in uye.keys():
+		m = maxi(m, int(uye[k]))
+	return m

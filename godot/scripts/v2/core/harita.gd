@@ -86,6 +86,135 @@ static var _isabet_sirasi: PackedInt32Array = PackedInt32Array()
 # ---------------------------------------------------------------------------
 # KAYIT
 # ---------------------------------------------------------------------------
+## AD DEGISIMI TAKVIMI -- SUNUMDUR, MEKANIZMA DEGIL.
+##
+## §3.4'un kapsam durustlugu kurali: "dinamik devlet olusumu modellenmiyor;
+## simule edilen birim bir devlet degil bir TOPRAGIN EKONOMISIDIR." Bu tablo
+## o kurali ihlal etmez, cunku hicbir seyi surmez -- yalnizca ekranda hangi
+## adin yazilacagini soyler. Motorda karsiligi YOKTUR.
+##
+## Neden gerekli: kampanya 1836'da basliyor ve oynanabilir ulkeler o tarihin
+## adiyla aniliyor (§5.8b). Takvim olmadan 2100'de hala "Osmanli
+## Imparatorlugu" yaziyordu.
+##
+## Neden karsi-olgusal DEGIL: oyunun dunyasi tarihten sapar, ama devlet
+## olusumu modellenmedigi icin sapmayi ada cevirecek bir olay da yok. Sabit
+## bir takvim, olmayan bir mekanizmayi ima etmemenin en durust yolu -- ve
+## boyle oldugu burada yazili.
+const AD_DEGISIMI := {
+	"ARG": 1861,   # Pavon sonrasi birlesme
+	"AUS": 1901,   # Federasyon
+	"BRA": 1889,   # Cumhuriyet
+	"CAN": 1867,   # Konfederasyon
+	"CHN": 1949,   # Halk Cumhuriyeti (veri "Cin Halk Cumhuriyeti" diyor)
+	"DEU": 1871,   # Imparatorluk
+	"FRA": 1848,   # Ikinci Cumhuriyet
+	"GBR": 1922,   # Irlanda Ozgur Devleti sonrasi "Birlesik Krallik"
+	"IDN": 1945,
+	"IND": 1947,
+	"ITA": 1861,
+	"JPN": 1868,   # Meiji
+	"KOR": 1948,
+	"MEX": 1867,   # Yeniden kurulan cumhuriyet
+	"RUS": 1917,
+	"SAU": 1932,
+	"TUR": 1923,
+	"ZAF": 1961,   # veri "Guney Afrika Cumhuriyeti" diyor
+}
+
+
+## Ekranda gorunecek ulke adi. TEK KAYNAK.
+##
+## Harita, gunce, ulke paneli ve ust bar bunu cagirir; her biri kendi
+## mantigini tasisaydi ayni ulke ayni yilda iki ekranda iki farkli adla
+## gorunebilirdi.
+static func gorunen_ad(kod: String, yil: float) -> String:
+	var i := indeks(kod)
+	if i < 0:
+		return kod
+	var u := kayit()[i]
+	var tarihsel := String(u["ad_1836"])
+	if tarihsel == "":
+		return String(u["ad"])
+	var y := int(AD_DEGISIMI.get(kod, 0))
+	# EPSILON: `yil` haftalik birikimle 1922.9999999'a varir ve tam esitlik
+	# karsilastirmasi gecis yilini bir yil geciktirir.
+	if y > 0 and yil + 1e-6 >= float(y):
+		return String(u["ad"])
+	return tarihsel
+
+
+# ---------------------------------------------------------------------------
+# BLOKLAR
+# ---------------------------------------------------------------------------
+# §3.3'un ittifaklari bir GRAFTIR ve bloklar onun BAGLI BILESENLERIDIR.
+# Cizgiyle gosterilmesi yetmiyor: sosyalist pakt bir kliktir (38 ulke = 703
+# cift) ve kapsayan yildiz cizilse bile "kim hangi blokta" sorusu ancak
+# cizgiler takip edilerek cevaplanir. DOLGU/KABUK gosterimi onu tek bakista
+# okunur yapar -- dolgu o anki harita modunun degeri, kabuk blok uyeligi.
+#
+# BLOK KIMLIGI EN KUCUK UYE INDEKSIDIR. Blok boyuna ya da olusum sirasina
+# gore numaralandirilsaydi bir ulke bloga katildiginda BUTUN bloklarin
+# renkleri kayardi; en kucuk indeks, uyelik degismedigi surece sabittir.
+
+## Ulke basina blok kimligi; -1 = muttefiksiz. Kimlik, blogun en kucuk uye
+## indeksidir.
+static func bloklar(w: Dunya) -> PackedInt32Array:
+	var n := w.ulkeler.size()
+	var ata := PackedInt32Array()
+	ata.resize(n)
+	for i in range(n):
+		ata[i] = i
+	var ad_indeks := {}
+	for i in range(n):
+		ad_indeks[w.adlar[i]] = i
+
+	for i in range(n):
+		for mut in w.ulkeler[i].muttefik:
+			var j := int(ad_indeks.get(mut, -1))
+			if j >= 0:
+				_blok_birlestir(ata, i, j)
+
+	var boy := {}
+	var c := PackedInt32Array()
+	c.resize(n)
+	for i in range(n):
+		var k := _blok_kok(ata, i)
+		c[i] = k
+		boy[k] = int(boy.get(k, 0)) + 1
+	# TEK UYELI "BLOK" BLOK DEGILDIR. Muttefiksiz bir ulkeyi kendi renginde
+	# gostermek haritayi anlamsiz renklerle doldururdu.
+	for i in range(n):
+		if int(boy[c[i]]) < 2:
+			c[i] = -1
+	return c
+
+
+static func _blok_kok(ata: PackedInt32Array, i: int) -> int:
+	var k := i
+	while ata[k] != k:
+		k = ata[k]
+	# Yol sikistirma.
+	var g := i
+	while ata[g] != g:
+		var s := ata[g]
+		ata[g] = k
+		g = s
+	return k
+
+
+## KOK HER ZAMAN KUCUK INDEKS. Blok kimliginin sabit kalmasi buna bagli.
+static func _blok_birlestir(ata: PackedInt32Array, a: int, b: int) -> void:
+	var ka := _blok_kok(ata, a)
+	var kb := _blok_kok(ata, b)
+	if ka == kb:
+		return
+	if ka < kb:
+		ata[kb] = ka
+	else:
+		ata[ka] = kb
+
+
 static func kayit() -> Array[Dictionary]:
 	if _kayit.is_empty():
 		_coz()

@@ -490,7 +490,7 @@ yok" bulmak demekti.
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | **KURULDU** — `--v2-b6` 7/7; 113 ülke, 45.6 ms/tik, korunum ölçekten bağımsız (§6h) |
 | **B7a** | **Oyun kabuğu.** Oturum, geçmiş, günce, oyuncu kolları, Victoria düzeni | **KURULDU** — `--v2-oyun` 35/35; ekran `--ss=` ile çizdirilip bakıldı (§6i) |
 | **B7b** | **Politika aktörü.** AI kendi krizine göre taktik yazsın (§4.5) | **KURULDU** — `--v2-oyun` 43/43; `bolunme` yayılımı 0.000 → 0.374, devrim ertelenir ama önlenmez (§6j) |
-| **B7c** | **Sunum artıkları.** Blok gösterimi (dolgu/kabuk), ad değişimi takvimi (Osmanlı → Türkiye) | açık |
+| **B7c** | **Sunum artıkları.** Blok gösterimi (dolgu/kabuk), ad değişimi takvimi (Osmanlı → Türkiye) | **KURULDU** — `--v2-oyun` 52/52, `--v2-harita` 45/45; blok kabuğu dokuz modda okunur, ad takvimi sunum olarak işaretli (§6k) |
 
 **B1a bitti ve kendi ölçütünü fazlasıyla aştı.** Kriz teorisi bu mimaride
 çalışıyor: kapalı ekonomi 100 kapitalist yılda 19.2 ayrık kriz olayı üretiyor.
@@ -2282,11 +2282,8 @@ yarısının altında olmalı.
 
 ### B7a'nın yapmadıkları
 
-- **Politika aktörü yok** — B7b. `bolunme` harita modu hâlâ düz, çünkü AI
-  ülkelerde taktikleri yazan bir şey yok; `KaranlikDevlet.otomatik` yalnızca
-  `mafya_tolerans`ı sürüyor. Oyuncunun ülkesinde kollar artık çalışıyor.
-- **Blok gösterimi ve ad değişimi takvimi yok** — B7c. Oynanabilir ülkeler
-  kampanya boyunca 1836 adını taşıyor.
+- ~~**Politika aktörü yok**~~ — B7b'de geldi (§6j).
+- ~~**Blok gösterimi ve ad değişimi takvimi yok**~~ — B7c'de geldi (§6k).
 - **Kayıt/yükleme yok.** v4.4'ün `Save` otoloadı v2 oturumunu tanımıyor.
 - **Varsayılan giriş hâlâ v1.** `_oyunu_baslat()` v4.4 menüsünü açıyor; v2
   `--v2-menu` ve `--v2-oyna` ile giriliyor. Devir B7 bitince yapılmalı —
@@ -2376,3 +2373,62 @@ B5 `bolunme` yayılımının **tam sıfır** olduğunu iddia ediyordu ve bunu bi
 gevşek bırakmamıştı: "sürücü geldiği gün bu kapı düşsün." Düştü. Yayılım
 0.000 → **0.374**, ve iddia yön değil büyüklük soracak biçimde yeniden
 yazıldı (`> 0.20`), tıpkı otomasyonunki gibi.
+
+---
+
+## 6k. B7c — bloklar ve ad takvimi
+
+B5'in devrettiği iki sunum kalemi. İkisi de motoru değiştirmez; sınanan şey
+sözleşmedir.
+
+### Blok gösterimi: dolgu modun, kabuk bloğun
+
+İttifaklar bir **graftır** ve bloklar onun bağlı bileşenleridir. B5 onları
+kapsayan yıldızla çiziyordu — çizgi kalabalığı sorununu çözüyordu ama "kim
+hangi blokta" sorusu hâlâ çizgi takip etmeyi gerektiriyordu.
+
+Çözüm ikisini ayırmak: **dolgu o anki harita modunun değeri, kabuk blok
+üyeliği.** Böylece blok üyeliği dokuz modun hepsinde okunur ve iki soru
+birbirini ezmez. Palet de ayrı tutuldu — aynı palet kullanılsaydı "bu ülke
+kırmızı çünkü kâr oranı düşük mü, yoksa kırmızı blokta mı" sorusu ekranda
+cevaplanamazdı.
+
+**Blok kimliği en küçük üye indeksidir.** Blok boyuna ya da oluşum sırasına
+göre numaralandırılsaydı bir ülke bloğa katıldığında bütün blokların renkleri
+kayardı; en küçük indeks üyelik değişmediği sürece sabittir.
+
+Yıldız kaldırılmadı: kapı dört bağ türünün de kampanyada doğduğunu iddia
+ediyor, ve yıldız ikili bağı gösteriyor. İkisi ayrı sorulara cevap veriyor.
+
+**Canlılık haritanın kapısında ölçülür, `--v2-oyun`da değil.** İş bölümü
+B5'in kendi ilkesi. Ölçüldü: on ülkelik kapı dünyasında ittifak neredeyse hiç
+oluşmuyor (1 blok, 2 üye), 54 ülkelik harita dünyasında ise **1 blok, 10
+ülke**. Sözleşme denetimleri (kimlik, tutarlılık, tek üyeli blok yok)
+`--v2-oyun`da; canlılık `--v2-harita`da.
+
+### Ad takvimi — sunumdur, mekanizma değil
+
+Kampanya 1836'da başlıyor ve oynanabilir ülkeler o tarihin adıyla anılıyor
+(§5.8b). Takvim olmadan 2100'de hâlâ "Osmanlı İmparatorluğu" yazıyordu.
+
+§3.4'ün kapsam dürüstlüğü kuralı burada bağlayıcı: **dinamik devlet oluşumu
+modellenmiyor.** Dolayısıyla ad değişimi karşı-olgusal değil, sabit bir
+takvimdir — ve öyle olduğu tablonun başında yazılı. Oyunun dünyası tarihten
+sapar, ama sapmayı ada çevirecek bir olay modelde yok; sabit takvim, olmayan
+bir mekanizmayı ima etmemenin en dürüst yolu.
+
+**Ad tek kaynaktan gelir** (`Harita.gorunen_ad`). Harita, günce, ülke paneli
+ve üst şerit onu çağırır; her biri kendi mantığını taşısaydı aynı ülke aynı
+yılda iki ekranda iki farklı adla görünebilirdi.
+
+**Güncedeki ad tescil anındaki addır.** 1890'da Osmanlı'nın bunalımı günceye
+"Osmanlı İmparatorluğu" diye düşer ve 1923'ten sonra da öyle kalır — satır
+yazıldığı anda dondurulur, çünkü günce bir kayıttır.
+
+Kapı üç şeyi birden sayıyor, ve ikisi ters yönde: tablodaki her kodun
+haritada karşılığı **ve tarihsel adı** var mı (yoksa satır sessizce hiçbir şey
+yapmaz), ve tersine — adı modernden farklı olan her ülkenin takvimde bir yılı
+var mı (yoksa o ülke 2100'de hâlâ 1836 adıyla durur, yani B7c'nin var olma
+sebebi geri gelir). Üçüncüsü epsilon: `yil` haftalık birikimle geçiş yılının
+bir tık altına düşer (1922.9999999) ve tam eşitlik karşılaştırması geçişi bir
+yıl geciktirirdi.

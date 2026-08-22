@@ -103,7 +103,7 @@ func kur(w: Dunya) -> void:
 func topla(w: Dunya) -> void:
 	for i in range(w.ulkeler.size()):
 		var d := w.ulkeler[i]
-		var ad := _ad(i)
+		var ad := _ad(i, w.yil)
 
 		var n := d.asiri_uretim_krizleri.size()
 		while _n_asiri[i] < n:
@@ -173,15 +173,13 @@ func topla(w: Dunya) -> void:
 			_rejim[i] = d.rejim
 
 
-func _ad(i: int) -> String:
+## GUNCE ADI TESCIL ANINDAKI ADDIR, bugunku ad degil. 1890'da Osmanli'nin
+## bunalimi gunceye "Osmanli Imparatorlugu" diye duser ve 1923'ten sonra da
+## oyle kalir -- satir yazildigi anda dondurulur, cunku gunce bir kayittir.
+func _ad(i: int, yil: float) -> String:
 	if i < 0 or i >= _adlar.size():
 		return "?"
-	var ki := Harita.indeks(_adlar[i])
-	if ki < 0:
-		return _adlar[i]
-	var u := Harita.kayit()[ki]
-	var t := String(u["ad_1836"])
-	return t if t != "" else String(u["ad"])
+	return Harita.gorunen_ad(_adlar[i], yil)
 
 
 func _ekle(yil: float, ulke: int, tip: String, mesaj: String) -> void:

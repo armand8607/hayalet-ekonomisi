@@ -99,7 +99,7 @@ bölünme ve karşı hareket, 33 denetim), `--v2-savas` (savaş bir kriz çıkı
 olarak, 23 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
 `--v2-uretim-tarama`, `--v2-nufus-tarama`, `--v2-mal-tarama`,
 `--v2-bolunme-tarama` ve `--v2-savas-tarama` (kalibrasyon taramaları — tanı,
-ana kapıdan yavaş), `--v2-harita` (harita, 44 denetim — **tam kampanya koşar,
+ana kapıdan yavaş), `--v2-harita` (harita, 45 denetim — **tam kampanya koşar,
 ~4 dk**), `--v2-harita-veri` (yalnızca geometri/izdüşüm/isabet, ~2 sn — tanı),
 `--v2-harita-goster[=yıl[:tohum[:mod]]]` (haritayı **çizer**, `--ss=` ile
 birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
@@ -108,7 +108,7 @@ birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
 `--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
 (teşhis izleri).
 
-**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (43 denetim, ~3 dk — son
+**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (52 denetim, ~3 dk — son
 kademesi iki kolu tam ufukta koşar). Tanılar: `--v2-aktor-iz[=YIL[:ülke]]` ve
 `--v2-aktor-tarama` (B7b kalibrasyonu).
 `--v2-menu` kampanya kurulum ekranını,

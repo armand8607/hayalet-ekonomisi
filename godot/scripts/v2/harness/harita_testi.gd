@@ -467,6 +467,25 @@ static func _modlar(w: Dunya, kampanya: Dictionary) -> void:
 			"bolunme modu canli (politika aktoru, B7b)",
 			"yayilim %.3f -> §6j" % float(yayilim["bolunme"]))
 
+	# BLOK GOSTERIMI (B7c) -- ve CANLILIGI BURADA olculur, `--v2-oyun`da
+	# degil. Is bolumu B5'in kendi ilkesi: harita kapisi MOD CANLILIGI ve
+	# BAG KAPSAMI olcer. On ulkelik bir dunyada ittifak neredeyse hic
+	# olusmuyor (olculdu: 1 blok, 2 uye), yani orada "blok gosterimi
+	# calisiyor" demek bos kalirdi. Sozlesme denetimleri (kimlik, tutarlilik,
+	# tek uyeli blok yok) `--v2-oyun`da duruyor.
+	var blok := Harita.bloklar(w)
+	var blok_boy := {}
+	for i in range(blok.size()):
+		if blok[i] >= 0:
+			blok_boy[blok[i]] = int(blok_boy.get(blok[i], 0)) + 1
+	var en_buyuk_blok := 0
+	for k in blok_boy.keys():
+		en_buyuk_blok = maxi(en_buyuk_blok, int(blok_boy[k]))
+	print("     blok: %d tane, en buyugu %d ulke"
+			% [blok_boy.size(), en_buyuk_blok])
+	_dogrula(en_buyuk_blok >= 5, "blok gosterimi canli (B7c)",
+			"en buyuk blok %d ulke" % en_buyuk_blok)
+
 	# (2) OTOMASYON ARTIK CANLI -- ve bu B5'in getirdigi bir bulgunun
 	#     cozumu. `UretimKatmani` takiliyken `oto` otoritesi ona gecer ve
 	#     `basamak_oto` MUTLAK q >= 36 ister; merdiven 2100'de 12.4'te

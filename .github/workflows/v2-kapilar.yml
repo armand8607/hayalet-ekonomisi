@@ -105,7 +105,7 @@ jobs:
         # burada sinanir; `--v2-dunya` onlari bes ulkede olcuyor.
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-b6
 
-      - name: 'B7: oyun kabugu (43 denetim)'
+      - name: 'B7: oyun kabugu (52 denetim)'
         # Oturum, gecmis, gunce ve oyuncu kollari. En sert kademesi kabugun
         # motoru DEGISTIRMEDIGI: gozlemci kipinde surulen dunya, dogrudan
         # `Dunya.adim()` ile surulen dunyayla alan alan karsilastirilir.
@@ -162,7 +162,7 @@ jobs:
           path: /tmp/b7.png
           if-no-files-found: warn
 
-      - name: 'B5: harita (44 denetim)'
+      - name: 'B5: harita (45 denetim)'
         # EN PAHALISI (~260 sn): 54 ulke x 264 yil, tam katman yigini.
         # Kampanya boyu kosmasi zorunlu -- `otomasyon` 1836'da sifirdir ve
         # savas/ittifak/abluka baglari ancak savas ciktiginda dogar; kisa

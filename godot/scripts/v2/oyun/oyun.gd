@@ -235,12 +235,7 @@ func oyuncu_durumu() -> KrizDurumu:
 func ad(i: int) -> String:
 	if dunya == null or i < 0 or i >= dunya.adlar.size():
 		return "?"
-	var ki := Harita.indeks(dunya.adlar[i])
-	if ki < 0:
-		return dunya.adlar[i]
-	var u := Harita.kayit()[ki]
-	var t := String(u["ad_1836"])
-	return t if t != "" else String(u["ad"])
+	return Harita.gorunen_ad(dunya.adlar[i], dunya.yil)
 
 
 # ===========================================================================
