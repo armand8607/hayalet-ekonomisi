@@ -452,6 +452,14 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   (haftalık yatırımın şu kadarı), koşul hiç sağlanmaz. Bir kez yaşandı:
   yükseltme 200 yılda sıfır kez ateşledi. Taksitlendir — ve taksiti anında
   sermayeye yaz, yoksa korunum özdeşliği kırılır.
+- **`barichello/godot-ci:4.7` kabı HEADLESS için kurulmuştur — `--ss=` kapısı
+  orada kutudan çıkmaz.** Ölçüldü (koşu 32564081223): `xvfb` kurmak **yetmez**,
+  çünkü eksik olan X *sunucusu* değil X *istemci* kütüphaneleridir —
+  `libfontconfig.so.1`, `libXcursor.so.1`, `libwayland-cursor.so.0` yokken
+  Godot "Unable to create DisplayServer, all display drivers failed" ile
+  düşer. Gereken küme: `xvfb libfontconfig1 libxcursor1 libxinerama1
+  libxrandr2 libxi6 libgl1 libglx-mesa0 libgl1-mesa-dri libegl1`, ve
+  `--display-driver x11` (yoksa Godot wayland'a düşüp ikinci bir hata yığar).
 - **`barichello/godot-ci:4.7` kabında `python3` YOK.** CI'da kâhin denetimi
   (`extract_sources.py --check`) o kapta `exit 127` ile düştü — on iki kapının
   on ikisi de geçtikten sonra. Godot gerektirmeyen adımlar kapsız bir runner'da

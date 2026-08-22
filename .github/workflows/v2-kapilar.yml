@@ -120,15 +120,25 @@ jobs:
         # basina bir sey soylemez: cikti "SCRIPT ERROR" iceriyor mu ve PNG
         # gercekten yazildi mi, ikisi de denetlenir.
         run: |
-          # Kabin xvfb tasidigi garanti degil; yoksa kurulur. Ekran boyutu
-          # ACIKCA verilir -- xvfb'nin varsayilani 1600x900'den kucuk olabilir
-          # ve pencere kirpilirsa paneller "cizilmemis" gibi gorunur.
-          command -v xvfb-run >/dev/null || {
-            apt-get update -qq && apt-get install -y -qq xvfb
-          }
+          # KAP HEADLESS ICIN KURULMUS. Olculdu (kosu 32564081223): yalnizca
+          # xvfb kurmak YETMEZ -- Godot'un X istemci kutuphaneleri de yok ve
+          # DisplayServer hic dogmuyor:
+          #   libfontconfig.so.1 / libXcursor.so.1 / libwayland-cursor.so.0
+          #   -> "Unable to create DisplayServer, all display drivers failed"
+          # xvfb bir X SUNUCUSU verir; eksik olan X ISTEMCI tarafiydi.
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+              xvfb libfontconfig1 libxcursor1 libxinerama1 libxrandr2 \
+              libxi6 libgl1 libglx-mesa0 libgl1-mesa-dri libegl1
           cd godot
+          # `--display-driver x11` ACIKCA verilir: x11 dusunce Godot wayland'a
+          # dusuyor ve orada da kutuphane arayip ikinci bir hata uretiyor;
+          # tek surucude kalmak teshisi okunur birakir. Ekran boyutu da
+          # aciktir -- xvfb'nin varsayilani 1600x900'den kucuk olabilir ve
+          # pencere kirpilirsa paneller "cizilmemis" gibi gorunur.
           xvfb-run -a -s "-screen 0 1600x900x24" \
-              godot res://scenes/Main.tscn --resolution 1600x900 \
+              godot --display-driver x11 res://scenes/Main.tscn \
+              --resolution 1600x900 \
               -- --v2-oyna=TUR:42:12:16 --ss=/tmp/b7.png 2>&1 | tee /tmp/b7.log
           if grep -q "SCRIPT ERROR" /tmp/b7.log; then
             echo "Oyun ekraninda script hatasi:"
