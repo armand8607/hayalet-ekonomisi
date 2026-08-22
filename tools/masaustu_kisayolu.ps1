@@ -23,7 +23,10 @@ $kabuk = New-Object -ComObject WScript.Shell
 $kisayol = $kabuk.CreateShortcut($lnk)
 $kisayol.TargetPath       = $bat
 $kisayol.WorkingDirectory = $kok
-$kisayol.Description      = "Hayalet Ekonomisi -- Marksist deger teorisi simulasyonu (motor v4.4-Frozen)"
+# ACIKLAMA DEVIRDEN SONRA GUNCELLENDI. Kisayol `oyna.bat`i ARGUMANSIZ
+# hedefliyor ve argumansiz acilis artik v2'yi getiriyor (B7 devri); "motor
+# v4.4-Frozen" yaziyordu ve fare ustune gelince yanlis oyunu tarif ediyordu.
+$kisayol.Description      = "Hayalet Ekonomisi -- Marksist deger teorisini simule eden buyuk strateji oyunu (1836-2100)"
 $kisayol.WindowStyle      = 7
 $kisayol.Save()
 
