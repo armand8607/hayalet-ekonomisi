@@ -197,6 +197,15 @@ var P: KrizParam
 ## nufus asagi") ancak acik/kapali karsilastirmasiyla olculebilir.
 var savas: SavasKatmani = null
 
+## POLITIKA AKTORU (B7b). Takili degilse hicbir AI ulkesi karanlik devletin
+## sekiz taktigini yazmaz ve `t_*` alanlari 0.0'da kalir -- yani B1/B2/B3
+## olcumleri gecerliligini korur, tipki savas katmani gibi.
+##
+## §4.5'in AI tarafi. `null` birakilmasi bir "kapali politika" degil, POLITIKA
+## OLMAMASIDIR; `dunya_testi` ve `savas_testi` kendi dunyalarini `Dunya.new()`
+## ile kurdugu icin onlarin olctugu sayilar bu katmandan etkilenmez.
+var aktor: PolitikaAktoru = null
+
 ## ABLUKA MATRISI, duz dizi: `abluka[i*n + j]` = i-j ciftinin ticaretine
 ## uygulanan kesinti [0,1]. 1.0 = tam abluka.
 ##
@@ -683,6 +692,11 @@ func adim(donem_yil: float) -> void:
 	# talebi bir donem geriden is gorurdu -- ve `--v2-olcek`in olcek
 	# degismezligi denetiminde gorunmeyecek kadar kucuk, ama kampanya
 	# boyunca birikecek kadar buyuk bir kayma olurdu.
+	# POLITIKA EN BASTA: karar once verilir, dunya sonra kosar. Yalnizca `t_*`
+	# alanlarina yazar ve onlar cekirdegin S/Q/T bloklarinda okunur, yani
+	# savasin sira zorunlulugu ile carpismaz.
+	if aktor != null:
+		aktor.adim(ulkeler, donem_yil)
 	if savas != null:
 		savas.adim(ulkeler, adlar, donem_yil)
 		savas.abluka_kur(ulkeler, adlar, abluka, donem_yil)

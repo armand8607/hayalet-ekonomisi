@@ -83,6 +83,16 @@ func _ready() -> void:
 				# Oyun kabugu (B7): oturum, gecmis, gunce ve oyuncu kollari.
 				# En sert kademesi kabugun motoru DEGISTIRMEDIGI.
 				cikis = OyunTesti.kos()
+			"--v2-aktor-tarama":
+				# B7b kalibrasyonu: olcek x tavan. Tani kapisi.
+				cikis = OyunTesti.aktor_tarama()
+			_ when a.begins_with("--v2-aktor-iz"):
+				# --v2-aktor-iz[=YIL[:ulke]] -- politika aktoru ne yapiyor.
+				# Tani kapisi; aktorlu ve aktorsuz kollar yan yana.
+				var ai := a.get_slice("=", 1) if a.contains("=") else ""
+				cikis = OyunTesti.aktor_iz(
+						int(ai.get_slice(":", 0)) if ai != "" else 200,
+						int(ai.get_slice(":", 1)) if ai.count(":") >= 1 else 12)
 			_ when a.begins_with("--v2-oyun-iz"):
 				# --v2-oyun-iz[=YIL] -- oyuncunun ana grafiginin kampanya boyu
 				# bicimi. Tani kapisi.

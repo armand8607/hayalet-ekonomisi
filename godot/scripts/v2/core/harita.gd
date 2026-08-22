@@ -343,6 +343,12 @@ static func dunya_kur(kodlar: PackedStringArray = PackedStringArray(),
 			_katmanlari_tak(w.cekirdekler[w.cekirdekler.size() - 1], d)
 	if savas_acik:
 		w.savas = SavasKatmani.new(w.P, tohum + 7777)
+	if katmanlar:
+		# §4.5: AI ulkeleri karanlik devletin kollarini kendi krizlerine gore
+		# kullanir. `katmanlar` bayragina baglidir cunku aktor `t_*` yazar ve
+		# onlari okuyan `KaranlikDevlet` de o bayrakla takiliyor -- katmansiz
+		# bir dunyada aktor yazar ama kimse okumazdi.
+		w.aktor = PolitikaAktoru.new(w.P)
 	return w
 
 

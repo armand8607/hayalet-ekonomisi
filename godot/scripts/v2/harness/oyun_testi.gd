@@ -41,6 +41,11 @@ const HAFTA := 1.0 / 52.0
 const KAPI_ULKE := 8
 const KAPI_YIL := 60
 
+## B7b kademesinin dunyasi. AYRI ve DAHA UZUN: aktorun olctugu seylerin
+## yarisi (zor aygitinin acilmasi, devrimin ertelenmesi) gec kampanyada olur.
+const AKTOR_ULKE := 10
+const AKTOR_YIL := 264
+
 static var _gecen := 0
 static var _kalan := 0
 
@@ -412,9 +417,120 @@ static func kos() -> int:
 	_dogrula(b.r_yil < a.r_yil, "... ve kar orani DUSUYOR (§2.4'un tuzagi)",
 			"%.4f -> %.4f" % [a.r_yil, b.r_yil])
 
+	# -----------------------------------------------------------------
+	print("\n--- 7. B7b: politika aktoru (§4.5) ---")
+	_aktor_kademesi()
+
 	print("\n" + "-".repeat(70))
 	print("SONUC: %d gecti, %d kaldi" % [_gecen, _kalan])
 	return 0 if _kalan == 0 else 1
+
+
+## B7b -- AI ulkeleri karanlik devletin kollarina KENDI krizlerine gore uzaniyor
+## mu, ve bunu yaparken devrimi imkansiz kilmadan yapiyor mu.
+##
+## PENCERE TAM UFUKTUR ve bu pahali (iki kol x 264 yil). Kisaltilamaz: ilk
+## kalibrasyon 150 yilda yapilmisti ve secilen kol 200 yilda devrimi
+## sifirliyordu. Bu kademenin olctugu seyin yarisi GEC KAMPANYADA olur.
+static func _aktor_kademesi() -> void:
+	var kodlar := Harita.kapi_kodlar(AKTOR_ULKE)
+	var acik := Harita.dunya_kur(kodlar, 42, Oyun.BAS_YIL)
+	var kapali := Harita.dunya_kur(kodlar, 42, Oyun.BAS_YIL)
+	kapali.aktor = null
+
+	var riza_yil := 0
+	var zor_yil := 0
+	for k in range(AKTOR_YIL * Oyun.YILDA_TIK):
+		acik.adim(Oyun.HAFTA)
+		kapali.adim(Oyun.HAFTA)
+		if riza_yil == 0 or zor_yil == 0:
+			for d in acik.ulkeler:
+				if riza_yil == 0 and d.riza_kolu >= 0.10:
+					riza_yil = int(Oyun.BAS_YIL) + k / Oyun.YILDA_TIK
+				if zor_yil == 0 and d.zor_kolu >= 0.10:
+					zor_yil = int(Oyun.BAS_YIL) + k / Oyun.YILDA_TIK
+
+	# (a) AKTOR `bolunme`NIN TEK YAZARI. Aktorsuz kolda alan TAM SIFIR
+	#     kalmali; kalmiyorsa baska bir sey de yaziyor demektir ve
+	#     karsi-olgusal olcumlerin hepsi anlamsizlasir.
+	var kapali_bol := 0.0
+	for d in kapali.ulkeler:
+		kapali_bol = maxf(kapali_bol, d.bolunme)
+	_dogrula(kapali_bol == 0.0, "aktorsuz kolda `bolunme` TAM sifir",
+			"en yuksek " + String.num(kapali_bol, 17))
+
+	# (b) CANLILIK -- B5'in "bolunme surucusuz" kaydinin tersi. O kayit
+	#     bilerek ters yonde birakilmisti: surucu gelince dussun diye.
+	var enk := INF
+	var enb := -INF
+	var riza := 0.0
+	var zor := 0.0
+	for d in acik.ulkeler:
+		enk = minf(enk, d.bolunme)
+		enb = maxf(enb, d.bolunme)
+		riza += d.riza_kolu
+		zor += d.zor_kolu
+	var n := float(acik.ulkeler.size())
+	_dogrula(enb - enk > 0.20, "`bolunme` ulkeler arasinda AYRISIYOR",
+			"yayilim %.3f (aktorsuz 0.000)" % (enb - enk))
+
+	# (c) §4.2'NIN SIRASI: riza ucuz ve once, zor pahali ve sonra.
+	_dogrula(riza_yil > 0 and zor_yil > riza_yil,
+			"riza esigi zordan ONCE asiliyor (§4.2)",
+			"riza %d -> zor %d" % [riza_yil, zor_yil])
+	_dogrula(riza / n > zor / n, "riza aygiti kampanya boyunca baskin",
+			"riza %.3f > zor %.3f" % [riza / n, zor / n])
+
+	# (d) DEVRIM ERTELENIR, ONLENMEZ -- cekirdegin kendi yorumu
+	#     (`kriz_cekirdegi.gd:1336`). Iki yonlu kapi: sifir devrim o cumleyi
+	#     yalanlar, tabandan FAZLA devrim ise kolun etkisiz oldugunu gosterir.
+	var d_acik := 0
+	var d_kapali := 0
+	for d in acik.ulkeler:
+		if d.devrim_yil > 0.0:
+			d_acik += 1
+	for d in kapali.ulkeler:
+		if d.devrim_yil > 0.0:
+			d_kapali += 1
+	_dogrula(d_acik >= 1, "devrim hala mumkun (aktor onu ONLEMIYOR)",
+			"aktorlu %d, aktorsuz %d" % [d_acik, d_kapali])
+	_dogrula(d_acik <= d_kapali, "ama bastiriliyor (aktorlu <= aktorsuz)",
+			"%d <= %d" % [d_acik, d_kapali])
+
+	# (e) §4.5: SOSYALIST REJIMDE KOLLAR TERSINE DONER.
+	var w := Harita.dunya_kur(Harita.kapi_kodlar(4), 42, Oyun.BAS_YIL)
+	var s0 := w.ulkeler[0]
+	for alan in PolitikaAktoru.RIZA + PolitikaAktoru.ZOR:
+		s0.set(alan, 0.8)
+	s0.rejim = "sosyalist"
+	for _k in range(40 * Oyun.YILDA_TIK):
+		w.adim(Oyun.HAFTA)
+	var en_yuksek := 0.0
+	for alan in PolitikaAktoru.RIZA + PolitikaAktoru.ZOR:
+		en_yuksek = maxf(en_yuksek, float(s0.get(alan)))
+	_dogrula(s0.rejim != "sosyalist" or en_yuksek < 0.05,
+			"sosyalist rejimde taktikler sonumleniyor (§4.5)",
+			"0.80'den %.4f'e" % en_yuksek)
+
+	# (f) OYUNCUNUN ULKESINE DOKUNMAZ. Dokunsaydi kaydirici ile aktor ayni
+	#     alani her tik birbirine ezerdi ve ekrandaki deger motordakini
+	#     anlatmazdi.
+	var o := Oyun.new()
+	o.kur(Harita.kapi_kodlar(4)[0], 42, Harita.kapi_kodlar(4))
+	o.taktik_ayarla("t_milliyetcilik", 0.42)
+	o.ilerle(10 * Oyun.YILDA_TIK)
+	_dogrula(absf(o.taktik_degeri("t_milliyetcilik") - 0.42) < 1e-12,
+			"aktor oyuncunun taktigini EZMIYOR",
+			"0.42 -> %.6f" % o.taktik_degeri("t_milliyetcilik"))
+
+	# KAYIT: gec kampanyada surucu DOYAR ve ayrim zayiflar. Sebep aktorde
+	# degil cekirdekte: `Omega` 2036'da butun ulkelerde 1.0'a dayaniyor
+	# (olculdu, aralik 0.0000), dolayisiyla "orgutlu ofkesi buyuk olan daha
+	# cok uzanir" iliskisi gec kampanyada olculemez hale geliyor. Erken
+	# kampanyada mekanizma ayirt eder; `bolunme` yayilimi (b) o ayrimin
+	# BIRIKMIS izidir. Kapi degil kayit -- ve dogru adres B0-B3.
+	print("  KAYIT: es-zamanli kesit %+.4f -- gec kampanyada `Omega` doygun"
+			% _kesit(acik))
 
 
 # ===========================================================================
@@ -457,3 +573,309 @@ static func iz(yil: int = 230) -> int:
 					int(o.gecmis.yillar[r.size() - 1]),
 					(r[r.size() - 1] / zirve - 1.0) * 100.0])
 	return 0
+
+
+# ===========================================================================
+# B7b TANI KAPISI -- POLITIKA AKTORU
+# ===========================================================================
+
+## Aktorun dunyada ne yaptigi. Kapi degil tani.
+##
+## B3'un uyarisi burada okunmali: "§4 guclu bir koldur; yanlis kalibre
+## edilirse ya devrimi IMKANSIZ kilar ya da ETKISIZ kalir." Ikisi de sessizdir
+## -- biri "hic devrim yok", digeri "hicbir sey degismedi" diye gorunur ve
+## ikisi de makul bir ekran uretir. Bu yuzden aktorlu ve aktorsuz kollar YAN
+## YANA kosulur.
+static func aktor_iz(yil: int = 200, ulke: int = 12) -> int:
+	var kodlar := Harita.kapi_kodlar(ulke)
+	var acik := Harita.dunya_kur(kodlar, 42, Oyun.BAS_YIL)
+	var kapali := Harita.dunya_kur(kodlar, 42, Oyun.BAS_YIL)
+	kapali.aktor = null
+
+	print("=".repeat(78))
+	print("v2 POLITIKA AKTORU  (B7b)   %d ulke x %d yil" % [ulke, yil])
+	print("=".repeat(78))
+	print("  yil    riza    zor  bolunme  yayilim     org      PR   devrim")
+
+	var n := yil * Oyun.YILDA_TIK
+	var orta := 0.0
+	for k in range(n):
+		acik.adim(Oyun.HAFTA)
+		kapali.adim(Oyun.HAFTA)
+		# KESIT DOYGUN OLMAYAN BIR ANDA OLCULMELI. Kampanya sonunda `Omega`
+		# herkeste 1.0'a dayaniyor ve ayrim kayboluyor; 1950 mekanizmanin
+		# calistigi ama tavana varmadigi yer.
+		if k == int(1950.0 - Oyun.BAS_YIL) * Oyun.YILDA_TIK:
+			orta = _kesit(acik)
+		if (k + 1) % (20 * Oyun.YILDA_TIK) == 0:
+			_satir(acik, int(Oyun.BAS_YIL) + (k + 1) / Oyun.YILDA_TIK)
+
+	print("\n  --- aktorsuz kol, ayni tohum ---")
+	_satir(kapali, int(Oyun.BAS_YIL) + yil)
+
+	# ZORUN RIZADAN SONRA GELMESI (§4.2) -- ilk esik gecisleri.
+	print("\n  riza esigi (0.10) ilk gecis: %s" % _ilk_gecis(acik, "riza_kolu"))
+	print("  zor  esigi (0.10) ilk gecis: %s" % _ilk_gecis(acik, "zor_kolu"))
+
+	# BILESENLERIN DAGILIMI -- doygunluk avi. Bir surucu clamp'e dayanmissa
+	# ortalamasi makul gorunur ama AYIRT ETMEZ; B6'nin savas sabitinde ayni
+	# hata olculmustu.
+	print("\n  --- surucu bilesenleri (2036, kapitalist ulkeler) ---")
+	var pr := PackedFloat64Array()
+	var tik_ := PackedFloat64Array()
+	var pc := PackedFloat64Array()
+	var bas := PackedFloat64Array()
+	for d in acik.ulkeler:
+		if d.rejim != "kapitalist":
+			continue
+		pr.append(d.PR)
+		tik_.append(clampf((d.i_yil - d.r_yil) / maxf(acik.P.v44.kd_tikanma_olcek, 1e-9), 0.0, 1.0))
+		pc.append(minf(d.PC, 1.0))
+		bas.append(d.baski_egilimi)
+	var om := PackedFloat64Array()
+	var orgl := PackedFloat64Array()
+	var carp := PackedFloat64Array()
+	for d in acik.ulkeler:
+		if d.rejim != "kapitalist":
+			continue
+		om.append(d.Omega)
+		orgl.append(d.orgutlu)
+		carp.append(d.Omega * d.orgutlu)
+	_dagilim("Omega      ", om)
+	_dagilim("orgutlu    ", orgl)
+	_dagilim("Om*orgutlu ", carp)
+	_dagilim("PR         ", pr)
+	_dagilim("tikanma    ", tik_)
+	_dagilim("PC         ", pc)
+	_dagilim("baski_egil.", bas)
+
+	# DEVRIM: bolunme devrimi ONLEMEZ, ERTELER (cekirdegin kendi yorumu,
+	# kriz_cekirdegi.gd:1336). Ikisi de sifirsa mekanizma o cumleyi yalanliyor.
+	print("\n  kesit @1950 (doygunluk oncesi): %+.4f" % orta)
+	print("  kesit @son  (doygunluk sonrasi): %+.4f" % _kesit(acik))
+
+	print("\n  --- devrim yillari ---")
+	print("    aktorlu : %s" % _devrim_yillari(acik))
+	print("    aktorsuz: %s" % _devrim_yillari(kapali))
+
+	# KESITSEL iliski: ayni ANDA tehdidi yuksek olan ulke daha cok mu uzaniyor.
+	# Kampanya ortalamasi DEGIL -- deponun dort kez yakaladigi tuzak bu.
+	# KESIT ORGUTLU OFKEYE GORE. Ilk yazimda `PR`e goreydi ve `PR` ayirt
+	# etmiyor (aralik 0.045); olculen sey surucunun degil baska bir seyin
+	# iliskisi oluyordu.
+	print("\n  es-zamanli kesit: Omega*orgutlu ustu vs alti yari, ortalama riza")
+	var ust := 0.0
+	var alt := 0.0
+	var nu := 0
+	var na := 0
+	var medyan := _medyan_oo(acik)
+	for d in acik.ulkeler:
+		if d.rejim != "kapitalist":
+			continue
+		if d.Omega * d.orgutlu >= medyan:
+			ust += d.riza_kolu
+			nu += 1
+		else:
+			alt += d.riza_kolu
+			na += 1
+	print("    orgutlu ofke >= medyan: %.4f (%d ulke)" % [ust / maxf(nu, 1), nu])
+	print("    orgutlu ofke <  medyan: %.4f (%d ulke)" % [alt / maxf(na, 1), na])
+	return 0
+
+
+static func _satir(w: Dunya, yil: int) -> void:
+	var riza := 0.0
+	var zor := 0.0
+	var bol := 0.0
+	var org := 0.0
+	var pr := 0.0
+	var enk := INF
+	var enb := -INF
+	var devrim := 0
+	for d in w.ulkeler:
+		riza += d.riza_kolu
+		zor += d.zor_kolu
+		bol += d.bolunme
+		org += d.org
+		pr += d.PR
+		enk = minf(enk, d.bolunme)
+		enb = maxf(enb, d.bolunme)
+		if d.devrim_yil > 0.0:
+			devrim += 1
+	var n := float(w.ulkeler.size())
+	print("  %4d  %6.3f %6.3f  %7.3f  %7.3f  %6.3f  %6.4f   %d"
+			% [yil, riza / n, zor / n, bol / n, enb - enk, org / n, pr / n,
+					devrim])
+
+
+static func _ilk_gecis(w: Dunya, alan: String) -> String:
+	for d in w.ulkeler:
+		if float(d.get(alan)) >= 0.10:
+			return "en az bir ulkede asildi (kampanya sonunda %.3f)" % float(d.get(alan))
+	return "HIC asilmadi"
+
+
+static func _medyan_oo(w: Dunya) -> float:
+	var a := PackedFloat64Array()
+	for d in w.ulkeler:
+		if d.rejim == "kapitalist":
+			a.append(d.Omega * d.orgutlu)
+	if a.is_empty():
+		return 0.0
+	a.sort()
+	return a[a.size() / 2]
+
+
+static func _dagilim(ad: String, a: PackedFloat64Array) -> void:
+	if a.is_empty():
+		print("    %s  (bos)" % ad)
+		return
+	var b := a.duplicate()
+	b.sort()
+	print("    %s  min %.4f  medyan %.4f  max %.4f  aralik %.4f"
+			% [ad, b[0], b[b.size() / 2], b[b.size() - 1], b[b.size() - 1] - b[0]])
+
+
+static func _devrim_yillari(w: Dunya) -> String:
+	var c := PackedStringArray()
+	for i in range(w.ulkeler.size()):
+		if w.ulkeler[i].devrim_yil > 0.0:
+			c.append("%s@%d" % [w.adlar[i], int(w.ulkeler[i].devrim_yil)])
+	return ", ".join(c) if not c.is_empty() else "YOK"
+
+
+## B7b KALIBRASYON TARAMASI.
+##
+## DORT OLCUT BIRDEN OKUNUR, cunku bu kolun iki ayri sekilde bozulma yolu var
+## ve ikisi de sessiz (B3'un uyarisi): fazla guclu olursa devrimi IMKANSIZ
+## kilar, fazla zayif olursa ETKISIZ kalir. Tek bir sayiya bakarak kalibre
+## etmek ikisinden birini kacirir.
+##
+##   1. AYIRT EDICILIK -- ulkeler arasi `bolunme` yayilimi. Sifira yakinsa
+##      surucu doymus demektir (ilk yazimda 0.007 olculdu).
+##   2. SIRA          -- riza esigi zordan ONCE asiliyor mu (§4.2).
+##   3. DEVRIM        -- hala oluyor mu. `bolunme` devrimi ONLEMEZ ERTELER;
+##      sifir devrim o cumleyi yalanlar.
+##   4. KESIT         -- ES-ZAMANLI kesitte orgutlu ofkesi yuksek olan ulke
+##      daha cok mu uzaniyor. Kampanya ortalamasi DEGIL.
+## PENCERE TAM UFUKTUR (1836-2100), YARIM DEGIL. Ilk tarama 150 yilda
+## bitiyordu ve tam bu yuzden asil sapmayi goremedi: 150 yilda secilen kol
+## (0.30/0.70) 200 yilda devrimi SIFIRLIYORDU. Deponun iki kez kaydettigi
+## ders -- "bir egriyi tek noktadan eslestirmek onu eslestirmez"in zaman
+## eksenindeki hali.
+static func aktor_tarama(yil: int = 264, ulke: int = 10) -> int:
+	var kodlar := Harita.kapi_kodlar(ulke)
+	print("=".repeat(86))
+	print("v2 POLITIKA AKTORU -- kalibrasyon taramasi   %d ulke x %d yil"
+			% [ulke, yil])
+	print("=".repeat(86))
+
+	var temel := _kampanya(kodlar, yil, -1.0, -1.0)
+	print("  AKTORSUZ TABAN: bolunme %.3f  yayilim %.3f  devrim %d %s"
+			% [temel["bolunme"], temel["yayilim"], temel["devrim"],
+					temel["devrim_yil"]])
+	print("")
+	print("  olcek tavan  bolunme yayilim    riza     zor  riza_yil zor_yil"
+			+ "  devrim  kesit")
+
+	for olcek in [0.30, 0.50, 0.75]:
+		for tav in [0.4, 0.7, 1.0]:
+			var r := _kampanya(kodlar, yil, olcek, tav)
+			print("  %5.2f %5.2f   %6.3f  %6.3f  %6.3f  %6.3f  %7s %7s  %5d  %+.4f"
+					% [olcek, tav, r["bolunme"], r["yayilim"], r["riza"],
+							r["zor"], r["riza_yil"], r["zor_yil"],
+							r["devrim"], r["kesit"]])
+	return 0
+
+
+static func _kampanya(kodlar: PackedStringArray, yil: int, olcek: float,
+		tavan: float) -> Dictionary:
+	var w := Harita.dunya_kur(kodlar, 42, Oyun.BAS_YIL)
+	if olcek < 0.0:
+		w.aktor = null
+	else:
+		w.aktor.tehdit_olcek = olcek
+		w.aktor.tavan = tavan
+
+	var riza_yil := 0
+	var zor_yil := 0
+	for k in range(yil * Oyun.YILDA_TIK):
+		w.adim(Oyun.HAFTA)
+		if riza_yil == 0 or zor_yil == 0:
+			for d in w.ulkeler:
+				if riza_yil == 0 and d.riza_kolu >= 0.10:
+					riza_yil = int(Oyun.BAS_YIL) + k / Oyun.YILDA_TIK
+				if zor_yil == 0 and d.zor_kolu >= 0.10:
+					zor_yil = int(Oyun.BAS_YIL) + k / Oyun.YILDA_TIK
+
+	var bol := 0.0
+	var riza := 0.0
+	var zor := 0.0
+	var enk := INF
+	var enb := -INF
+	var devrim := 0
+	var yillar := PackedStringArray()
+	for i in range(w.ulkeler.size()):
+		var d := w.ulkeler[i]
+		bol += d.bolunme
+		riza += d.riza_kolu
+		zor += d.zor_kolu
+		enk = minf(enk, d.bolunme)
+		enb = maxf(enb, d.bolunme)
+		if d.devrim_yil > 0.0:
+			devrim += 1
+			yillar.append("%s@%d" % [w.adlar[i], int(d.devrim_yil)])
+	var n := float(w.ulkeler.size())
+
+	# KESIT: es-zamanli, orgutlu ofkenin medyanina gore ikiye bolerek.
+	var oo := PackedFloat64Array()
+	for d in w.ulkeler:
+		if d.rejim == "kapitalist":
+			oo.append(d.Omega * d.orgutlu)
+	var medyan := 0.0
+	if not oo.is_empty():
+		var t := oo.duplicate()
+		t.sort()
+		medyan = t[t.size() / 2]
+	var ust := 0.0
+	var alt := 0.0
+	var nu := 0
+	var na := 0
+	for d in w.ulkeler:
+		if d.rejim != "kapitalist":
+			continue
+		if d.Omega * d.orgutlu >= medyan:
+			ust += d.riza_kolu
+			nu += 1
+		else:
+			alt += d.riza_kolu
+			na += 1
+
+	return {
+		"bolunme": bol / n, "yayilim": enb - enk, "riza": riza / n,
+		"zor": zor / n, "devrim": devrim,
+		"devrim_yil": ", ".join(yillar) if not yillar.is_empty() else "YOK",
+		"riza_yil": str(riza_yil) if riza_yil > 0 else "-",
+		"zor_yil": str(zor_yil) if zor_yil > 0 else "-",
+		"kesit": ust / maxf(nu, 1) - alt / maxf(na, 1),
+	}
+
+
+## ES-ZAMANLI KESIT: orgutlu ofkenin medyanina gore ikiye bolup rizayi
+## karsilastirir. Pozitifse "tehdidi buyuk olan daha cok uzaniyor".
+static func _kesit(w: Dunya) -> float:
+	var medyan := _medyan_oo(w)
+	var ust := 0.0
+	var alt := 0.0
+	var nu := 0
+	var na := 0
+	for d in w.ulkeler:
+		if d.rejim != "kapitalist":
+			continue
+		if d.Omega * d.orgutlu >= medyan:
+			ust += d.riza_kolu
+			nu += 1
+		else:
+			alt += d.riza_kolu
+			na += 1
+	return ust / maxf(nu, 1) - alt / maxf(na, 1)

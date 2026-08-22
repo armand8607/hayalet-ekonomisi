@@ -105,10 +105,14 @@ jobs:
         # burada sinanir; `--v2-dunya` onlari bes ulkede olcuyor.
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-b6
 
-      - name: 'B7: oyun kabugu (32 denetim)'
+      - name: 'B7: oyun kabugu (43 denetim)'
         # Oturum, gecmis, gunce ve oyuncu kollari. En sert kademesi kabugun
         # motoru DEGISTIRMEDIGI: gozlemci kipinde surulen dunya, dogrudan
         # `Dunya.adim()` ile surulen dunyayla alan alan karsilastirilir.
+        #
+        # SON KADEME PAHALI (~2 dk): B7b'nin politika aktoru iki kolu TAM
+        # UFUKTA kosturur. Kisaltilamaz -- ilk kalibrasyon 150 yilda
+        # yapilmisti ve secilen kol 200 yilda devrimi sifirliyordu.
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-oyun
 
       - name: 'B7: oyun ekrani gercekten CIZILIYOR mu'

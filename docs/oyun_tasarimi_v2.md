@@ -489,7 +489,7 @@ yok" bulmak demekti.
 | **B5** | **Harita.** ~~Eyalet~~ ülke geometrisi, harita modları, ülke seçimi | **KURULDU** — `--v2-harita` 44/44; 156 ülke çizili / 54 simüle / 19 oynanabilir, dokuz mod, dört bağ türü (§6g) |
 | **B6** | **Ölçek.** Tam dünya, başarım ölçümü | **KURULDU** — `--v2-b6` 7/7; 113 ülke, 45.6 ms/tik, korunum ölçekten bağımsız (§6h) |
 | **B7a** | **Oyun kabuğu.** Oturum, geçmiş, günce, oyuncu kolları, Victoria düzeni | **KURULDU** — `--v2-oyun` 35/35; ekran `--ss=` ile çizdirilip bakıldı (§6i) |
-| **B7b** | **Politika aktörü.** AI kendi krizine göre taktik yazsın (§4.5) — `bolunme` modunun eksik sürücüsü | açık |
+| **B7b** | **Politika aktörü.** AI kendi krizine göre taktik yazsın (§4.5) | **KURULDU** — `--v2-oyun` 43/43; `bolunme` yayılımı 0.000 → 0.374, devrim ertelenir ama önlenmez (§6j) |
 | **B7c** | **Sunum artıkları.** Blok gösterimi (dolgu/kabuk), ad değişimi takvimi (Osmanlı → Türkiye) | açık |
 
 **B1a bitti ve kendi ölçütünü fazlasıyla aştı.** Kriz teorisi bu mimaride
@@ -2291,3 +2291,88 @@ yarısının altında olmalı.
 - **Varsayılan giriş hâlâ v1.** `_oyunu_baslat()` v4.4 menüsünü açıyor; v2
   `--v2-menu` ve `--v2-oyna` ile giriliyor. Devir B7 bitince yapılmalı —
   Pages'e ve APK'ya çıkan sürüm yarım bir kabuk olmamalı.
+
+---
+
+## 6j. B7b — politika aktörü
+
+§4.5'in AI tarafı. B3 mekanizmayı kurmuş, B7a oyuncunun kollarını bağlamıştı;
+dünyada sekiz taktiği **yazan kimse yoktu**. `KaranlikDevlet.otomatik` yalnızca
+`mafya_tolerans`ı sürüyordu, yani sekiz `t_*` alanından yedisi 264 yıl boyunca
+0.0'da duruyordu.
+
+### Sürücü ilk yazımda ölçümle çürütüldü
+
+İlk tasarım tehdidi `PR` üzerinden okuyordu — çekirdeğin protesto riski
+çıktısı, karanlık devletin var olma sebebi. Ölçüm bunu reddetti:
+
+| bileşen | min | medyan | max | aralık |
+|---|---|---|---|---|
+| `PR` | 0.4501 | 0.4875 | 0.5050 | **0.055** |
+| `tikanma` | 0.0000 | 1.0000 | 1.0000 | doygun |
+| `baski_egilimi` | 0.4000 | 0.4000 | 0.4000 | **0.000** |
+| `PC` | 0.0005 | 0.1664 | 0.1865 | 0.186 |
+
+Dört bileşenin üçü doygun ya da sabit. `tehdit_olcek = 0.35` ile `PR/0.35`
+her ülkede her tik 1.0'a kırpılıyordu — sürücü bir sabit olmuştu. B6'nın savaş
+sabitinde ölçülen doygunluk hatasının aynısı.
+
+Sonuç ölçülebilir biçimde yanlıştı: **kesit tersine dönmüştü.** Ayakta kalan
+tek varyans `PC`'ninkiydi ve eksi işaretle girdiği için "tehdidi yüksek ülke
+daha *az* uzanıyor" çıkıyordu (0.4662 vs 0.4815). Ölçülen şey tehdidin değil
+meşruiyetin ilişkisiydi — bu ailenin **beşinci** üyesi.
+
+Yerine geçen büyüklük §4.1'in kendi hedefi: **örgütlü öfke** (`Omega ×
+orgutlu`). Ölçüldü — `Omega` 0.0–1.0, çarpım 0.0–0.380 (medyan 0.086). Yani
+çarpım gerçekten ayırt ediyor, `PR` etmiyordu. Kesit bütün tarama hücrelerinde
+artıya döndü.
+
+### Karışım uydurulmadı, `bol_*_yil` tablosundan okundu
+
+"Hangi taktiğe ne kadar ağırlık" sorusuna yeni sabitlerle cevap vermek tabloyu
+ikinci bir yerde tekrarlamak olurdu. Aktörün amacı **bölünme satın almaktır**,
+dolayısıyla çabayı her taktiğin kendi bölünme katsayısıyla orantılı dağıtır —
+milliyetçilik 0.075 ile en ağır, mistisizm 0.015 ile en hafif. Normalizasyon
+**aygıt içindedir**: yoksa zor aygıtı rızanınkinin gölgesinde kalır (en ağır
+zor taktiği 0.040, en ağır rıza taktiği 0.075) ve §4.2'nin sırası sayısal
+olarak kendini gösteremezdi.
+
+### Yarım pencerede kalibre etmek de eşleştirmez
+
+İlk tarama 150 yılda bitiyordu ve seçilen kol (`0.30/0.70`) orada ölçütlerin
+dördünü de sağlıyordu. 200 yıla uzatılınca **devrimi sıfırladı**. Pencere tam
+ufka (264 yıl) çıkarılınca resim değişti:
+
+| ölçek/tavan | yayılım | rıza | zor | rıza_yıl | zor_yıl | devrim | kesit |
+|---|---|---|---|---|---|---|---|
+| 0.30 / 0.70 | 0.504 | 0.327 | **0.341** | 1936 | 1942 | 1 | +0.0001 |
+| 0.50 / 1.00 | 0.528 | 0.387 | 0.386 | 1937 | 1944 | 2 | +0.0188 |
+| **0.75 / 0.70** | **0.353** | **0.206** | **0.164** | **1972** | **1995** | **2** | +0.0069 |
+| aktörsüz taban | 0.000 | — | — | — | — | 3 | — |
+
+`0.30` reddedildi: geç kampanyada `Omega` doyunca kesit sıfıra çöküyor **ve**
+`zor` rızayı geçiyor (0.341 > 0.327) — §4.2'nin sırası kampanya sonunda
+tersine dönüyor. `0.75/0.70` alındı: rıza baskın kalır, zor **yirmi üç yıl**
+sonra açılır, devrim tabandan az ama sıfır değil.
+
+### Devrim ertelenir, önlenmez — ölçüldü
+
+Çekirdeğin kendi yorumu (`kriz_cekirdegi.gd:1336`) bu. Aynı tohumda:
+aktörsüz kol AUT@1974 ve BEL@1938; aktörlü kol BEL@**1941**. Yani devrim hem
+azalıyor hem de **üç yıl geriye itiliyor**. Kapı iki yönlü: sıfır devrim o
+cümleyi yalanlar, taban kadar devrim ise kolun etkisiz olduğunu gösterir.
+
+### Kayıt: geç kampanyada sürücü doyar
+
+`Omega` 2036'da bütün ülkelerde 1.0'a dayanıyor (aralık **0.0000**), yani
+"örgütlü öfkesi büyük olan daha çok uzanır" ilişkisi geç kampanyada
+ölçülemiyor (kesit +0.0069). Ayrım erken kampanyada oluyor; `bolunme`
+yayılımı (0.353) o ayrımın **birikmiş izi**. Bu bir B7b kusuru değil,
+`Omega`'nın çekirdekteki davranışı — doğru adres B0–B3, ve kapı değil kayıt.
+
+### B5'in ters yönde bıraktığı kayıt işe yaradı
+
+B5 `bolunme` yayılımının **tam sıfır** olduğunu iddia ediyordu ve bunu bilerek
+gevşek bırakmamıştı: "sürücü geldiği gün bu kapı düşsün." Düştü. Yayılım
+0.000 → **0.374**, ve iddia yön değil büyüklük soracak biçimde yeniden
+yazıldı (`> 0.20`), tıpkı otomasyonunki gibi.

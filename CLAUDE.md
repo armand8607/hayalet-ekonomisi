@@ -108,7 +108,9 @@ birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
 `--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
 (teşhis izleri).
 
-**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (35 denetim, ~1 dk).
+**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (43 denetim, ~3 dk — son
+kademesi iki kolu tam ufukta koşar). Tanılar: `--v2-aktor-iz[=YIL[:ülke]]` ve
+`--v2-aktor-tarama` (B7b kalibrasyonu).
 `--v2-menu` kampanya kurulum ekranını,
 `--v2-oyna[=KOD[:tohum[:yıl[:kadro[:panel]]]]]` doğrudan oyun ekranını açar;
 `panel` = `ulke|politika|gunce|yok`. **İkisi de `--headless` ile anlamsızdır**
@@ -498,8 +500,16 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   çapaya göre yeniden yazıldı (`< çapa + 0.10`) ve ayırt ediciliği ayrıca
   doğrulandı: kalibre kol 0.3815 geçiyor, aşırı kol (esneklik 1.5) 0.4706 ile
   kalıyor.
+- **Bir SÜRÜCÜ kurmadan önce bileşenlerinin DAĞILIMINA bak.** B7b'de politika
+  aktörünün tehdit terimi `PR` üzerine kurulmuştu; ölçüldü ve `PR` aralığı
+  yalnızca 0.055 çıktı, ölçek 0.35 ile her ülkede her tik 1.0'a kırpılıyordu.
+  Dört bileşenin üçü (PR, tıkanma, `baski_egilimi`) doygun ya da sabitti;
+  ayakta kalan tek varyans `PC`'nindi ve eksi işaretle girdiği için **kesit
+  tersine döndü**. Doğru büyüklük §4.1'in kendi hedefiydi: örgütlü öfke
+  (`Omega × orgutlu`, aralık 0.380). Ortalaması makul görünen bir sürücü
+  clamp'e dayanmışsa hiçbir şeyi ayırt etmez.
 - **v2'de bir DÜZEY karşılaştırması trendi ölçer, mekanizmayı değil.** Bu
-  ailenin dört üyesi oldu: mutlak `NX` yerine `NX/Y` (ekonomi küçülünce mutlak
+  ailenin BEŞ üyesi oldu (beşincisi B7b'nin `PC` üzerinden ters dönen kesiti): mutlak `NX` yerine `NX/Y` (ekonomi küçülünce mutlak
   akım da küçülür), ham `l_etkin` yerine çarpan (nüfus sürükleniyor), kampanya
   ortalaması yerine eş-zamanlı kesit (`r` 0.10'dan 0.04'e düşüyor ve olaylar
   erken kümeleniyor), dünya toplamı yerine çift hacmi (iki yörünge kaotik
@@ -578,6 +588,7 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `HaritaGorunum` | `ui/` — haritayı `_draw()` ile çizer. Tek `Control`, sıfır asset |
 | `BasarimTesti` | `harness/` — B6: ölçek altında maliyet, korunum, savaş sıklığı |
 | `Oyun` | `oyun/` — oturum: dünya + oyuncu + tik + politika kolları (B7) |
+| `PolitikaAktoru` | `oyun/` — §4.5'in AI tarafı: AI ülkeleri karanlık devlete kendi krizlerine göre uzanır (B7b) |
 | `Gecmis` | `oyun/` — **yıllık** örneklenen sütun deposu; panelin grafikleri |
 | `Gunce` | `oyun/` — kriz tescillerinden **türetilen** günce (§0) |
 | `OyunEkrani` | `ui/` — Victoria düzeni: harita ana ekran, paneller üstüne |

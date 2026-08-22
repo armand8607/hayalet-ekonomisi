@@ -449,19 +449,23 @@ static func _modlar(w: Dunya, kampanya: Dictionary) -> void:
 			"sekiz mod kampanya boyunca ayrisiyor",
 			"olu: %s" % str(olu_beklenmeyen) if not olu_beklenmeyen.is_empty() else "")
 
-	# KAPILAR BILEREK TERS YONDE. Ikisi de "hala duz mu" diye soruyor ki,
-	# sebep ortadan kalktigi gun BU KAPILAR DUSSUN ve belge guncellensin.
-	# Gevsek birakilsalardi (">= 0") o gun hicbir sey haber vermezdi.
+	# (1) BOLUNME ARTIK CANLI -- ve bu kapi, TERS YONDE BIRAKILMIS bir kaydin
+	#     ise yaradiginin kanitidir.
 	#
-	# (1) BOLUNME -- surucusu yok. Karanlik devletin sekiz taktigini
-	#     (`t_*`) yazan bir aktor yok: ne oyuncu var, ne de AI politika
-	#     katmani. `KaranlikDevlet.otomatik` yalnizca `mafya_tolerans`i
-	#     suruyor, taktikleri degil. Mekanizma B3'te kuruldu ve
-	#     `--v2-bolunme` onu taktikleri KENDI yazarak sinar; dunyada
-	#     surucusu yok. Politika aktoru B7'nin isi.
-	_dogrula(float(yayilim["bolunme"]) == 0.0,
-			"KAYIT: bolunme surucusuz (politika aktoru yok)",
-			"-> §6g")
+	#     B5 burada "yayilim == 0.0" diye yaziyordu, cunku sekiz `t_*` alanini
+	#     yazan bir aktor yoktu: ne oyuncu vardi ne AI politika katmani, ve
+	#     `KaranlikDevlet.otomatik` yalnizca `mafya_tolerans`i suruyordu.
+	#     Kayit gevsek birakilsaydi (">= 0") surucu geldigi gun hicbir sey
+	#     haber vermezdi. B7b'de aktor geldi, kapi KIRMIZIYA DONDU (olculdu:
+	#     yayilim 0.0 -> 0.374) ve belge guncellendi.
+	#
+	#     Yeni iddia yon degil BUYUKLUK sorar, tipki otomasyonunki gibi:
+	#     mod yalnizca kipirdamis olmasin, ulkeler arasinda GERCEKTEN ayrissin.
+	#     B7b'nin kendi kapisi (`--v2-oyun`) mekanizmayi olcer; burada
+	#     olculen, HARITANIN o ayrimi gosterebildigidir.
+	_dogrula(float(yayilim["bolunme"]) > 0.20,
+			"bolunme modu canli (politika aktoru, B7b)",
+			"yayilim %.3f -> §6j" % float(yayilim["bolunme"]))
 
 	# (2) OTOMASYON ARTIK CANLI -- ve bu B5'in getirdigi bir bulgunun
 	#     cozumu. `UretimKatmani` takiliyken `oto` otoritesi ona gecer ve

@@ -150,6 +150,11 @@ func kur(oyuncu_kod: String = "", p_tohum: int = 42,
 			# kapanir. Kapanmasaydi oyuncunun kolu ile AI'nin kolu ayni
 			# alana yazar ve hangisinin etkisi olculdugu TANIMSIZ kalirdi.
 			dunya.cekirdekler[oyuncu].karanlik.otomatik = false
+			# AI POLITIKA AKTORU DE OYUNCUYA DOKUNMAZ. Dokunsaydi oyuncunun
+			# kaydiricisi ile aktor ayni alana yazar, ve ekranda gorulen deger
+			# ile motordaki deger her tik birbirini ezerdi.
+			if dunya.aktor != null:
+				dunya.aktor.oyuncu = oyuncu
 
 	_tik = 0
 	gecmis = Gecmis.new()
