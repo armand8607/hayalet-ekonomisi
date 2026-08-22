@@ -79,6 +79,15 @@ func _ready() -> void:
 				# Harita (B5): geometri, izdusum, isabet testi, dokuz mod,
 				# baglar -- ve haritanin motora DOKUNMADIGI.
 				cikis = HaritaTesti.kos()
+			"--v2-oyun":
+				# Oyun kabugu (B7): oturum, gecmis, gunce ve oyuncu kollari.
+				# En sert kademesi kabugun motoru DEGISTIRMEDIGI.
+				cikis = OyunTesti.kos()
+			_ when a.begins_with("--v2-oyun-iz"):
+				# --v2-oyun-iz[=YIL] -- oyuncunun ana grafiginin kampanya boyu
+				# bicimi. Tani kapisi.
+				var oi := a.get_slice("=", 1) if a.contains("=") else ""
+				cikis = OyunTesti.iz(int(oi) if oi != "" else 230)
 			"--v2-savas":
 				# Savas bir kriz cikisi olarak (B4): §3.2'nin muhasebesi --
 				# savastan sonra kar orani yukari, nufus asagi. Ayrica B3'ten
