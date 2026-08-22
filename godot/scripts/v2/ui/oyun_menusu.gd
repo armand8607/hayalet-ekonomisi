@@ -39,7 +39,21 @@ func _ready() -> void:
 	add_child(arka)
 	arka.kur(null)
 
+	# PERDE: harita menunun arkasinda DEKORDUR, okunacak bir sey degil.
+	# Kontrasti dusurmek hem kutunun disindaki metni (ulke adlari) geri
+	# plana atar hem de kutunun kenarini belirginlestirir.
+	var perde := ColorRect.new()
+	perde.color = Color(Tema.ZEMIN.r, Tema.ZEMIN.g, Tema.ZEMIN.b, 0.72)
+	perde.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	perde.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(perde)
+
 	var kutu := PanelContainer.new()
+	# OPAK. Varsayilan `PanelContainer` stili yari saydamdir ve bu kutu
+	# HARITANIN USTUNDE duruyor; olculdu, arkadaki ulke adlari ("Arjantin
+	# Konfederasyonu", "Kazakistan") baslik ve aciklama metninin icinden
+	# geciyordu. Ayni hata once politika panelinde yakalanmisti.
+	kutu.add_theme_stylebox_override("panel", Tema.panel_stili())
 	kutu.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	kutu.custom_minimum_size = Vector2(560, 460)
 	kutu.offset_left = -280

@@ -244,8 +244,17 @@ func _ready() -> void:
 	get_tree().quit(cikis)
 
 
+## OYUN ACILDIGINDA v2 GELIR (B7 bitince yapilan devir).
+##
+## B7a'da varsayilan bilerek v4.4'te birakilmisti: Pages'e ve APK'ya cikan
+## surum yarim bir kabuk olmamaliydi. B7 uc parcasiyla kapandi (kabuk, politika
+## aktoru, sunum) ve devir artik yapilabilir.
+##
+## v4.4 KALDIRILMADI, bayraga tasindi: `--menu` eski menuyu, `--oyna` eski
+## paneli acar. Dondurulmus motor ve onun oyun katmani hala kosulabilir
+## durumda -- `--kabul`, `--yon-testleri` ve `--sim-test` onlara bagli.
 func _oyunu_baslat() -> void:
-	_menuyu_ac()
+	_v2_menuyu_ac()
 
 
 ## Menuyu atlayip dogrudan panele girer; `tur` verilirse o kadar ilerletir.

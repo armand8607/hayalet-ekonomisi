@@ -52,6 +52,9 @@ var _n_tem: PackedInt32Array = PackedInt32Array()
 var _n_mor: PackedInt32Array = PackedInt32Array()
 var _n_fx: PackedInt32Array = PackedInt32Array()
 var _n_savas: PackedInt32Array = PackedInt32Array()
+## Ulke basina o an savasilan rakiplerin kodlari. Sayac degil KUME tutulur:
+## "savasa girdi" satirinin KIME KARSI oldugunu ancak fark alarak bilebiliriz.
+var _rakipler: Array[Dictionary] = []
 var _n_yenilgi: PackedInt32Array = PackedInt32Array()
 var _rejim: PackedStringArray = PackedStringArray()
 var _kurum: PackedStringArray = PackedStringArray()
@@ -81,6 +84,8 @@ func kur(w: Dunya) -> void:
 	_n_fx.resize(n)
 	_n_savas.resize(n)
 	_n_yenilgi.resize(n)
+	_rakipler = []
+	_rakipler.resize(n)
 	_era.resize(n)
 	_rejim.resize(n)
 	_kurum.resize(n)
@@ -94,6 +99,7 @@ func kur(w: Dunya) -> void:
 		_n_fx[i] = d.fx_krizleri.size()
 		_n_savas[i] = d.savas_toplam
 		_n_yenilgi[i] = d.yenilgi_sayisi
+		_rakipler[i] = d.savas.duplicate()
 		_era[i] = d.era
 		_rejim[i] = d.rejim
 		_kurum[i] = d.kurum
@@ -144,9 +150,18 @@ func topla(w: Dunya) -> void:
 			_ekle(w.yil, i, "DOVIZ KRIZI", "%s: doviz krizi -- rezerv tukendi" % ad)
 			_n_fx[i] += 1
 
-		while _n_savas[i] < d.savas_toplam:
-			_ekle(w.yil, i, "SAVAS", "%s savasa girdi" % ad)
-			_n_savas[i] += 1
+		# SAVAS SATIRI RAKIBI ADLANDIRIR. Ilk yazimda yalnizca `savas_toplam`
+		# sayaci okunuyordu ve gunce "Turkiye savasa girdi" satirini ayni yil
+		# UC KEZ tekrarliyordu -- ucu de dogruydu, ama hicbiri kime karsi
+		# oldugunu soylemiyordu. Rakip kumesi zaten `d.savas`ta duruyor;
+		# eksik olan onu okumakti.
+		if _n_savas[i] != d.savas_toplam or d.savas.size() != _rakipler[i].size():
+			for kod in d.savas.keys():
+				if not _rakipler[i].has(kod):
+					_ekle(w.yil, i, "SAVAS", "%s, %s ile savasa girdi"
+							% [ad, Harita.gorunen_ad(String(kod), w.yil)])
+			_n_savas[i] = d.savas_toplam
+			_rakipler[i] = d.savas.duplicate()
 
 		while _n_yenilgi[i] < d.yenilgi_sayisi:
 			_ekle(w.yil, i, "YENILGI", "%s savasi kaybetti" % ad)
