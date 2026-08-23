@@ -55,10 +55,11 @@ static var _y_guney: float = 0.0
 # secer. Basamaklarin kendisi B1b'nin olculmus merdivenidir; burada yeni bir
 # kalibrasyon YOKTUR ve olsaydi da yeri burasi olmazdi.
 #
-# NE OLMADIGI ONEMLI: bu tablo ulkelere buyukluk vermez (`L_etkin` hepsinde
-# ayni). Tarihsel buyukluk (nufus, sermaye stoku) B6'nin isidir -- ve o
-# yapilana kadar haritanin gosterdigi ayrisma YALNIZCA uretkenlik farkindan
-# ve kaotik ayrismadan gelir, verilmis bir hiyerarsiden degil.
+# NE OLMADIGI ONEMLI: bu tablo ulkelere BUYUKLUK vermez, yalnizca
+# URETKENLIK verir. Buyuklugun kaynagi ayridir ve `TohumVerisi`dir --
+# 1836'nin nufusu, Maddison'dan. Ikisi ayri durur cunku ayri seylerdir:
+# merdiven B1b'de OLCULMUS bir kalibrasyon, tohum ise bir KAYNAKTAN gelen
+# tarihsel veridir. Biri digerinin yerine yazilamaz.
 const MERDIVEN := {
 	"merkez": [1.60, 0.42],
 	"yari": [1.00, 0.30],
@@ -274,11 +275,24 @@ static func kapi_kodlar(n: int = 54) -> PackedStringArray:
 ##    54 ulke -> 16.0 ms/tik, tam kampanya 219 sn
 ##    24 ulke ->  5.9 ms/tik, tam kampanya  81 sn
 ## Tarayicida (tek is parcacikli wasm) bunlarin birkac kati.
-static func oyun_kodlar(n: int = 0) -> PackedStringArray:
+## `zorunlu` VERILIRSE O KOD HER ZAMAN ICERIDEDIR, ve bu bir kolaylik degil
+## bir HATA DUZELTMESIDIR. Yukarida "oynanabilir kume once alinir, yani
+## oyuncunun ulkesi kadro disinda kalamaz" yaziyordu ve bu `n >= 19` icin
+## dogru, `n < 19` icin YANLIS: oynanabilir kume 19 ulkedir ve TUR onun
+## 17. sirasindadir, yani `oyun_kodlar(16)` Turkiye'yi DUSURUR.
+##
+## Sonucu olculdu: CI'nin gorsel kapisi `--v2-oyna=TUR:42:12:16` ile kosuyor
+## ve ekran sessizce GOZLEMCI kipine dusuyordu ("Gozlemci -- dunyayi
+## disaridan izliyorsunuz"), butun oyuncu kollari kapali. Yani B7a'nin
+## "panelin asil sinanmak istenen hali hic cizilmiyordu" hatasi, tam olarak
+## onu duzelttigini soyleyen yorumun altinda geri gelmisti.
+static func oyun_kodlar(n: int = 0, zorunlu: String = "") -> PackedStringArray:
 	var hepsi := simule_kodlar()
 	if n <= 0 or n >= hepsi.size():
 		return hepsi
 	var secili := {}
+	if zorunlu != "" and indeks(zorunlu) >= 0:
+		secili[zorunlu] = true
 	for kod in oynanabilir_kodlar():
 		if secili.size() >= n:
 			break
@@ -505,7 +519,7 @@ static func dunya_kur(kodlar: PackedStringArray = PackedStringArray(),
 			continue
 		var konum := String(_kayit[i]["konum"])
 		var basamak: Array = MERDIVEN.get(konum, MERDIVEN["cevre"])
-		var d := _ulke(basamak[0], basamak[1], yil)
+		var d := _ulke(basamak[0], basamak[1], yil, kod)
 		w.ekle(d, kod, tohum)
 		if katmanlar:
 			_katmanlari_tak(w.cekirdekler[w.cekirdekler.size() - 1], d)
@@ -544,13 +558,24 @@ static func _katmanlari_tak(c: KrizCekirdegi, d: KrizDurumu) -> void:
 	c.karanlik = kd
 
 
-## `dunya_testi._ulke` ile AYNI kurulum. Kopyalanmis olmasi bilincli:
-## harness'lar birbirinin ic islevini cagirmaz, ve bu deger `--v2-dunya`nin
-## olctugu kurulumdur -- degistirilmesi gereken bir sey varsa ikisi birden
-## degismeli, sessizce biri degil.
-static func _ulke(q0: float, egitim: float, yil: float) -> KrizDurumu:
+## `dunya_testi._ulke` ile alan alan AYNI kurulum -- BIR alan disinda.
+## Kopyalanmis olmasi bilincli: harness'lar birbirinin ic islevini cagirmaz,
+## ve o deger `--v2-dunya`nin olctugu kurulumdur.
+##
+## AYRILAN ALAN `L_etkin`. Burada TARIHSEL tohumdan gelir (`TohumVerisi`),
+## orada 110.0 sabit kalir -- ve bu bir ihmal degil deney tasarimidir:
+## `--v2-dunya` esitsiz mubadeleyi ADLANDIRILMIS sentetik bir merdivende
+## (`Yuksek`..`Dusuk`) olcer. O ulkelerin ISO kodu yoktur, tohumlanamazlar;
+## tohumlansalardi bile olculen sey "esitsiz mubadele" degil "buyuk ulke
+## kucugunu ezer" olurdu ve §6c'nin sorusu ("fark mekanizmadan mi, iki
+## kolun zaten ayristigi yerden mi") yine cevapsiz kalirdi.
+static func _ulke(q0: float, egitim: float, yil: float,
+		kod: String = "") -> KrizDurumu:
 	var d := KrizDurumu.new()
-	d.L_etkin = 110.0
+	# TOHUM: 1836'nin nufusu, medyan ulke 110.0'da tutularak olceklenir.
+	# `K` bunu cekirdegin `baslat()`i uzerinden takip eder, `NufusKatmani`
+	# bozmaz -- yani tek alan tohumlamak butun buyuklugu tasir.
+	d.L_etkin = TohumVerisi.l_etkin(kod)
 	d.pay = 0.52
 	d.era = 1
 	d.q = q0

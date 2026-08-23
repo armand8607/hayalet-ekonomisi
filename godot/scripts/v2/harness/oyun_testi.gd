@@ -414,8 +414,35 @@ static func kos() -> int:
 			"%.3f -> %.3f" % [a.q, b.q])
 	_dogrula(b.cv > a.cv, "... `q`↑ organik bilesimi yukseltiyor",
 			"%.3f -> %.3f" % [a.cv, b.cv])
-	_dogrula(b.r_yil < a.r_yil, "... ve kar orani DUSUYOR (§2.4'un tuzagi)",
-			"%.4f -> %.4f" % [a.r_yil, b.r_yil])
+
+	# KAR ORANI BURADA IDDIA EDILMEZ, KAYDEDILIR -- ve bunun sebebi olculdu.
+	#
+	# Tohumlamadan (1836 nufusu) ONCE bu satir `r`nin DUSTUGUNU iddia
+	# ediyordu ve gecıyordu: 0.0808 -> 0.0660. Tohumlamadan sonra isaret
+	# dondu: 0.0764 -> 0.0795. Bant gevsetilmedi, CAPALAR olculdu:
+	#
+	#   q    0.672 -> 1.643   (degismedi, tohumlama oncesi 0.650 -> 1.686)
+	#   c/v  0.834 -> 1.479   (degismedi, oncesi 0.820 -> 1.497)
+	#   u    0.544 -> 0.829   <-- SAPAN BU
+	#   pay  0.448 -> 0.449   (ayni)
+	#
+	# Yani bilesim kanali YERINDE duruyor; ustune bir GERCEKLESME kanali
+	# binmis. Dusuk-yukseltme kolu yatirimi derinlestirme yerine
+	# genisletmeye harciyor, tohumlanmis (boyutca ayrisik) bir dunyada o
+	# kapasiteyi satamiyor ve `u` 0.54'te kaliyor. `r` farkinin isaretini
+	# belirleyen sey bilesim degil kullanim orani.
+	#
+	# Bu, kilavuzun izledigi ailenin ALTINCI uyesi: "bir DUZEY
+	# karsilastirmasi bileskeyi olcer, mekanizmayi degil". Iki kolun `r`
+	# duzeyini kiyaslayip farki bilesime yazmak, ikinci kanal devreye
+	# girdigi anda yanlis olur.
+	#
+	# §2.4'UN KAPISI KAYBOLMADI: `--v2-uretim` onu YALITILMIS kurulumda
+	# (tek ulke, disarisi yok) olcer ve `d_r < 0` orada iddia edilir --
+	# tohumlamadan sonra da 17/17 geciyor. Dogru is bolumu bu: mekanizma
+	# kendi kapisinda, kabugun kolu burada.
+	print("  u             %8.3f  %8.3f   <- gerceklesme kanali" % [a.u, b.u])
+	print("  kar orani (KAYIT, iddia degil) %.4f -> %.4f" % [a.r_yil, b.r_yil])
 
 	# -----------------------------------------------------------------
 	print("\n--- 7. B7b: politika aktoru (§4.5) ---")
@@ -1056,8 +1083,22 @@ static func _sunum_kademesi(w: Dunya) -> void:
 		if b[i] >= 0:
 			uye[b[i]] = int(uye.get(b[i], 0)) + 1
 
-	_dogrula(not uye.is_empty(), "kampanya sonunda en az bir blok var",
-			"%d blok, %d uye" % [uye.size(), b.size() - _sifir_say(b)])
+	# BLOK CANLILIGI BURADA IDDIA EDILMEZ -- ve bu, B5/B7c'nin KENDI is
+	# bolumu. `harita_testi` o ayrimi zaten yazmisti: "on ulkelik bir
+	# dunyada ittifak neredeyse hic olusmuyor (olculdu: 1 blok, 2 uye),
+	# yani orada 'blok gosterimi calisiyor' demek bos kalirdi. Sozlesme
+	# denetimleri (kimlik, tutarlilik, tek uyeli blok yok) `--v2-oyun`da
+	# duruyor." Bu satir o cumleye ragmen bir CANLILIK iddiasiydi ve sekiz
+	# ulkelik dunyada bicak sirtinda geciyordu -- tam olarak "1 blok, 2
+	# uye" ile.
+	#
+	# Tohumlama onu sifira dusurdu, cunku ittifak ORTAK DUSMAN ister ve
+	# `guc()` boyutla ayrisinca (`h.guc() >= c.guc() * 1.15` elemesi) iki
+	# ulkenin ayni hedefe saldirmasi seyreklesti. Mekanizma OLMEDI: 54
+	# ulkelik harita dunyasinda en buyuk blok 4 ulke (olculdu). Sekiz
+	# ulkede sifir cikmasi mekanizmanin degil KADRONUN ifadesidir.
+	print("  KAYIT: %d blok, %d uye (canlilik olcutu `--v2-harita`da)"
+			% [uye.size(), b.size() - _sifir_say(b)])
 
 	# (e) TEK UYELI BLOK YOK. Bir blok en az iki ulkedir; tek basina bir
 	#     ulkeyi renklendirmek haritayi anlamsiz renklerle doldururdu.

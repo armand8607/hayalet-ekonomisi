@@ -492,6 +492,7 @@ yok" bulmak demekti.
 | **B7b** | **Politika aktörü.** AI kendi krizine göre taktik yazsın (§4.5) | **KURULDU** — `--v2-oyun` 43/43; `bolunme` yayılımı 0.000 → 0.374, devrim ertelenir ama önlenmez (§6j) |
 | **B7c** | **Sunum artıkları.** Blok gösterimi (dolgu/kabuk), ad değişimi takvimi (Osmanlı → Türkiye) | **KURULDU** — `--v2-oyun` 52/52, `--v2-harita` 45/45; blok kabuğu dokuz modda okunur, ad takvimi sunum olarak işaretli (§6k) |
 | **B7d** | **Kayıt/yükleme.** Oturumun serileştirilmesi | **KURULDU** — `--v2-oyun` 65/65; RNG durumu dahil birebir yuvarlak (§6l) |
+| **A** | **Ekonomik tohumlama.** 1836'nın nüfusu, ülkelere gerçek büyüklük | **KURULDU** — `--v2-tohumlama` 55/55; 111 toprak Maddison'dan, dünya toplamı bağımsız çapayla tutuyor (§6o) |
 
 **B1a bitti ve kendi ölçütünü fazlasıyla aştı.** Kriz teorisi bu mimaride
 çalışıyor: kapalı ekonomi 100 kapitalist yılda 19.2 ayrık kriz olayı üretiyor.
@@ -2627,3 +2628,127 @@ doğru düzeltmesi — eşiği dünyanın kendi ortalamasını izleyen **göreli
 referansa çevirmek, ve saldırganlığı ülkeye bağlamak — ancak ülkeler
 ayırt edilebilir olduğunda ölçülebilir. `guc() = K · q` bile şu an yalnızca
 kaotik ayrışmadan besleniyor; hedef seçimi de öyle.
+
+---
+
+## 6o. A — ekonomik tohumlama
+
+B5'in "yapmadıkları" listesindeki ilk kalem: *"Ekonomik tohumlama yok — bütün
+ülkeler aynı `L_etkin` ile başlar. B6."* B6 yapmadı. §6n bunu ölçtü ve
+sonucu şuydu: dünyada ayrışma **var** ama ülke **kimliğine** oturmuyor —
+2100'de Bulgaristan dünyanın en büyük ekonomisi.
+
+### Kaynak, ve neden üretilmiş bir dosya
+
+`gen_harita.py` bu işi açıkça dışarıda bırakmış ve gerekçesini yazmıştı:
+"nüfus, GSYH, hiçbir iktisadi büyüklük taşınmaz — bunlar 2020'lerin verisidir
+ve oyun 1836'da başlar; kaynaktan iktisadi bir sayı almak **anakronizmi VERİ
+gibi gösterirdi**." Boşluk o yüzden tarihsel bir kaynakla dolduruldu:
+**Maddison Project Database 2020** (Bolt & van Zanden, CC BY 4.0), OWID
+aynasından; ISO3 eşlemesi için `datasets/country-codes`. İkisinin de sha256'sı
+üretilen dosyanın başlığında.
+
+### Tohumlanan tek alan `L_etkin` — ve bu yeter
+
+| alan | neden tohumlanmıyor |
+|---|---|
+| `K` | çekirdeğin `baslat()`inde `L_etkin`ten **türetilir** (`d.K = d.kv * d.q * emek * hedef_istihdam / u_normal`); ayrıca tohumlamak çifte sayım olurdu |
+| nüfus kohortları | `NufusKatmani.baslat()` toplam nüfusu `L_etkin`ten **geri hesaplar**, yani `emek_arzi()` tam olarak aynı sayıyı döner |
+| `q` | konum merdiveni verir ve o merdiven B1b'de **ölçülmüş** bir kalibrasyondur; üstüne GSYH/kişi yazmak ölçülmüş bir değeri kaynakla ezmek olurdu |
+
+Kapı ikisini de doğruluyor: `K/L` aynı merdiven basamağında büyükten küçüğe
+**birebir aynı** (bağıl sapma < 1e-12), ve t=0'da `Y_max/min` = 15178 =
+`L_max/min`.
+
+### 1836'da devlet olmayan topraklar — miras kuralı
+
+34 toprağın Maddison serisi 1950'de başlıyor, ve sebep veri boşluğu değil:
+1836'da ayrı devlet değillerdi. Ukrayna Rus İmparatorluğu'nda, Bangladeş
+Britanya Hindistanı'nda, Nijerya sömürge öncesi. 1950 rakamını almak tam da
+yukarıda reddedilen anakronizmdi — **Rusya'nın 1836 nüfusu 101.9 milyon
+çıkardı** (gerçeği ~36).
+
+    toprak_1836 = tarihsel_bütün_1836 × (toprak_1950 / bütün_1950)
+
+İki ucu da kaynaklı; varsayım tek ve açık (bütünün içindeki dağılım 1836–1950
+arası kabaca sabit). Maddison'ın kendi "India" serisi bölünmeyi **içinde**
+taşıyor: 1946'da 415.2M, 1947'de 346M.
+
+### Doğrulama — hedeflenmeyen bir çapa tuttu
+
+| | |
+|---|---|
+| tohumlanan | **111 / 113** (PNG ve SOM Maddison'da yok, medyan büyüklükte başlar) |
+| 1836 toplamı | **1.118 milyar** |
+| Maddison'ın kendi Dünya 1820'si | 1.034 milyar |
+
+Kuruluşta hiçbir yerde dünya toplamı hedeflenmedi — tek tek topraklardan
+çıktı. Tek tek de tutuyor: ABD 15.75M (gerçek ~15.4M), Britanya 25.7M
+(~25.6M), Rusya 36.4M (~35–40M), Nijerya 11.0M (~10–13M).
+
+### Normalizasyon: medyan, ortalama değil — ölçülerek seçildi
+
+| bölen | `L_etkin` aralığı | `savas.gd`'nin 1.0 tabanı altında |
+|---|---|---|
+| ortalama = 110 | 0.29 .. 4411 | **4 ülke** |
+| **medyan = 110** | **1.41 .. 21406** | **yok** |
+
+Medyan ayrıca doğru değişmezi korur: kalibrasyon **ülke başına** yapılmıştır,
+yani korunması gereken tipik ülkenin çalışma noktasıdır. Dünya toplamı
+kalibre edilmiş bir büyüklük değildir — `Dunya`nın akımları çift üzerinde
+tanımlı ve ölçekten bağımsız korunur.
+
+> **Üretilen dosya kendi içinde tutarlı olmalı.** İlk sürümde `NUFUS` tam
+> sayıya yuvarlanıp yazılıyor, `MEDYAN_NUFUS` ise yuvarlanmamış float'tan
+> hesaplanıyordu; medyan ülkenin `L_etkin`i tam 110.0 etmiyordu ve fark
+> ondalık gösterimde **"110.0000" diye gizleniyordu**. Kapı yakaladı.
+> (§9.14'ün kuralı: float karşılaştırması bit deseni üzerinden.)
+
+### Sonuç — ve tek tip bir dünyada ölçülemeyen üç şey
+
+2100 sıralaması kimliğe oturdu: **Fransa, Britanya, Belçika, Hindistan, Küba**
+(öncesi: Bulgaristan, Britanya, Belçika, Avustralya, BAE).
+
+Tohumlama üç denetim düşürdü ve **üçü de tohumlamanın hatası değil**; üçü de
+o güne kadar ölçülemeyen şeylerdi:
+
+1. **`--v2-oyun`un blok canlılık iddiası.** Sekiz ülkelik dünyada "1 blok, 2
+   üye" ile bıçak sırtında geçiyordu — ki `harita_testi` bunu zaten yazmıştı:
+   "on ülkelik bir dünyada ittifak neredeyse hiç oluşmuyor, orada 'blok
+   gösterimi çalışıyor' demek boş kalırdı." İttifak **ortak düşman** ister;
+   `guc()` boyutla ayrışınca hedef elemesi (`h.guc() >= c.guc() * 1.15`)
+   ülkeleri fiilen ağırlık sınıflarına ayırdı. Mekanizma ölmedi: 54 ülkelik
+   harita dünyasında en büyük blok 4. Canlılık iddiası kapının kendi iş
+   bölümüne göre haritada kaldı, sözleşme denetimleri `--v2-oyun`da.
+2. **Harita kapısının eşiği** (≥5) tek tip dünyada 10 ölçmüştü; çapa yeniden
+   okundu ve eşik 3'e çekildi — blok bir **çiftten** büyük olmalı, ki kabuk
+   çizimi zorlansın. Ayırt ediciliği duruyor: blok oluşumu dursa 0/1'e düşer.
+3. **§2.4'ün `r` düşüşü işaret değiştirdi** (0.0808→0.0660 iken
+   0.0764→0.0795). Bant gevşetilmedi, çapalar ölçüldü:
+
+   | | tohumlama öncesi | sonrası |
+   |---|---|---|
+   | `q` | 0.650 → 1.686 | 0.672 → 1.643 |
+   | `c/v` | 0.820 → 1.497 | 0.834 → 1.479 |
+   | `u` | — | **0.544 → 0.829** |
+   | `pay` | — | 0.448 → 0.449 |
+
+   Bileşim kanalı **yerinde**; üstüne bir **gerçekleşme** kanalı binmiş.
+   Düşük-yükseltme kolu yatırımı derinleştirme yerine genişletmeye harcıyor,
+   boyutça ayrışık bir dünyada o kapasiteyi satamıyor ve `u` 0.54'te kalıyor.
+   `r` farkının işaretini belirleyen şey bileşim değil kullanım oranı.
+
+   Bu, kılavuzun izlediği ailenin **altıncı** üyesi: bir düzey karşılaştırması
+   bileşkeyi ölçer, mekanizmayı değil. §2.4'ün kapısı kaybolmadı —
+   `--v2-uretim` onu **yalıtılmış** kurulumda ölçer (tek ülke, dışarısı yok)
+   ve `d_r < 0` orada iddia edilir; tohumlamadan sonra da 17/17 geçiyor.
+
+### Kaydedilen, iddia edilmeyen
+
+- **Merkez/çevre oranı 12.82'den 284.84'e çıktı** ve 2100'de Fransa
+  Hindistan'ın 37 katı. Bu tohumlamanın ürettiği bir şey değil — merdivenin
+  264 yıl boyunca yakınsamadan bileşmesi; tohumlama onu yalnızca **görünür**
+  kıldı. Yakınsama mekanizması (teknoloji yayılımı) modelde yok.
+- **PNG ve SOM tohumsuz.** Maddison'da karşılıkları yok ve 1950 payları da
+  yok, yani miras kuralı da uygulanamıyor. Medyan büyüklükte başlıyorlar ve
+  kapı bunu **sayıyor**: bir kaynak onları kapsadığı gün denetim düşer.

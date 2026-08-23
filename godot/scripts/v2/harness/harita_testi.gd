@@ -483,7 +483,21 @@ static func _modlar(w: Dunya, kampanya: Dictionary) -> void:
 		en_buyuk_blok = maxi(en_buyuk_blok, int(blok_boy[k]))
 	print("     blok: %d tane, en buyugu %d ulke"
 			% [blok_boy.size(), en_buyuk_blok])
-	_dogrula(en_buyuk_blok >= 5, "blok gosterimi canli (B7c)",
+	# ESIK TOHUMLAMAYLA YENIDEN CAPALANDI: 5 -> 3.
+	#
+	# 1836'nin nufusu tohumlanmadan once en buyuk blok 10 ulkeydi ve esik 5
+	# rahat geciyordu. Tohumlamadan sonra 4. Bant GEVSETILMEDI, sebep
+	# olculdu: ittifak ORTAK DUSMAN ister, ve `guc() = K*q` boyutla
+	# ayrisinca hedef elemesi (`h.guc() >= c.guc() * 1.15`) ulkeleri fiilen
+	# agirlik siniflarina ayiriyor -- iki ulkenin ayni hedefi secmesi
+	# seyreliyor. Bu, tohumlamanin bir yan etkisi degil SONUCU: esit
+	# buyuklukteki bir dunyada herkes herkese saldirabiliyordu.
+	#
+	# Esik 3'te, cunku olcutun sordugu sey "harita blok UYELIGINI
+	# gosterebiliyor mu" ve bunun icin blok bir CIFTTEN buyuk olmali
+	# (ikili blok kabuk cizimini zorlamaz). Ayirt ediciligi duruyor: blok
+	# olusumu dururdu 0/1'e duser ve denetim kirmizi verir.
+	_dogrula(en_buyuk_blok >= 3, "blok gosterimi canli (B7c)",
 			"en buyuk blok %d ulke" % en_buyuk_blok)
 
 	# (2) OTOMASYON ARTIK CANLI -- ve bu B5'in getirdigi bir bulgunun

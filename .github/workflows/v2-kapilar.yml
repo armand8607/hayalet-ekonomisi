@@ -70,6 +70,11 @@ jobs:
       - name: 'B0/B1a: olcek degismezligi (23 denetim)'
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-olcek
 
+      - name: 'A: 1836 ekonomik tohumlamasi (55 denetim)'
+        # Ucuz (~2 sn) ve ERKEN: `TohumVerisi` butun dunya kurulumunun
+        # girdisidir, yani bozuldugunda asagidaki her kapi anlamsiz kosar.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-tohumlama
+
       - name: 'B2a: uretim katmani (17 denetim)'
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-uretim
 

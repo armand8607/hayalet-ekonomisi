@@ -68,6 +68,10 @@ func _ready() -> void:
 				# B6: tam kadro (~100 ulke) -- olcek altinda korunum, maliyet
 				# bicimi ve B4'un savas capasinin yeniden okunmasi.
 				cikis = BasarimTesti.kos()
+			"--v2-tohumlama":
+				# 1836 ekonomik tohumlamasi (Maddison): tablo tutarli mi ve
+				# tohum motora ULASIYOR mu. Kapi -- CI'da kosar.
+				cikis = TohumTesti.kos()
 			"--v2-kesit":
 				# Kesit tanisi: ulkeler birbirinden ne kadar ayirt
 				# edilebilir -- buyukluk ve savas seciciligi, tek kampanya.
@@ -338,10 +342,12 @@ func _v2_oyna(kod: String, tohum: int, yil: int, kadro: int,
 		# kumedir ve TUR'u icermiyordu; gorsel kapi sessizce GOZLEMCI kipine
 		# dusuyor, butun kollar kapali cikiyordu -- yani panelin asil sinanmak
 		# istenen hali hic cizilmiyordu.
-		# `oyun_kodlar` OYNANABILIR KUMEYI HER ZAMAN ICERIR, dolayisiyla
-		# oyuncunun ulkesi kadro disinda kalamaz. `kapi_kodlar` kullanilirken
-		# tam bu yuzden elle eklemek gerekiyordu.
-		kodlar = Harita.oyun_kodlar(kadro)
+		# ZORUNLU KOD GECILIR. Bu yorum once "`oyun_kodlar` oynanabilir
+		# kumeyi her zaman icerir" diyordu ve o iddia `kadro < 19` icin
+		# yanlisti -- oynanabilir kume 19 ulke, TUR onun 17.si, yani
+		# `oyun_kodlar(16)` Turkiye'yi dusuruyordu. CI'nin gorsel kapisi tam
+		# olarak `:16` ile kosuyor ve ekran GOZLEMCI kipinde ciziliyordu.
+		kodlar = Harita.oyun_kodlar(kadro, kod)
 	o.kur(kod, tohum, kodlar)
 	if yil > 0:
 		o.ilerle(yil * Oyun.YILDA_TIK)

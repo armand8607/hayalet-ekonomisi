@@ -56,6 +56,14 @@ de **üretilmiştir** (`python tools/gen_gdscript.py`). 355 kalibrasyon sabitini
 elle kopyalamak kabul edilemez bir risktir — tek basamak hatası motoru sessizce
 değiştirir ve oynayarak fark edilmez.
 
+**Dördüncü üretilmiş dosya `godot/scripts/v2/data/tohum_verisi.gd`**
+(`python tools/gen_tohumlama.py`) — 1836'nın nüfusu, kaynağı **Maddison
+Project Database 2020** (CC BY 4.0, OWID aynasından) + ISO3 eşlemesi için
+`datasets/country-codes`. Tohumlanan tek alan `L_etkin`tir; `K` çekirdekte
+ondan türetilir, `NufusKatmani` onu bozmaz, `q`yu ise B1b'de **ölçülmüş**
+konum merdiveni verir. `--check` yine **CI'da koşmaz**, doğruluğu
+`--v2-tohumlama` **yapısal** olarak sınar.
+
 Üçüncü üretilmiş dosya **`godot/scripts/v2/data/harita_verisi.gd`**
 (`python tools/gen_harita.py`) — B5'in harita geometrisi, kaynağı **Natural
 Earth 110m** (kamu malı). Elle çizilmiş bir dünya haritası hem binlerce sayı
@@ -116,7 +124,8 @@ ana kapıdan yavaş), `--v2-harita` (harita, 45 denetim — **tam kampanya koşa
 `--v2-harita-goster[=yıl[:tohum[:mod]]]` (haritayı **çizer**, `--ss=` ile
 birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
 7 denetim — **~5 dk**), `--v2-olcek-tarama` ve
-`--v2-savas-siklik=DEĞER[:ülke]` (B6 tanıları), `--v2-kesit` (kesit tanısı:
+`--v2-savas-siklik=DEĞER[:ülke]` (B6 tanıları), `--v2-tohumlama` (1836
+ekonomik tohumlaması, 55 denetim — ~2 sn), `--v2-kesit` (kesit tanısı:
 ülkeler birbirinden ne kadar ayırt edilebilir — büyüklük ve savaş seçiciliği,
 tek kampanya, ~3 dk),
 `--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
@@ -536,7 +545,8 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   (`Omega × orgutlu`, aralık 0.380). Ortalaması makul görünen bir sürücü
   clamp'e dayanmışsa hiçbir şeyi ayırt etmez.
 - **v2'de bir DÜZEY karşılaştırması trendi ölçer, mekanizmayı değil.** Bu
-  ailenin BEŞ üyesi oldu (beşincisi B7b'nin `PC` üzerinden ters dönen kesiti): mutlak `NX` yerine `NX/Y` (ekonomi küçülünce mutlak
+  ailenin ALTI üyesi oldu (altıncısı: tohumlamadan sonra §2.4'ün iki kolunun
+  `r` düzeyi karşılaştırması — fark bileşimden değil `u`dan geliyordu) (beşincisi B7b'nin `PC` üzerinden ters dönen kesiti): mutlak `NX` yerine `NX/Y` (ekonomi küçülünce mutlak
   akım da küçülür), ham `l_etkin` yerine çarpan (nüfus sürükleniyor), kampanya
   ortalaması yerine eş-zamanlı kesit (`r` 0.10'dan 0.04'e düşüyor ve olaylar
   erken kümeleniyor), dünya toplamı yerine çift hacmi (iki yörünge kaotik
@@ -563,6 +573,18 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   tarafından yazılmıyordu — lumpen kanalı, karseral sönüm ve meşruiyet aşınması
   198 yıl boyunca 0.0'da **ölü** durdu. Bir alanın var olması sürüldüğü anlamına
   gelmez; `grep` ile "kim yazıyor" diye bakmak ucuz bir denetimdir.
+- **Boyutça TEK TİP bir dünyada boyuta duyarlı hiçbir şey SINANAMAZ.**
+  1836'nın nüfusu tohumlanınca (`L_etkin` 110.0 sabit → 1.41–21406) üç
+  denetim düştü ve üçü de tohumlamanın hatası değildi; üçü de o güne kadar
+  **ölçülemeyen** şeylerdi. (1) `--v2-oyun`un blok canlılık iddiası sekiz
+  ülkelik dünyada "1 blok, 2 üye" ile bıçak sırtında geçiyordu — ittifak
+  ORTAK DÜŞMAN ister, `guc()` boyutla ayrışınca iki ülkenin aynı hedefi
+  seçmesi seyreldi ve sıfıra düştü; mekanizma ölmedi, 54 ülkede en büyük
+  blok 4. (2) Harita kapısının eşiği (5) tek tip dünyada 10 ölçmüştü. (3)
+  §2.4'ün `r` düşüşü işaret değiştirdi — ve çapalar ölçülünce sapan şey
+  bileşim değil **kullanım oranı** çıktı (`u` 0.544 → 0.829, `q` ve `c/v`
+  değişmemiş). Ders: bir bandın tek tip bir kurulumda geçmesi, onun bir şey
+  ölçtüğü anlamına gelmez.
 - **Kayda geçmiş bir AÇIKLAMA ölçüm değildir — ve bu depoda bir kez yanlış
   çıktı.** §6h `savas_siklik` çarpanının §3.1'in işaretini çevirmesini
   **doyuma** bağlamıştı: "çarpanı 7.6 kat büyütmek olasılığı doyuruyor ve
@@ -645,6 +667,8 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `Kayit` | `oyun/` — oturumun serileştirilmesi; RNG durumu dahil (B7d) |
 | `RaporPaneli` | `ui/` — kampanya sonu tarihsel sonuç raporu; skor değil kayıt |
 | `OyunTesti` | `harness/` — B7: kabuk motoru değiştirmiyor mu, kollar canlı mı |
+| `TohumVerisi` | **üretilmiş** 1836 nüfusu: 111 toprak, kaynağı Maddison |
+| `TohumTesti` | `harness/` — tohum tablosu tutarlı mı ve motora **ulaşıyor** mu |
 | `KesitTesti` | `harness/` — **tanı**: ülkeler arası ayrışma (büyüklük, savaş seçiciliği) |
 
 **Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
