@@ -68,6 +68,11 @@ func _ready() -> void:
 				# B6: tam kadro (~100 ulke) -- olcek altinda korunum, maliyet
 				# bicimi ve B4'un savas capasinin yeniden okunmasi.
 				cikis = BasarimTesti.kos()
+			"--v2-kesit":
+				# Kesit tanisi: ulkeler birbirinden ne kadar ayirt
+				# edilebilir -- buyukluk ve savas seciciligi, tek kampanya.
+				# TANI, kapi degil (~3 dk); CI'da yeri yok.
+				cikis = KesitTesti.kos()
 			"--v2-olcek-tarama":
 				# B6: tik maliyeti ulke sayisiyla nasil buyuyor. Tani kapisi.
 				cikis = BasarimTesti.tarama()

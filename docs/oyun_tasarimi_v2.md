@@ -2182,6 +2182,12 @@ Sebep yapısal: ilan olasılığı `istek · sv_carpan · 0.10 · savas_siklik`.
 ülke arasındaki farkı eziyor. Yani çarpan bir sıklık kolu değil, aynı zamanda
 bir **seçicilik** kolu — ve büyüdükçe seçmez oluyor.
 
+> **YUKARIDAKİ AÇIKLAMA ÖLÇÜLDÜ VE YANLIŞ ÇIKTI — bkz. §6n.** Doyum yok:
+> `_tehlike` bu olasılık bölgesinde fiilen doğrusal ve iki çarpan kesitin
+> CV'sini birebir aynı bırakıyor. Ölçülen sapmanın sebebi başka; işaretin
+> neden döndüğü ise hâlâ açık. Bandın ve `savas_siklik = 5.0` kararının
+> kendisi ayakta — çürüyen tek şey **gerekçe**.
+
 > **Karar deponun kendi hiyerarşisinden çıkıyor**: "bantlar ayarlanabilir,
 > yön ayarlanamaz" (§9.14). Sıklık bir bant, "kriz dışa iter" bir **yön**
 > iddiasıdır. `savas_siklik = 5.0` korundu ve gerçekleşen sıklık (0.23,
@@ -2530,3 +2536,94 @@ diyordu**, ve rapor hiç açılmıyordu. Ufuk artık tik sayar.
 Bu, kayan nokta ailesinin üçüncü üyesi (örnekleme zamanı, takvim etiketi, ve
 şimdi ufuk) ve en sinsisi: diğer ikisi yanlış bir sayı gösteriyordu, bu ise
 bir mekanizmayı hiç çalıştırmıyordu.
+
+---
+
+## 6n. Kesit tanısı — iki açık kalem aynı soruyu soruyormuş
+
+Yol haritasında iki kalem açık duruyordu ve ayrı yazılmışlardı: **ekonomik
+tohumlama** (B5 → B6 → hâlâ yok) ve **savaş sıklığı** (B4'ün kalan işi).
+İkisi tek kampanyada ölçüldü (`--v2-kesit`, 54 ülke, tohum 42, 1836–2100) ve
+ölçüm ikisinin **aynı** kusurun iki yüzü olduğunu gösterdi: bu dünyada
+ülkelerin kendilerine ait bir niteliği yok.
+
+Aynı koşudan ölçmek bilinçli. İki ayrı koşu iki ayrı kaotik yörünge demektir
+ve §6c'nin dört kez öğrenilmiş sorusu ("ölçtüğüm fark mekanizmadan mı, iki
+kolun zaten ayrıştığı yerden mi?") yine sorulamaz olurdu.
+
+### A — Büyüklük: yapı doğru, atama rastgele
+
+`Harita._ulke()` her ülkeye `L_etkin = 110.0` verir; konum merdiveni yalnızca
+`q0` ve `egitim` dağıtır. Sonuç:
+
+| yıl | L_max/L_min | L_cv | Y_max/Y_min | Y_cv |
+|---|---|---|---|---|
+| 1836 | 1.00 | 0.000 | 2.46 | 0.307 |
+| 1960 | 1.08 | 0.017 | 25.4 | 1.104 |
+| 2100 | **1.01** | **0.002** | 587 | 2.106 |
+
+`L_etkin` kampanya boyunca düz. `Y_yil` ayrışıyor ve **konum merdiveni
+istatistiksel olarak çalışıyor** — merkez/çevre ortalama oranı 2.46 → 12.82.
+Ama ayrışma ülke **kimliğine** oturmuyor:
+
+```
+2100'de en büyük 5:  BGR 175078 | GBR 143641 | BEL 138978 | AUS 120262 | ARE 112110
+2100'de en küçük 5:  IDN 326 | GRC 326 | BOL 313 | DOM 305 | ECU 298
+```
+
+Bulgaristan dünyanın en büyük ekonomisi, Endonezya en küçüklerinden biri.
+§0'ın "dünya sistemindeki konumun" cümlesi merkez/yarı/çevre düzeyinde
+duruyor, ülke düzeyinde durmuyor.
+
+> **Toplam yayılım tek başına bir şey söylemez.** Y_cv 2.106 büyük bir
+> sayıdır ve "dünya ayrışmış" diye okunabilirdi; uçlara bakılmadan o okuma
+> yanlışlanamazdı. Tanı bu yüzden sıralamanın iki ucunu **basar**.
+
+### B — Savaş seçiciliği: doyum yok, kriz kanalı ölü
+
+§6h çarpanın §3.1'in işaretini çevirmesini doyuma bağlamıştı. Ölçüldü:
+
+| yıl | siklik=5 CV | siklik=38 CV |
+|---|---|---|
+| 1960 | 0.598 | 0.598 |
+| 2000 | 0.086 | 0.086 |
+| 2100 | 0.042 | 0.042 |
+
+**Kesitin CV'si birebir aynı.** Yıllık ilan olasılıkları 0.002–0.08
+aralığında; `1 − (1−h)^dt` orada fiilen doğrusaldır, yani çarpan kesiti
+olduğu gibi ölçekler. Doyum bir açıklama olarak **çürüdü**.
+
+Ölçülen asıl olgu şu: `sikisma = max(0, (r_ref − r)/r_ref)` eşiği
+`sv_r_ref = 0.048` ile **mutlak** ve v4.4'ten devralınmış. v2'nin kâr oranı
+onun iki-üç katında geziyor:
+
+| dönem | r_ort | r < r_ref | ilan |
+|---|---|---|---|
+| 1860–1879 | 0.0866 | **%0.0** | 6 |
+| 1900–1919 | 0.1278 | **%0.0** | 1 |
+| 1940–1959 | 0.0892 | %3.4 | 11 |
+| 1960–1979 | 0.0868 | %7.9 | 18 |
+| 2000–2019 | 0.0589 | %40.8 | 7 |
+| 2060–2079 | 0.0293 | %98.5 | 7 |
+
+**95 ilanın 66'sı (%69.5) kriz kanalının ölü olduğu dönemlerde düşüyor.** Ve
+o dönemlerde ilan olasılığı kesitte **tek bir sayıdır** — 1880 ve 1920'de
+ölçülen CV tam `0.000`: `saldirganlik` bütün AI ülkelerinde sabit 0.35
+(`kriz_durumu.gd:310`, yalnızca oyuncu yazabiliyor), `era` ortak, `sikisma`
+sıfır. Yani çarpan sinyali değil **gürültüyü** büyütüyor, ve "kriz dışa iter"
+kampanyanın çoğunda çalışmayan bir cümle.
+
+**İşaretin neden döndüğü hâlâ açık.** Bu ölçüm doyumu eledi ama yerine bir
+mekanizma koymadı. Akla yakın bir aday var — savaştaki ülke ilan edemiyor
+(`if c.savasta(): continue`) ve savaş `r`'yi düşürüyor, dolayısıyla sıklık
+artınca düşük-`r` ülkeler ilan havuzundan orantısız eleniyor olabilir — ama
+**ölçülmedi**, o yüzden burada bir hipotez olarak duruyor, bir sonuç olarak
+değil.
+
+### Sıra: A önce, çünkü B'nin ölçülebilmesini A açıyor
+
+`L_etkin = 110.0` ile `saldirganlik = 0.35` aynı satırın iki hâli. B'nin
+doğru düzeltmesi — eşiği dünyanın kendi ortalamasını izleyen **göreli** bir
+referansa çevirmek, ve saldırganlığı ülkeye bağlamak — ancak ülkeler
+ayırt edilebilir olduğunda ölçülebilir. `guc() = K · q` bile şu an yalnızca
+kaotik ayrışmadan besleniyor; hedef seçimi de öyle.

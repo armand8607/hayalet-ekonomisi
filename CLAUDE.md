@@ -116,7 +116,9 @@ ana kapıdan yavaş), `--v2-harita` (harita, 45 denetim — **tam kampanya koşa
 `--v2-harita-goster[=yıl[:tohum[:mod]]]` (haritayı **çizer**, `--ss=` ile
 birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
 7 denetim — **~5 dk**), `--v2-olcek-tarama` ve
-`--v2-savas-siklik=DEĞER[:ülke]` (B6 tanıları),
+`--v2-savas-siklik=DEĞER[:ülke]` (B6 tanıları), `--v2-kesit` (kesit tanısı:
+ülkeler birbirinden ne kadar ayırt edilebilir — büyüklük ve savaş seçiciliği,
+tek kampanya, ~3 dk),
 `--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
 (teşhis izleri).
 
@@ -561,6 +563,24 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   tarafından yazılmıyordu — lumpen kanalı, karseral sönüm ve meşruiyet aşınması
   198 yıl boyunca 0.0'da **ölü** durdu. Bir alanın var olması sürüldüğü anlamına
   gelmez; `grep` ile "kim yazıyor" diye bakmak ucuz bir denetimdir.
+- **Kayda geçmiş bir AÇIKLAMA ölçüm değildir — ve bu depoda bir kez yanlış
+  çıktı.** §6h `savas_siklik` çarpanının §3.1'in işaretini çevirmesini
+  **doyuma** bağlamıştı: "çarpanı 7.6 kat büyütmek olasılığı doyuruyor ve
+  krizdeki ülke ile sağlam ülke arasındaki farkı eziyor." Ölçüldü
+  (`--v2-kesit`): doyum **yok**. Yıllık ilan olasılıkları 0.002–0.08
+  aralığında, yani `_tehlike` orada fiilen doğrusal; 5.0 ile 38.0 çarpanları
+  kesitin CV'sini **birebir aynı** bırakıyor (0.598/0.598, 0.086/0.086,
+  0.042/0.042). Ölçülen sapma buna karşılık şu: `sikisma`nın eşiği
+  (`sv_r_ref = 0.048`) v4.4'ten devralınmış **mutlak** bir sayı ve v2'nin kâr
+  oranı 1860–1990 arasında onun iki-üç katında geziyor — kriz terimi
+  kampanyanın çoğunda **tabanda**, 95 ilanın 66'sı (%69.5) o dönemlerde
+  düşüyor. O dönemlerde ilan olasılığı kesitte **tek bir sayıdır** (CV tam
+  0.000): `saldirganlik` bütün AI ülkelerinde sabit 0.35, `era` ortak,
+  `sikisma` sıfır. Yani çarpan sinyali değil **gürültüyü** büyütüyor.
+  İşaretin neden döndüğü hâlâ **açık**: savaştaki ülke ilan edemediği için
+  (`if c.savasta(): continue`) ve savaş `r`'yi düşürdüğü için, sıklık artınca
+  düşük-`r` ülkelerin ilan havuzundan elenmesi akla yakın bir aday — ama
+  ölçülmedi, yazılmaz.
 - **`exp`/`log`/`pow` şu an bit-birebir uyuşuyor** (CPython 3.12 x86-64 Windows
   ↔ Godot 4.7 aynı makinede, 36 noktalık ızgarada). Bu **garanti değildir**:
   ızgara küçük ve wasm/ARM hedeflerinde ayrışabilir. Katman 3'ün toleransları
@@ -625,6 +645,7 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `Kayit` | `oyun/` — oturumun serileştirilmesi; RNG durumu dahil (B7d) |
 | `RaporPaneli` | `ui/` — kampanya sonu tarihsel sonuç raporu; skor değil kayıt |
 | `OyunTesti` | `harness/` — B7: kabuk motoru değiştirmiyor mu, kollar canlı mı |
+| `KesitTesti` | `harness/` — **tanı**: ülkeler arası ayrışma (büyüklük, savaş seçiciliği) |
 
 **Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
 `cekirdek.nufus`, `cekirdek.mal` ve `cekirdek.karanlik` `null` ise bütün kapalı
