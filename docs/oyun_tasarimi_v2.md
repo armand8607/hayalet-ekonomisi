@@ -1,0 +1,2629 @@
+# Hayalet Ekonomisi v2 — Victoria biçiminde büyük strateji
+
+**Durum: TASLAK — karar kaydı, kod değil.**
+
+Hedef: **Victoria 3'e benzeyen ama ekonomi motoru bambaşka olan** bir büyük
+strateji oyunu. Victoria 3'ün kendisine dokunulmuyor, kodu değiştirilmiyor;
+biçimi örnek alınıyor. Altına konan şey arz/talep dengesi değil,
+**Marksist kriz teorisi**.
+
+| belge | neyi anlatır |
+|---|---|
+| [hayalet_ekonomisi_v44_frozen.md](hayalet_ekonomisi_v44_frozen.md) | v4.4 motoru — **artık otorite değil**, denklem kaynağı |
+| **bu belge** | v2 oyunu — mimari, kuplaj, ekranlar, aşamalar |
+
+---
+
+## 0. Çekirdek döngü: krizler yazılmaz, dayatılır
+
+Bu belgenin geri kalanı bu tek cümlenin sonuçlarıdır:
+
+> **Oyuncu, dünya ve ülke ekonomisinin altında yatan kriz teorisinin dayattığı
+> krizlere göre yol alır.**
+
+Krizler **elle yazılmış olay zincirleri değildir.** Hiçbir yerde "1873'te bir
+bunalım tetikle" satırı olmayacak. Bunalım, aşırı üretim, balon patlaması,
+döviz krizi, savaş, devrim — hepsi **denklemlerin sonucu** olarak ortaya çıkar.
+
+- **Olay sistemi yoktur, kriz tescili vardır.** Günceye düşen her satır bir
+  ölçümün eşiği geçmesidir (`R` bloğu), bir olay tablosundan çekiliş değil.
+- **Zorluk ayarı yoktur.** Zorluk, seçtiğin ülkenin dünya sistemindeki
+  konumudur — çevre olmak zaten zordur, çünkü değer transferi (`C`, `L`) onu
+  sürekli boşaltır.
+- **Rastgelelik ikincildir.** Tohum krizlerin *zamanlamasını* değiştirir,
+  *kaçınılmazlığını* değil.
+- **Oyuncunun işi krizi önlemek değil, karşılamaktır.** Kolları krizin
+  *biçimini* ve *bedelinin kime yükleneceğini* değiştirir. **Kimin ödeyeceği
+  oyunun asıl kararıdır.**
+
+**Tek oyunculu.** Victoria 3'ün çok oyunculu kipi örnek alınmaz. Sebep
+mekaniktir: oyunun konusu bir ülkenin dünya sistemindeki konumuyla ve kendi
+birikim çelişkisiyle hesaplaşmasıdır; ikinci bir insan oyuncu onu bir
+müzakereye çevirir.
+
+---
+
+## 1. v4.4 ile ilişki: yalnızca denklemler
+
+v4.4-Frozen bundan sonra **bir kütüphanedir, bir çerçeve değil.**
+
+### 1.1 Taşınan — kriz çekirdeği
+
+| blok | mekanizma |
+|---|---|
+| **c/v** | Organik bileşim, `q`'nun sürekli fonksiyonu — **tavanı yok**, LTRPF'nin yakıtı |
+| **G** | Arz kapasitesi + **otomasyon**; canlı emeğin fiziksel hasıladaki payı |
+| **H** | Efektif talep & borçlanma sınırı — **aşırı üretim / gerçekleşme krizi** |
+| **J** | Spekülatif varlık balonu — finansallaşma + **Minsky** |
+| **K** | Fisher & Clarke borç/balon patlaması |
+| **P** | Phillips eğrisi & enflasyon |
+| **Q** | **Goodwin** sınıfsal nominal ücret pazarlığı |
+| **R** | İki kademeli kriz tescili (resesyon / bunalım) |
+| **A** | Merkez bankası: Taylor kuralı + balon/kriz duyarlılığı |
+| **B** | Dış ticaret & **Thirlwall** ödemeler dengesi kısıtı |
+| **C** | Cari açık sızıntısı & uluslararası **değer transferi** |
+| **D** | Ani duruş & dış borçlanma tıkacı |
+| **E** | Borç yapılandırma & moratoryum |
+| **F** | Rezerv erimesi & döviz krizi |
+| **L** | Bölgeler arası değer transferi — **eşitsiz mübadele** |
+| **I / M** | Kamu maliyesi, vergi, kemer sıkma; kamu sermayesi & birikim |
+| **N** | Haftalık çalışma süresi |
+| **S** | Sınıf örgütlenme stoku & kentleşme |
+| **T** | Lojistik protesto riski & **sosyalist devrim** |
+| — | **Tonak değer gaspı**, evrensel temel gelir, karanlık devlet, Marksist politik özne |
+
+Saf yardımcılar: `organik_bilesim(q)`, `sg(x)`, `kappa_v(cv,q)`,
+`ucuzlama_orani(q)`.
+
+### 1.2 Taşınmayan — hepsi serbest
+
+| v4.4'te | v2'de |
+|---|---|
+| 20 ülke | **serbest** — hedef tam dünya |
+| 1259 tur, 1 tur = 0.27 yıl | **serbest** — haftalık tik |
+| 1760–2100 | **serbest** — 1836–1936 |
+| 355 sabitlik kalibrasyon | **geçersiz** |
+| 10 kabul bandı | **geçersiz** — eski kalibrasyonun kaydıydı |
+| Sıfır asset kuralı | **gevşetiliyor** (§5.1) |
+| CPython parite zorunluluğu | **düşüyor** — kâhin yok |
+
+> **`py_sum` / `py_round` neden düşüyor:** ikisi de yalnızca CPython kâhiniyle
+> bit-birebir tutmak için vardı. Kaldırılırsa **CLAUDE.md'deki iki tuzak notu
+> da güncellenmeli.**
+
+---
+
+## 2. Mimari: iki katman, tanımlı kuplaj
+
+```
+  MIKRO KATMAN  (Victoria bicimi)
+  eyalet -> bina -> pop -> mal piyasasi
+        |                        ^
+        | toplamlar              | geri besleme
+        v                        |
+  DEGER KATMANI  (kriz cekirdegi)
+  V, c/v, r, kriz durumlari
+```
+
+### 2.1 Mikro katman ne üretir
+
+| toplam | mikro kaynağı |
+|---|---|
+| `K` | binaların birikmiş inşaat maliyeti |
+| `L`, `e` | pop'ların istihdam durumu |
+| `pay` | ücret ödemeleri ÷ toplam hasıla |
+| `Y` | binaların mal çıktısı toplamı |
+| `u` | doluluk / azami kapasite |
+| `q` | aktif üretim yöntemlerinin ağırlıklı seviyesi |
+| `oto` | makine-ağırlıklı üretim yöntemlerinin payı |
+
+### 2.2 Değer katmanı ne hesaplar
+
+`c/v = organik_bilesim(q)` (tavansız) · `V` yeni değer (yalnızca canlı
+emekten) · `r` kâr oranı · kriz durumları.
+
+### 2.3 Kuplaj
+
+| kriz mekanizması | okur | geri besler |
+|---|---|---|
+| **LTRPF** | üretim yöntemi seviyesi → `q` | birikim hızı: `r` düşünce inşaat yavaşlar |
+| Otomasyon → değer | makine-ağırlıklı üretim yöntemleri | `V` küçülür → satınalma gücü düşer |
+| Aşırı üretim (H) | mal arzı vs pop satınalma gücü | bina kapanır, işten çıkarma |
+| Minsky (J, K) | yatırım havuzu, finans binaları | balon patlar → kredi kurur |
+| Goodwin (Q) | istihdam oranı, **sendika gücü** | ücret pazarlığı → `pay` ↔ `r` salınımı |
+| Thirlwall (B) | ticaret rotaları, pazar erişimi | ithalat tıkanır → büyüme tavanı |
+| Değer transferi (C, L) | ticaret ortakları, üretkenlik farkı | **eşitsiz mübadele** |
+| Döviz krizi (F) | rezerv, cari açık | devalüasyon → ithalat çöker |
+| Örgütlenme (S) | kentleşme, fabrika pop yoğunluğu | sendika gücü, kanun baskısı |
+| Devrim (T) | öfke, örgütlenme, protesto riski | **rejim değişir**, kollar değişir |
+| Kurumsal geçiş | yürürlükteki kanunlar | Polanyi: liberal ↔ düzenli ↔ neoliberal |
+
+### 2.4 Tersine çevrilen mantık
+
+Victoria 3'te kârlılık bina başına piyasa sonucudur. v2'de o katman durur, ama:
+
+> **Toplam kâr oranı `r` piyasadan okunmaz; değer katmanında hesaplanır ve
+> bütün birikim sürecini kısıtlar.**
+
+Tek tek binalar kârlı görünürken toplam kâr oranı düşer. **Üretim yöntemi
+yükseltmesi en güzel bağlantıdır:** Victoria'nın kendi teknoloji döngüsü `q`'yu
+yükseltir, o `c/v`'yi yükseltir, o `r`'yi düşürür. Oyuncu her "iyileştirme"yle
+kendi kâr oranını aşındırır.
+
+---
+
+## 3. Krizden çıkış: savaş, ittifak, diplomasi
+
+**Evet — ve bunlar eklenti değil, teorinin gereğidir.** Kâr oranı sıkıştıkça
+sermaye ulusal sınırların dışına taşar; pazar arayışı, sermaye ihracı ve çevre
+üzerindeki rekabet aynı sıkışmanın yüzleridir. Emperyalizm ve savaş bu oyunda
+ayrı bir strateji katmanı değil, **iktisadi krizin dış politikadaki
+görünümüdür.**
+
+### 3.1 Hangi kriz hangi dış çıkışa iter
+
+| kriz | dış çıkış | motor karşılığı |
+|---|---|---|
+| Aşırı üretim | Yeni pazar açmak — gerekirse zorla | pazar erişimi, `B` bloğu |
+| Düşen kâr oranı | Sermaye ihracı: `c/v`'nin düşük, `r`'nin yüksek olduğu çevreye | `C`, `L` değer transferi |
+| Değer transferi sürsün | Eşitsiz mübadeleyi dayatmak | tarife, abluka, himaye |
+| Borç ödenemiyor | Moratoryum — ama alacaklı devlet müdahale edebilir | `E` bloğu + `ilan()` |
+| Rakip aynı çevreyi istiyor | **Emperyalistler arası savaş** | `savas_karari()`, `guc()` |
+| İçeride öfke patlama noktasında | **Dış savaşla basınç boşaltma** | §4 ile bağlantılı |
+| Bir yerde devrim oldu | Kuşatma, abluka, müdahale | `abluka`, `ambargo`, `dunya_devrimi_isle()` |
+
+### 3.2 Savaş bir kriz çıkışıdır — en şiddetlisi
+
+Motorda `savas_yikim_isle()` sermayeyi yok eder. Marksist okumada bunun
+sonucu tektir ve acımasızdır:
+
+> **Savaş sermayeyi imha eder, sermayenin imhası kâr oranını yükseltir.**
+
+Yani savaş, "bırak yansın" çıkışının ulusal ölçekli ve silahlı biçimidir.
+Oyun bunu bir zafer olarak değil, **bir muhasebe olarak** gösterir: kâr oranı
+grafiği savaştan sonra yukarı döner, nüfus grafiği aşağı.
+
+### 3.3 İttifak ve bloklar
+
+Motorda hazır: `muttefik`, `ideolojik_mesafe`, `saldirganlik`, `hegemon`,
+`abluka`, `ambargo`, `pakt_durusu`.
+
+- **Merkez içi rekabet** — aynı çevre için yarışan merkez ülkeler
+- **Sosyalist pakt** — `pakt_durusu` ile ittifak mı rekabet mi
+- **Kuşatma** — devrim olan ülkeye abluka ve ambargo
+- **Himaye** — çevre ülkeyi bir merkeze bağlamak: koruma karşılığı değer transferi
+
+### 3.4 Kapsam dürüstlüğü
+
+**Taktik savaş yoktur.** Cephe yönetimi, birlik hareketi, muharebe çözümü
+olmayacak. Savaş bir **iktisadi olaydır**: sonucu `guc()` (= `K·q`), yıpranma,
+abluka ve iç cephe (öfke, örgütlenme) belirler. Paradox'un askeri derinliği
+hedeflenmiyor; hedeflenen, savaşın ekonomiden **çıkması** ve ekonomiye
+**dönmesi**.
+
+---
+
+## 4. Karanlık devlet: rıza ve zor
+
+v4.4'te bu mekanizma dar bir haldeydi (uyuşturucuya tolerans, cezaevi oranı,
+illegalite primi). v2'de **tam haliyle** açılıyor.
+
+### 4.1 Ne yapar — asıl mekanik kavrayış
+
+Motorda **öfke (`Omega`) ile örgütlenme (`org`) ayrı değişkenlerdir** ve
+devrim ikisini birden gerektirir (`T` bloğu). Karanlık devletin işlevi buradan
+çıkar:
+
+> **Amaç öfkeyi azaltmak değil; öfkenin SINIFSAL ÖRGÜTLENMEYE dönüşmesini
+> kırmaktır.** Öfke yerinde kalır, hedefi değiştirilir — sınıftan komşuya.
+
+Bunun için yeni bir durum değişkeni gelir: **`bolunme`** — emekçi sınıfın
+kendi içine bölünmüşlüğü. Etkileri:
+
+| `bolunme` şunu yapar | hangi bloğa |
+|---|---|
+| `Omega` → `org` dönüşümünü kırar | `S` — örgütlenme stoku |
+| Sendika pazarlık gücünü düşürür → `pay` kazanımı zayıflar | `Q` — Goodwin |
+| Protestoyu sınıfsal olmaktan çıkarır, topluluklar arası şiddete çevirir | `T` — protesto riski |
+
+Sermaye için sonuç nettir: **ücret payı baskılanır, kâr oranı korunur, devrim
+riski düşer.** Bedeli başka yerden çıkar (§4.3).
+
+### 4.2 İki aygıt
+
+Gramsci'nin ayrımı doğrudan iki kola dönüşür.
+
+**RIZA — ucuz, yavaş, sinsi.** Sınıf bilincinin yerine başka bir bilinç koyar:
+
+- dini cemaat/tarikat ağlarının önünü açmak
+- mistisizm, astroloji, evrim karşıtlığı, düz dünyacılık gibi akımları desteklemek
+- milliyetçiliği körüklemek; ülke içindeki küçük etnik gruplara karşı düşmanlık
+- mülteci düşmanlığı, ırkçılık
+- LGBT düşmanlığı, kadınlara karşı baskıcı politikalar
+- uyuşturucuya göz yummak
+
+**ZOR — hızlı, pahalı, iz bırakır.** Rıza yetmediğinde devreye girer:
+
+- sendikal harekete baskı, grev kırma
+- muhalif siyasi karakterlerin tutuklanması
+- paramiliter faşist grupların önünü açmak; siyasi cinayet
+
+### 4.3 Bedeller — bunlar bedava kollar değildir
+
+Mekanizmanın tasarım değeri burada. Her aygıt **kendi geleceğini yiyerek**
+çalışır.
+
+**Rıza aygıtlarının bedeli — üretkenlik.**
+
+> Bilim karşıtlığı, eğitim tabanını çürütür: `egitim_pay` düşer, `q` büyümesi
+> (`qg`) yavaşlar.
+
+Ve `q` büyümesi, LTRPF'ye karşı elindeki **tek karşı eğilimdir.** Yani:
+
+> **Karanlık devlet toplumsal barışı, kendi gelecekteki birikimini yiyerek
+> satın alır.** Bugün devrimi öteler, yarın kâr oranını daha da düşürür.
+
+Uyuşturucuya göz yumma ayrıca motorun **Tonak değer gaspı** kanalına bağlanır:
+illegal sektör değer çeker, ama gasbedilen değer üretken sermayeye değil
+**spekülatif stoka** akar — yani doğrudan Minsky balonunu besler.
+
+**Zor aygıtlarının bedeli — emek gücü ve meşruiyet.**
+
+- Tutuklama → `cezaevi_orani` ↑ → `l_etkin()` ↓ → **daha az canlı emek → daha
+  az yeni değer** (`V`). Baskı, artı değerin kaynağını daraltır.
+- Siyasi cinayet → kısa vadede örgütlenme kırılır, ama `Omega` **yükselir**:
+  şehitler radikalleştirir.
+- Baskıdan sağ çıkan örgütlenme **daha radikal** döner: `org` yeniden büyüdüğünde
+  ılımlı kanal kapalıdır.
+- Uluslararası meşruiyet düşer: ittifak bulmak zorlaşır (§3.3).
+
+### 4.4 Karşı hareket — sendikalar ve sosyalist yapılar
+
+Karanlık devlet tek taraflı bir kol değil, **bir mücadelenin bir tarafı.**
+Karşısında `bolunme`yi aşağı iten kuvvetler vardır:
+
+| kuvvet | ne yapar |
+|---|---|
+| **Sendikalar** | `org` yüksekken `bolunme` birikimi yavaşlar; sendika ayrıca aktif olarak `bolunme`yi düşürür — sınıfı ortak çıkar etrafında yeniden birleştirir |
+| **Sosyalist parti** (Marksist politik özne) | Dağınık öfkeyi sınıfsal güce çevirir — tam da karanlık devletin kırmaya çalıştığı kanal. `parti_iktidari` açıkken bölünme en hızlı geriler |
+| **Kentleşme** (`S`) | Fabrika yoğunluğu örgütlenmeyi besler; bölünme kentte kırda olduğundan zor tutunur |
+| **Dayanışma kazanımları** | Ücret, sosyal harcama ve iş güvencesi kazanımları bölünme anlatısını zayıflatır |
+
+Sonuç bir **yarıştır**: karanlık devlet `bolunme`yi iter, sendika ve parti
+çeker. Kim kazanırsa krizin siyasi sonucunu o belirler — patlama mı, çürüme mi.
+
+### 4.5 Oyuncu hangi tarafta
+
+**Her ikisi de oynanabilir.** Kapitalist rejimde bu kollar senin elindedir;
+kullanmamak da bir karardır ve bedeli daha erken devrimdir. Sosyalist parti
+iktidara gelirse kollar tersine döner: bölünmeyi çözmek, örgütlenmeyi
+derinleştirmek senin işin olur.
+
+Yapay zekâ yönetimindeki ülkeler bu kolları kendi krizlerine göre kullanır —
+yani dünyada başka ülkelerin faşizme kayışını **dışarıdan izlersin**, ve o
+kayış senin ihracat pazarını, ittifaklarını ve savaş riskini etkiler.
+
+### 4.6 Temsil ilkesi
+
+Bunlar oyunda **ne iseler o olarak** görünür: mağdurları adlandırılmış,
+bedelleri sayılmış politikalar. "Etkinlik" kolu gibi sunulmaz.
+
+- Ekranda **kimin** hedef alındığı yazılır — hangi etnik grup, hangi topluluk.
+- Cezaevi oranı, siyasi cinayet sayısı ve eğitim tabanındaki çöküş **görünür
+  metriklerdir**, gizli çarpanlar değil.
+- Karşı hareket dekor değil, ölçülebilir bir kuvvettir (§4.4).
+
+Oyun bu politikaları bir yönetim tekniği olarak değil, **sınıf egemenliğinin
+bir aracı olarak** modeller — ve maliyetini kimin ödediğini sayar.
+
+---
+
+## 5. Uygulanan kararlar
+
+Victoria 3'e en yakın seçenekle kapatıldı.
+
+### 5.1 Harita: gerçek coğrafi, eyalet bazlı
+
+Sıfır asset kuralı **gevşetiliyor** ama tamamen değil: `.png` yok (her şey
+`_draw()`), **vektör geometri verisi var** (eyalet sınırları sıkıştırılmış
+poligon tablosu, üretilmiş veri dosyası).
+
+### 5.2 Zaman: haftalık tik
+
+> **UYARI — en olası sessiz hata.** v4.4'ün bütün oran parametreleri **tur
+> başına** tanımlıydı, 1 tur = 0.27 yıl. Hafta = 0.0192 yıl, yani **14 kat
+> kısa**. Yeniden ölçeklenmezse motor 14 kat hızlı koşar ve bu oynayarak fark
+> edilmez.
+
+### 5.3 Zaman aralığı: **1836–2100** (karar verildi)
+
+Victoria 3'ün 1836–1936'sı **uzatıldı**. Sebep: çağ tablosu otomasyonu
+2000'e koyuyor, dolayısıyla 1936'da biten bir kampanya bütün geç dönem
+mekanizmalarını (otomasyon, canlı emek payının çöküşü, tam otomasyon doruğu)
+oyun dışında bırakıyordu.
+
+~13 700 haftalık tik. Victoria'nın dönem hissi bir ölçüde dağılır; buna
+karşılık **bütün mekanizmalar doğal yerinde** kalır ve takvim kurgusallaşmaz.
+
+> **DÜZELTME — LTRPF otomasyonu beklemez.** Önceki taslakta kâr oranının
+> düşüşü otomasyona bağlanmıştı; bu yanlıştı. Düşüşü **organik bileşimin
+> tavansız yükselişi** sürükler ve **ilk günden itibaren kademe kademe**
+> işler. Ölçüldü: 1836–1936 arasında, otomasyon **sıfırken**,
+> `q` 1.32→17.25, `c/v` 1.59→8.34, `r` **0.150→0.065 (−%57)**.
+> Teknolojik ilerleme geçici iyileşme sağlar ama eğilimi tersine çevirmez.
+> **Tam otomasyon bu eğilimin doruk noktasıdır, koşulu değil.**
+
+### 5.4 Ülke değiştirme: yok
+
+Devrim ülkeyi değiştirmez; **elindeki kolları** değiştirir.
+
+### 5.5 Ana ekran: harita
+
+Paneller üstüne açılır. 12 çekirdek metrik grafiği panele taşınır — silinmez.
+
+### 5.6 Ülke sayısı: tam dünya
+
+~100+ ülke, dinamik kurulma/ilhak. Kriz denklemleri ülke sayısından
+bağımsızdır; `C` ve `L` genelleşir.
+
+### 5.7 Tek oyunculu
+
+Ağ katmanı, lockstep, oturum yönetimi yok.
+
+### 5.8 Eyaletler: **yok**
+
+Eyalet katmanı tamamen kaldırıldı. Sebebi tasarımsal değil olgusal: eyalet
+sistemi her ülkede yoktur (üniter devletlerde karşılığı yok), oyunun hiçbir
+mekanizması eyalet düzeyinde çalışmıyor, ve harita ülke düzeyinde de pekâlâ
+okunuyor.
+
+Ekonominin tek mekânsal birimi **ülkedir**. Harita ülkeleri gösterir;
+tıklanan şey ülkedir.
+
+### 5.8b Ülkeler: simüle edilen dünya ≠ oynanabilir küme
+
+İki ayrı liste:
+
+**Simüle edilen dünya** — Victoria 3 ölçeğinde bütün egemen devletler.
+Hepsi kendi kriz çekirdeğini koşturur, ticaret yapar, savaşır, rejim
+değiştirir. Oyuncu onları dışarıdan izler.
+
+**Oynanabilir küme** — **G20 + 1836'daki tarihsel öncülleri**:
+
+| bugünkü | 1836'daki öncülü |
+|---|---|
+| Türkiye | Osmanlı İmparatorluğu |
+| Almanya | Prusya / Alman Konfederasyonu |
+| Rusya | Rusya İmparatorluğu |
+| Çin | Çing Hanedanı |
+| Hindistan | Babür / Britanya Hindistanı |
+| İtalya | Sardinya-Piemonte / İki Sicilya |
+| Japonya | Tokugawa şogunluğu |
+| İngiltere | Britanya İmparatorluğu |
+| ABD, Fransa, Brezilya, Meksika, Arjantin | kendileri |
+| Kanada, Avustralya, G.Afrika | Britanya sömürgesi (geç açılır) |
+| Endonezya | Hollanda Doğu Hint Adaları |
+| S.Arabistan | Necd / Osmanlı vilayeti |
+| G.Kore | Choson |
+
+Gerekçe: dünyanın zenginliği korunur ama oyuncu **anlamlı bir özneye**
+bağlanır. Dünya sistemindeki konum oyunun zorluk ayarı olduğu için (§0),
+oynanabilir kümenin merkez–yarı–çevre yelpazesini kapsaması yeterlidir;
+G20 tam olarak bunu yapar.
+
+### 5.9 Pop'lar: sınıf kohortları
+
+Ülke başına **6–8 kohort**: sermayedar, küçük burjuva, ücretli işçi, örgütlü
+işçi, işsiz, hapisteki nüfus, kır emeği. Victoria'nın tip × kültür × din ×
+konum çarpımı **yok** — 100 ülkede yüzlerce nesne yerine ~800.
+
+**Azınlık gruplarının çözümü.** Karanlık devlet (§4) etnik, dinsel ve
+cinsiyet bölünmeleri üzerinde çalışır; kohort modeli bunları ayrı pop olarak
+taşımaz. Çözüm:
+
+- **azınlık grupları VERİ olarak** — ülke başına ad + nüfus payı listesi
+- **`bolunme` SKALER olarak** — sınıfın kendi içine bölünmüşlük derecesi
+
+Böylece §4.6'nın temsil ilkesi korunur (ekranda **kimin** hedef alındığı
+yazılır, bedeli sayılır) ama pop sayısı patlamaz.
+
+### 5.10 Mal piyasası: 4–6 kategori
+
+**Tüketim malı, sermaye malı, hammadde, lüks** — Victoria'nın ~50 malı değil.
+
+Mal katmanının bu oyundaki işi tek: **satılamayan mal yığınını görünür
+kılmak.** Gerçekleşme krizi bir sayı olarak değil, depoda biriken bir kütle
+olarak okunmalı. Bunun için elli mal gerekmez; dört kategori yeter ve piyasa
+temizleme makinesi yönetilebilir kalır.
+
+### 5.11 Binalar ve üretim yöntemleri: **pazarlık dışı**
+
+Oyunun merkezî tuzağı burada yaşar (§2.4): üretim yöntemi yükseltmesi `q`'yu
+yükseltir → `c/v` yükselir → `r` düşer. Oyuncunun asıl kolu budur ve
+çıkarılamaz.
+
+Bina **türü** azdır: sektör başına bir tane, ~6–8 tür. Zenginlik tür
+sayısında değil, **üretim yöntemi merdiveninde**.
+
+---
+
+## 6. Aşamalar — **B0'dan sonra yeniden sıralandı**
+
+B0'ın ölçümü planı değiştirdi. Eski sıra "mikro katman → kuplaj → dünya"
+diyordu; ama §8.6'da ölçüldü ki kapalı bir ekonomi istikrarlı görünüyordu.
+Eski sırayla ilerlemek, aylarca pop ve bina inşa edip en sonda "krizler hâlâ
+yok" bulmak demekti.
+
+> **GERİ ÇEKİLDİ — "kapalı ekonomi istikrarlıdır, kriz dünya sisteminin
+> ürünüdür."** O ölçüm, iki mekanizması eksik bir çekirdek üzerinde alınmıştı:
+> `deger_carpani` yazılıyor ama hiç okunmuyordu (kriz sermayeyi
+> değersizleştirmiyor, yani kâr oranını onarmıyordu) ve `q_doyum` hiç
+> taşınmamıştı (c/v çağ-6 çapası olan 15'i aşıp 112'ye kaçıyor, yıllık K/Y 21'e
+> çıkıyor, yenileme talebi tek başına hasılanın %160'ını istiyordu — talep arzı
+> kalıcı olarak aştığı için hiçbir departmanda mal yığılamıyordu).
+>
+> İkisi bağlanıp satın alma gücü değer bileşimine oturtulunca kapalı ekonomi
+> **100 kapitalist yılda 19.2 ayrık kriz olayı** üretiyor; tarihsel kayıt aynı
+> kümelemeyle 12.1. Yani kapalı ekonomi istikrarlı değil, **fazla** kriz-yatkın.
+>
+> Aşamaların sırası yine de doğruydu: riski öne almak kararı, gerekçesi
+> yanlışlanmış olsa bile isabetliydi.
+
+> **Yeni kural: kriz makinesinin canlı olduğu, üstüne bir şey inşa edilmeden
+> ÖNCE kanıtlanır.** Risk öne alınır.
+
+> **B5'in satırı düzeltildi.** Tablo "eyalet geometrisi" diyordu; §5.8 eyalet
+> katmanını kaldırmıştı ve tablo güncellenmemişti. Ekonominin tek mekânsal
+> birimi ülkedir, harita da ülke çizer.
+
+| aşama | iş | biter dediğimiz an |
+|---|---|---|
+| ~~B0~~ | ~~Kriz çekirdeği~~ | **BİTTİ** — 18/18 ölçek testi, LTRPF −%57 |
+| ~~B1a~~ | ~~KAPALI EKONOMİ KRİZ ÜRETSİN~~ | **BİTTİ** — ölçüt "en az bir aşırı üretim krizi"ydi; 14 tescil edildi. `--v2-olcek` 23/23, `--v2-tarih` geçiyor |
+| **B1b** | **DÜNYA.** Çok ülke, değer transferi (C, L) ✅, dış ticaret (B) ✅, ani duruş / moratoryum / döviz krizi (D, E, F) ✅ | **KURULDU** — beş kanal da yerinde, `--v2-dunya` 17/17 |
+| **B2a** | **ÜRETİM KATMANI.** Sektör, bina, üretim yöntemi merdiveni (§5.11) | **KURULDU** — `--v2-uretim` 17/17, `--v2-tarih-mikro` geçiyor |
+| **B2b** | **SINIF KOHORTLARI.** Pop'lar → `L`, `e`, `pay` (§5.9) | **KURULDU** — `--v2-nufus` 13/13, `--v2-tarih-mikro` iki katmanla geçiyor |
+| **B2c** | **MAL PİYASASI.** Dört kategori, satılamayan yığın (§5.10) | **KURULDU** — `--v2-mal` 7/7 |
+| **B3** | **Bölünme ve karşı hareket.** `bolunme`, rıza/zor kolları, sendika ve parti (§4) | **KURULDU** — `--v2-bolunme` 33/33; §4.3 ve §4.1'in birer iddiası ölçülüp düzeltildi (§6e) |
+| **B4** | **Savaş ve diplomasi.** İttifak, abluka, ambargo — kriz çıkışı olarak (§3) | **KURULDU** — `--v2-savas` 23/23; ittifak/abluka/ambargo da yerinde (§6f) |
+| **B5** | **Harita.** ~~Eyalet~~ ülke geometrisi, harita modları, ülke seçimi | **KURULDU** — `--v2-harita` 44/44; 156 ülke çizili / 54 simüle / 19 oynanabilir, dokuz mod, dört bağ türü (§6g) |
+| **B6** | **Ölçek.** Tam dünya, başarım ölçümü | **KURULDU** — `--v2-b6` 7/7; 113 ülke, 45.6 ms/tik, korunum ölçekten bağımsız (§6h) |
+| **B7a** | **Oyun kabuğu.** Oturum, geçmiş, günce, oyuncu kolları, Victoria düzeni | **KURULDU** — `--v2-oyun` 35/35; ekran `--ss=` ile çizdirilip bakıldı (§6i) |
+| **B7b** | **Politika aktörü.** AI kendi krizine göre taktik yazsın (§4.5) | **KURULDU** — `--v2-oyun` 43/43; `bolunme` yayılımı 0.000 → 0.374, devrim ertelenir ama önlenmez (§6j) |
+| **B7c** | **Sunum artıkları.** Blok gösterimi (dolgu/kabuk), ad değişimi takvimi (Osmanlı → Türkiye) | **KURULDU** — `--v2-oyun` 52/52, `--v2-harita` 45/45; blok kabuğu dokuz modda okunur, ad takvimi sunum olarak işaretli (§6k) |
+| **B7d** | **Kayıt/yükleme.** Oturumun serileştirilmesi | **KURULDU** — `--v2-oyun` 65/65; RNG durumu dahil birebir yuvarlak (§6l) |
+
+**B1a bitti ve kendi ölçütünü fazlasıyla aştı.** Kriz teorisi bu mimaride
+çalışıyor: kapalı ekonomi 100 kapitalist yılda 19.2 ayrık kriz olayı üretiyor.
+
+### B1b'nin ölçütü artık ayırt etmiyor
+
+Eski ölçüt "`--v2-tarih` geçer" idi. O test **B1b başlamadan geçiyor**,
+dolayısıyla B1b'nin bittiğini söyleyemez: dünya katmanı eklendiğinde de
+geçecek, eklenmediğinde de geçiyor. Bir kapı her iki durumda da yeşilse kapı
+değildir.
+
+B1b'nin asıl işi kriz ÜRETMEK değil, **krizden ÇIKIŞ yollarını** açmaktır
+(§3.1 tablosu). Kapalı çekirdek krizi üretebiliyor ama çözemiyor: ihracat
+pazarı, sermaye ihracı, eşitsiz mübadele, moratoryum ve savaş — hepsi eksik.
+Fazla kriz-yatkınlığı (19.2'ye karşı 12.1) tam da bunun beklenen imzasıdır.
+
+Bu yüzden B1b'nin ölçütü **çıkışların çalıştığını** göstermeli:
+
+1. Kriz yoğunluğu tarihsel banda **yaklaşmalı** — kapalı koşuda 19.2, dünya
+   katmanıyla 12.1'e doğru inmeli. Çıkışlar açılınca krizler seyrelir.
+2. **Tür karışımı** tabloya yakınsamalı: kayıttaki 27 olayın 5'i finansal,
+   3'ü kârlılık, 2'si aşırı birikim. Kapalı çekirdek bunları ayırt edemiyor.
+3. **Çıkışın kendisi ölçülmeli**: değer transferi **alan** ülkede bunalım
+   yoğunluğu azalmalı, **veren** ülkede artmalı — her ülke kendi kapalı
+   hâliyle karşılaştırılarak. Emperyalizmin motordaki imzası budur ve tek
+   ülkede tanımsızdır.
+
+Üçüncüsü en önemlisi, çünkü yalnızca dünya katmanı varken anlamlıdır.
+
+> **1. madde uyarısı — ölçüldü ve beklenti yanlış çıktı.** "Çıkışlar açılınca
+> krizler seyrelir" cümlesi değer transferi çıkışı için **doğru değil**.
+> Transfer açıkken dünya toplamı kıpırdamıyor (bunalım 4.3 ↔ 4.3, toplam
+> 35.4 → 35.1); tek tek ülkeler ise onlarca kat oynuyor. Yani bu çıkış krizi
+> seyreltmiyor, **yer değiştiriyor** — ve Marksist okumada beklenen de budur:
+> emperyalizm krizi çözmez, erteler ve taşır.
+>
+> Madde 1 yine de yanlışlanmış sayılmaz, çünkü kalan çıkışlar (ihracat pazarı,
+> sermaye ihracı, moratoryum, savaş) henüz yok. Ama artık **hangi çıkışın
+> seyreltmesi beklendiği** ayrıca gerekçelendirilmeli; "çıkış açılınca seyrelir"
+> genel kuralı bu motorda geçerli değil.
+
+### Değer akışı kuruldu — ve üçüncü madde ölçüldü
+
+`Dunya` (`godot/scripts/v2/core/dunya.gd`) ülkeler arası değer akışını
+**korunumlu** hale getirdi: akım çift üzerinde tanımlı, iki uca ters işaretle
+yazılıyor, dolayısıyla `sum(VT) == 0` bir kalibrasyon değil **özdeşlik**.
+Ölçülen korunum hatası tam olarak `0.0`. Kapı: `--v2-dunya`.
+
+> **v4.4'ün L bloğu korunmuyordu ve bu yüzden port edilmedi, düzeltildi.**
+> Orada transfer her ülke için bağımsız hesaplanıyor (`motor.py:2162`),
+> sapmalar `Y` ile çarpıldığı için ağırlıklı toplam sıfır çıkmıyor, ağırlıklar
+> ülke tipine göre değişiyor ve `disa` tek taraflı kırpıyor. Ölçüldü (tohum 42,
+> 20 ülke): **tur 25'te 20 ülkenin yirmisi de negatif**; tur 1000'de toplam
+> **+14964**, korunum hatası **%57**. Değer önce dünyadan sızıp yok oluyor,
+> sonra yoktan yaratılıyor. "Transfer" adı yanlıştı — varış yeri hiç
+> modellenmemiş bir sızıntıydı.
+>
+> Merkez/çevre artık **formüle girmiyor**. v4.4 ağırlıkları `tip == "cevre"`
+> ile seçiyordu; burada ülke tipi diye bir girdi yok. Kimin alıcı kimin verici
+> olduğu organik bileşim farkından doğar — konum bir sonuçtur.
+
+### Ölçüt derinlik cinsinden yeniden yazıldı — ve karşı-olgusal olarak
+
+Ölçütün 3. maddesi artık şudur:
+
+> **Değer ALAN ülkede bunalım yoğunluğu azalır, VEREN ülkede artar.**
+
+İki değişiklik var, ikisi de zorunluydu.
+
+**1. Sıklık değil derinlik.** Toplam kriz sayısı ayırt etmiyor (ALAN 34.7 ↔
+VEREN 34.6): toplam resesyon baskın ve alan ülke yüksek organik bileşimi
+yüzünden zaten daha sık kârlılık sıkışması yaşıyor. Değer girişi krizi
+seyreltmiyor, **bunalıma dönüşmesini** engelliyor.
+
+**2. Kesitsel değil karşı-olgusal.** "Azalır/artar" bir *değişim* iddiasıdır;
+alan ve vereni yan yana koymak transferin etkisiyle bileşim farkının etkisini
+karıştırır. Doğru tasarım aynı dünyayı aynı tohumla transfer **açık** ve
+**kapalı** koşup her ülkeyi kendi kapalı hâliyle karşılaştırmaktır.
+
+> **Bu ayrım bir yanlış sonucu yakaladı.** Kesitsel ölçüm ALAN 2.4 ↔ VEREN 5.6
+> veriyordu ve bu "giriş derinliği düşürüyor" diye okunmuştu. Karşı-olgusal kol
+> gösterdi ki o fark transferin eseri **değil**: kapalı koşuda da neredeyse
+> aynı yerde duruyor. Transferin gerçek etkisi o noktada sıfırdı — VEREN'de
+> altı tohumun altısında da değişim tam olarak **+0.0**.
+
+### İki yönlü muhasebe — çekirdekteki tek yönlü hesap düzeltildi
+
+Sebebi çekirdekte bulundu. `_efektif_talep` v4.4'ü izleyerek
+`D_talep = C + I + G + max(VT, 0)` yazıyordu (`motor.py:1930`): **gelen değer
+talebe ekleniyor, giden değer hiçbir yerden düşülmüyordu.** Bir ülke değer
+kaybederken satın alma gücü kaybetmiyordu; negatif VT'nin tek kanalı `r_ef`
+idi, o da VT/K ≈ 0.0006 mertebesinde kalıyordu.
+
+Oysa eşitsiz mübadelede giden şey **gerçekleşmiş satın alma gücüdür** — çevre
+ülke kendi ürününü satın alamaz hale gelir. Gerçekleşme krizinin emperyalizm
+üzerinden çevreye taşınma kanalı tam olarak budur ve tek yönlü muhasebeyle
+kapalıydı. Artık `D_talep = C + I + G + VT` (işaretiyle).
+
+Yan etki: `--v2-tarih`'in VT taraması da düzlüğünü kaybetti (toplam 34 → 37,
+bunalım 4 → 5). O düzlük bir zamanlar "krizler ülke-içidir"in ek kanıtı
+sayılmıştı; kapalı ekonominin kriz ürettiği doğru, ama **transferin etkisiz
+olduğu yanlıştı.**
+
+### Şiddet kalibre edildi — görünür biçimde
+
+Yön doğru olsa bile ağırlık küçükse mekanizma gürültüye gömülür. `--v2-dunya-siddet`
+altı tohumun kaçında işaretin doğru çıktığını tarar (medyan değil **tutarlılık**):
+
+| şiddet | \|VT\|/Y | ALAN doğru | VEREN doğru |
+|---|---|---|---|
+| 0.05 | 0.0053 | 5/6 | 6/6 |
+| **0.10** | **0.0115** | **6/6** | **6/6** |
+| 0.20 | 0.0239 | 6/6 | 5/6 |
+| 0.80 | 0.1230 | 6/6 | 6/6 |
+
+`siddet = 0.10` seçildi, iki bağımsız gerekçeyle: v4.4'ün varsayılan dünyada
+ürettiği |VT|/Y ~ 0.01–0.03 bandının alt ucuna oturuyor (elimizdeki tek ampirik
+çapa), ve kuralın altı tohumun altısında da tuttuğu **en düşük** şiddet. v4.4'ün
+`vt_siddet = 0.05` sabiti buraya uymaz: o, ülke başına bağımsız hesaplanan
+başka bir formülün kalibrasyonuydu, bu ise çift bazlı gravite — aynı sayı aynı
+ağırlığı vermiyor.
+
+**Sonuç (6 tohum, medyan, bunalım/100 kapitalist yıl):** ALAN **−0.65** (altı
+tohumun altısında da negatif), VEREN **+0.10** (altısında da pozitif). Kural
+çalışıyor.
+
+### Toplam kriz dinamiği — kural çalışınca ne oldu
+
+| | kapalı | açık | değişim |
+|---|---|---|---|
+| toplam kriz/100y | 35.4 | 35.1 | −0.3 |
+| bunalım/100y | 4.3 | 4.3 | −0.0 |
+
+> **Transfer krizi yok etmiyor, taşıyor.** Dünya neti −0.01 iken tek tek ülkeler
+> çok daha fazla oynuyor. Marx'ta emperyalizm krizi çözmez, erteler ve taşır;
+> ölçülen tam olarak bu.
+
+Yükün nereye gittiği ise beklenmedik:
+
+| ülke | Δ bunalım/100y | |
+|---|---|---|
+| Yuksek | −0.65 | rahatlıyor |
+| Orta-üst | −0.02 | rahatlıyor |
+| Orta | +0.01 | yükleniyor |
+| **Orta-alt** | **+1.00** | yükleniyor |
+| Düşük | +0.10 | yükleniyor |
+
+> **En ağır bedeli en çok veren ödemiyor.** Düşük ülke net transferin en
+> büyüğünü veriyor (−4769) ama bunalım yükü yalnızca +0.10 artıyor; sarsılan
+> **Orta-alt** (+1.00). Sebebi taban etkisi: Düşük zaten bunalıma doymuş
+> (5.6/100y), yükselecek yeri yok. Marjinal kurban en yoksul olan değil,
+> **eşiğe en yakın olan** — yani yarı-çevre.
+
+Bu, B3'ün (bölünme ve karşı hareket) hangi ülkelerde en sert oynayacağını da
+söylüyor ve savaş/ittifak katmanı (B4) için doğal bir gerilim kaynağı.
+
+### B bloğu: dış ticaret kuruldu — ve iki şeyi değiştirdi
+
+Ticaret de **çift bazlı ve korunumlu**: `X_ij` hem i'nin ihracatı hem j'nin
+ithalatıdır, dolayısıyla `sum(NX) == 0` özdeşlikle sağlanır (ölçülen hata
+`0.0`). v4.4'te ticaret diye bir akım yoktu — `eps` ve `pi_m` her ülke için
+dünya ortalamasından hesaplanıyordu, kimse kimsenin ithalatçısı değildi.
+
+Yön rekabetten gelir: çiftin hacmi gravite, ikiye bölünüşü **Thirlwall oranı**
+`eps/pi_m`. Yüksek üretkenlik hem ihracat esnekliğini yükseltir hem ithalat
+esnekliğini düşürür, o yüzden ticaret fazlası bir girdi değil **üretkenlik
+farkının sonucudur**. Ölçülen: NX/Y +%6.1 (Yuksek) … −%5.8 (Dusuk).
+
+**1. Kuralın doğru değişkeni değişti.** Ticaret varken değer transferi tek
+başına **ikinci derecede** kalıyor: NX/Y ~%6 iken VT/Y ~%0.5. Havuzlanmış
+gradyan (30 gözlem) VT için −0.06…−0.16 arasında, yani gürültüden ayırt
+edilemez. Ama kural yanlış değil — **eksik değişkenle** ölçülüyordu. Ticaret
+fazlası da gelen değerdir; kural **toplam dış konuma** (NX + VT) uygulanınca:
+
+> **gradyan −0.80 (30 gözlem).** Dış değer konumu bunalım dinamiğini
+> belirliyor. "Birinden eksilen diğerine gider" kuralı, bütün akımlar
+> sayıldığında güçlü biçimde tutuyor.
+
+**2. §3.1'in "yeni pazar" iddiası ölçümle çelişiyor.**
+
+> Belge diyor ki: aşırı üretim krizinin ilk çıkışı yeni pazar açmaktır.
+> Ölçüm bunu **doğrulamıyor**. Ticaret açılınca aşırı üretim yoğunluğu ticaret
+> **fazlası veren** ülkede bile artıyor (+0.39 / 100 kapitalist yıl); açık
+> veren ülkede sıfır civarı. Yani dış pazar gerçekleşme sorununu hafifletmiyor.
+>
+> Olası okuma — ve Luxemburg'un kendi savı: ihracat talebi kapasite
+> kullanımını yükseltir, hızlandırıcı üzerinden birikimi hızlandırır ve
+> gerçekleşme sorununu **çözmez, daha büyük ölçekte tekrarlatır**. Dış pazar
+> bir çıkış değil, bir erteleme olabilir.
+>
+> `--v2-dunya`'da bu denetim **kırmızı bırakıldı**. Yeşile boyamak için
+> ne eşik gevşetildi ne mekanizma zorlandı: çelişki gerçek ve hangi tarafın
+> yanlış olduğu (model mi, §3.1 mi) henüz belli değil. Kapı 8/9.
+
+**Açık soru:** transfer şiddeti 0.60'ı geçince gradyanın işareti dönüyor.
+Devrim zamanlaması değil (her ağırlıkta 30/30 devrim, ortalama 1932). B/D/E/F
+tamamlanmadan kovalanmamalı.
+
+### Pazar kavgası — §3.1 düzeltildi, çürütülmedi
+
+Önceki ölçüm "dış pazar aşırı üretimi azaltmıyor" diyordu ve bu §3.1 ile
+çelişki sayılmıştı. **Çelişki değildi, testin iddiası yanlıştı.** §3.1 dış
+pazarı bir *çözüm* diye okumuştum; teori onu bir **zorunluluk** olarak koyar —
+geçici rahatlama sağlar, sorunu ortadan kaldırmaz.
+
+Ama modelde asıl eksik olan başkaydı: ticaret payları **yalnızca üretkenlikten**
+geliyordu. Malları satılamayan ülke ihracata daha çok *asılmıyordu*. Zorlama
+yoksa pazar kavgası da yok. Eklenen: `ihracat_itkisi` — gerçekleşme baskısı
+rekabet gücünü çarpar,
+
+```
+k = (eps / pi_m) · (1 + itki · baski)
+```
+
+ve pay `k_i/(k_i+k_j)` olduğu için **itki sıfır toplamlıdır**: tek başına iten
+kazanır, herkes itince paylar değişmez. Kavganın çıkmaz olması bir olay
+tablosundan değil, `sum(NX) == 0` özdeşliğinden geliyor.
+
+Ölçülen (6 tohum, karşı-olgusal: itki açık/kapalı):
+
+| iddia | ölçüm |
+|---|---|
+| **Zorlama** — satılamayan mal ihracata iter | +0.219 ✅ |
+| **Rahatlama gerçek** — ihracat açığı kapatır (ülke içi sapmalar) | −0.124 ✅ |
+| **Konuma bağlı** — fazla tutulduğu sürece sürer, 4 yılda sönmez | −0.240 ✅ |
+| **Sıfır toplam** — dünya ölçeğinde rahatlama yok (13.61 → 13.87) | ✅ |
+
+> **Geçicilik rahatlamanın sönmesinden gelmiyor, konumun çekişmeli
+> olmasından.** Bir ülke ticaret fazlasını tuttuğu sürece gerçekleşme açığı
+> gerçekten kapanıyor — ve 4 yıl sonra daha da kapalı. Ama `sum(NX) == 0`
+> olduğu için fazlayı herkes aynı anda tutamaz, ve itki sıfır toplamlı olduğu
+> için herkes ittiğinde kimse kazanamaz. Çin fazlayı tuttuğu sürece rahatlıyor;
+> ABD geri almaya çalışıyor; dünya toplamında rahatlama yok. Kampanya
+> ortalamasının rahatlama göstermemesinin sebebi budur — sönme değil, çekişme.
+
+**İtki kalibre edildi — tahmin edilen değer iki eksende birden yanlıştı.**
+
+`ihracat_itkisi` önce 1.5 diye tahminle konmuştu. Eklendiğinde "dış değer konumu
+bunalımı belirliyor" gradyanı **−0.80'den −0.11'e** çöktü. İlk teşhisim
+içsellikti (sıkışan ülke çok ihraç eder → ters nedensellik) ve **yanlıştı**:
+konumun yapısal bileşeniyle araç değişken kurunca da düzelmedi (−0.094).
+
+Asıl sebep ölçekti. Ortalama itki **5.39**'a çıkıyordu, oysa yapısal rekabet
+oranı `eps/pi_m` en fazla 3.58. **Zorlama üretkenlik yapısını eziyordu.**
+Tarama (`--v2-dunya-siddet`, ikinci tablo):
+
+| itki | ort. itki | ZORLAMA | YAPI gradyanı |
+|---|---|---|---|
+| 0.00 | 1.00 | 0.000 | −0.836 |
+| 0.25 | 1.73 | 0.106 | −0.784 |
+| **0.50** | **2.46** | **0.423** | **−0.551** |
+| 1.00 | 3.93 | 0.536 | −0.418 |
+| 1.50 | 5.38 | 0.371 | −0.218 |
+
+1.5'te **zorlama bile düşüyor** (0.536 → 0.371): herkes doyuma ulaşıyor, paylar
+sabitleniyor. Yani tahmin edilen değer hem yapıyı siliyor hem kendi mekanizmasını
+boğuyordu. Ölçüt: itki yapısal oranı **ezmemeli, module etmeli** — 0.50'de itki
+çarpanı 1.0–2.5 ile yapısal 3.2 katın altında kalır.
+
+Kalibrasyondan sonra gradyan **−0.456**'ya döndü, zorlama **+0.573**'e çıktı.
+`--v2-dunya` **13/13**.
+
+### Kavga sıfır toplamlı değil, negatif toplamlı
+
+Son ölçüm bir adı da düzeltti. "Dünya toplamı kıpırdamamalı" diye sınamıştım;
+dünya aşırı üretimi **13.61 → 13.96** çıkıyor ve üç itki değerinde de pozitif.
+
+> Sıfır toplamlı olan **paylardır** (`sum(NX) == 0`), sonuç değil. Payı kapan
+> ülke kapasitesini genişletiyor, o kapasite sonra dünya gerçekleşme sorununa
+> ekleniyor. Kavga yalnızca yeniden dağıtmıyor — **dünyayı biraz daha
+> kötüleştiriyor.** Teorinin iddiası zaten "toplam sabit kalır" değil, "kavga
+> rahatlama üretmez"di; yükselmesi bunun daha güçlü hâli.
+
+### D / E / F — ve borcun alacaklısı
+
+Ani duruş, moratoryum ve döviz krizi kuruldu. **Üçüncü korunum yasası** buradan
+doğdu: dış borç `Dunya.borc` matrisinde, `borc[i][j]` = i'nin j'ye borcu, ve
+
+```
+sum(net dış varlık) == 0
+```
+
+özdeşlikle sağlanıyor (ölçülen hata `0.0`). v4.4'te `dis_borc` **alacaklısız bir
+skalerdi** ve moratoryum onu çarpıp buharlaştırıyordu (`motor.py:1806`) — kimse
+zarar etmiyordu, yani temerrüt bir kriz *kanalı* değil bir *muafiyetti*.
+
+**Cari denge de proxy olmaktan çıkıp özdeşlik oldu.** v4.4 onu ülke başına
+`-kats·Y·bop_asim·4 + 0.30·VT` diye hesaplıyordu; toplamı sıfır değildi.
+Ölçüldü: o formülle bütün ülkeler aynı anda açık veriyor, açığı finanse edecek
+fazla hiç oluşmuyor ve **borç matrisi kampanya boyunca boş kalıyordu** — D/E/F
+ölü koddu. Artık `cari = NX + dış faiz + VT`, üçü de korunumlu, dolayısıyla
+`sum(cari) == 0` kendiliğinden.
+
+İki tuzak daha ölçümle yakalandı:
+
+- **Çifte sayım.** Açık hem borçla finanse ediliyor hem rezervden düşülüyordu;
+  rezerv hasılanın −5 katına inip döviz krizi neredeyse sürekli ateşleniyordu
+  (198 yılda 173 kriz). Finanse edilen açık rezervi azaltmaz — borca döner.
+  Rezerve yalnızca **kapatılamayan** kısım iner, ve bu D ile F'yi doğru sırayla
+  bağlar: finansman kesilir → açık rezervi eritir → döviz krizi.
+- **Borç geri ödenmiyordu.** Fazla veren bir borçlu, borcunu kapatacağına
+  başkasına borç veriyordu; alt üç ülke tavana yapışıp **kalıcı** ani duruşta
+  kalıyor ve sabit bir itki çarpanı taşıyordu. Zorlama sinyali bu yüzden işaret
+  değiştirmişti (+0.383 → −0.154). Ani duruş bir epizot olmalı, bir kader değil.
+
+### Temerrüt merkeze döner — artık ölçülüyor
+
+Geri ödeme bağlanınca asıl iddia da tuttu. Karşı-olgusal (moratoryum
+açık/kapalı, aynı tohum), toplam kriz yoğunluğu değişimi:
+
+> **ALACAKLI ülkede +1.32.** Çevrenin ödeyememesi merkezin bilançosuna
+> yazılıyor. v4.4'te bu ölçülemezdi çünkü alacaklı diye bir şey yoktu.
+
+Borçlu için **yön iddia edilmiyor**: moratoryum borcu hafifletir ama `mor_ceza`
+ülkeyi sermaye piyasasından atar (`BoP_R` +0.55). Meksika '82 ve Arjantin
+'01'de olduğu gibi temerrüdü derin bir kriz izler; hangi etkinin bastığı
+kalibrasyona bağlıdır ve tek yönlü bir kapı taşıyamaz.
+
+### İki açık kırmızı
+
+`--v2-dunya` **15/17**. Kalan ikisi de aynı olgunun sonucu — dış kanal sayısı
+birden beşe çıktı:
+
+1. ~~**"Dış değer konumu bunalımı belirliyor"**~~ — **ÇÖZÜLDÜ**, bileşik konumla ölçüldü,
+   **düz çıktı.** Ayrıntı aşağıda.
+2. ~~**"Negatif toplam"** −0.03'e döndü~~ — **ÇÖZÜLDÜ.** Aynı sayaç hatasıydı;
+   düzeltmeden sonra +0.44.
+
+### Bileşik dış konum ölçüldü — ve borç çevrimi üstünlüğü nötrlüyor
+
+Bileşik konum dört korunumlu kanalın kümülatif toplamıdır (ticaret dengesi +
+eşitsiz mübadele + dış faiz + temerrüt), hasılaya oranlanmış. Bu aynı zamanda
+**dördüncü korunum özdeşliğidir**: `sum(toplam_dis) == 0`.
+
+Dört bağımsız tahminci denendi:
+
+| tasarım | sonuç |
+|---|---|
+| `NX + VT` (mutlak), karşı-olgusal | −0.006 |
+| bileşik/Y, karşı-olgusal, bunalım | −0.100 |
+| bileşik/Y, karşı-olgusal, toplam kriz | +0.014 |
+| bileşik/Y, **ülke içi zaman serisi** | +0.032 |
+
+Sonuncusu, §7'de aynı kurulumla −0.124 … −0.240 verdiği için tasarım
+çalışır durumda. Yani sonuç gerçekten düz — ölçüm kusuru değil.
+
+> ~~**Bulgu: borç çevrimi ticaret üstünlüğünü geri alıyor.**~~ **GERİ ÇEKİLDİ.**
+> Bu okuma yanlıştı ve `--v2-dunya-ayrim` onu çürüttü.
+
+### Ayrım: eserdi, ve sebebi tur→hafta tuzağıydı
+
+Düzlüğün gerçek mi eser mi olduğu ayrı bir kapıyla ayrıştırıldı — borç kanalı
+kapalıdan tam açığa, temerrüt sıklığı taranarak:
+
+| borç kanalı | mor. çarpan | moratoryum | fx kriz | gradyan |
+|---|---|---|---|---|
+| kapalı | 0.0 | 0 | 0 | **−0.723** |
+| açık | 0.0 | 0 | 325 | +0.064 |
+| açık | 3.0 | 41 | 226 | +0.255 |
+| **açık, F kapalı** | 0.0 | 0 | 0 | **−0.538** |
+| **açık, F kapalı** | 1.0 | 0 | 0 | **−0.538** |
+
+> **Suçlu temerrüt değil, döviz kriziydi.** Borç, faiz ve moratoryum açıkken
+> ama F bloğu kapalıyken ilişki duruyor (−0.538); temerrüt tamamen sıfırken
+> bile F açıksa çöküyor (+0.064). Yani düzlük borç çevriminin yapısal bir
+> sonucu değildi.
+
+Ve F'nin neden salgın hâline geldiği, bu deponun en çok uyardığı hataydı:
+**v4.4'ün tur cinsinden sayaçları haftalık döngüye olduğu gibi kopyalanmıştı.**
+`fx_baski >= 8` v4.4'te 8 tur, yani 2.16 yıl sürekli rezerv erimesi demek;
+haftalık döngüde 8 hafta, yani 0.15 yıl. **14 kat hızlı.** Aynısı
+`fx_kriz_sure` ve `mor_ceza_sure` için de geçerliydi.
+
+`Oran.v44_sayac()` eklendi ve üçü de dönem cinsine çevrildi. Döviz krizi 325'ten
+83'e indi, gradyan **−0.547**'ye döndü, kapı **17/17**.
+
+> **Yan bulgu: temerrüt yük taşıyor.** Sayaç düzeltmesinden sonra bile
+> `mor_carpan = 0` (hiç moratoryum yok) gradyanı +0.270'te bırakıyor; 1.0'da
+> −0.580. Moratoryum olmayınca borç sonsuza kadar birikiyor, herkes kalıcı ani
+> duruşa giriyor ve sistem donuyor. **Temerrüt gürültü değil, borç çevrimini
+> açık tutan valf.**
+
+### Ölçüt nerede duruyor — ve iki kez taşındı
+
+Kapı karşı-olgusal tasarımdadır. Sırası kayda geçiyor çünkü **ikinci taşıma
+hataydı**: ölçüm çökünce kapı ülke-içi zaman serisine taşınmıştı, oysa iki
+tasarım aynı şeyi ölçmüyor. İddia kümülatif ve yapısaldır ("kampanya boyunca net
+değer alan ülke dünya sisteminden daha az zarar görür"); ülke-içi tasarım ise
+kısa vadeli bir zamanlama sorusu sorar ve krizler yığın hâlinde geldiği için
+orada sıfır çıkması beklenir. §7'de çalışmasının sebebi oradaki çıktının sürekli
+bir durum (`talep_acigi`) olmasıydı, ayrık bir olay değil.
+
+Her aşamanın kabul ölçütü ortak üç maddeyle biter: `--v2-olcek` 23/23
+(B1a onu 18'den büyüttü), `--v2-tarih` geçer (B1'den sonra), ve ekran
+değişmişse `--ss=` ile gerçekten çizdirilip bakılmış olur.
+
+---
+
+## 6b. B2a — üretim katmanı
+
+### B2'nin ölçütü de ayırt etmiyordu — ve aynı sebeple
+
+§6'nın tablosu B2 için "`--v2-tarih` hâlâ geçer" diyordu. Bu, B1b'de
+kapatılan kusurun **birebir aynısıdır**: o test B2 başlamadan geçiyor,
+dolayısıyla B2'nin bittiğini söyleyemez. Kapı, iki durumda da yeşilse
+kapı değildir.
+
+Mikro katman olmadan **kurulamayan** tek cümle §2.4'ünkidir:
+
+> Tek tek binalar kârlı görünürken toplam kâr oranı düşer.
+
+"Bina kârlılığı" mikro, "toplam kâr oranı" makro bir büyüklüktür; tek
+katmanlı bir motorda bu cümle telaffuz bile edilemez. B1b'nin üçüncü
+maddesi ("tek ülkede tanımsızdır") ile aynı türden bir ölçüttür ve B2a'nın
+kapısı odur: **`--v2-uretim`**.
+
+### Otorite tablosu — §8.2 kapatıldı
+
+Risk §8.2 mikro-makro tutarsızlığını işaret ediyordu: iki katman aynı alanı
+yazarsa hangisinin kazandığı çağrı sırasına bağlı kalır. Her paylaşılan alan
+bir kez karara bağlandı (`godot/scripts/v2/core/uretim.gd`):
+
+| alan | otorite | gerekçe |
+|---|---|---|
+| `K` | mikro | binaların birikmiş inşaat maliyeti — **özdeşlik** |
+| `q` | mikro | aktif üretim yöntemlerinin ağırlıklı seviyesi |
+| `oto` | mikro | makine-ağırlıklı basamakların sermaye payı |
+| `pay_I` | mikro | Dept I binalarının sermaye payı |
+| `cv`, `kv` | çekirdek | `q`'dan türer — mikro katman c/v'yi **yazmaz** |
+| `L`, `e`, `pay` | çekirdek | B2b'de pop katmanına geçer |
+| `Y_yil` | çekirdek | efektif talep belirler; mikro yalnızca kapasite verir |
+| `g`, `r` | çekirdek | §2.4: kâr oranı piyasadan **okunmaz**, hesaplanır |
+
+**Sermaye yoğunluğu iki kez yazılmaz.** Bir basamağın "daha sermaye-yoğun"
+olması elle girilmez; `kappa_v(cv, q)` zaten `q`'ya bakar. Basamak yalnızca
+işçi başına çıktıyı taşır, sermaye ihtiyacı çekirdeğin `kv`'sinden türer.
+Tuzak iki katmanın **bileşiminden** doğar, iki kez yazılmasından değil.
+
+### Ölçülen — dört sonuç
+
+Mikro katman takılı değilken çekirdek zerre değişmez; B1a/B1b'nin bütün
+ölçümleri geçerliliğini korur (`--v2-olcek` 23/23, `--v2-dunya` 17/17,
+`--v2-tarih` geçiyor — hepsi yeniden koşuldu).
+
+**1. Sermaye özdeşliği.** `sum(bina.K) == d.K`, kampanyanın 10 400 adımının
+her birinde ölçüldü: en büyük bağıl sapma **2.2e-16**. Kuruluşta hata tam
+olarak `0.0`. B1b'nin korunum disiplini burada da geçerli — toplam bir
+kalibrasyon değil özdeşliktir.
+
+**2. Ortalama marj teknikten bağımsızdır — ve bu bir özdeşliktir.**
+
+```
+ort(marj) = sum(K_i·(1 − w/q_i))/sum(K_i) = 1 − w/q_toplam = 1 − pay
+```
+
+Ölçülen sapma **4.4e-16**. Yani ülke ortalaması marj yalnızca ücret payına
+bakar, tekniğe **hiç** bakmaz. Tuzağın en keskin biçimi budur:
+
+> **Teknik değişmenin toplam kaybı, kararın verildiği defterde görünmez.**
+
+**3. Öncü kârı pozitif: +0.021.** Yükselten bina, yükseltme anında ülke
+ortalamasının üstüne çıkıyor. Marx'ın göreli artı değeri: kazanç önce
+davranana ait ve diğerleri yetiştikçe sönüyor.
+
+**4. Karşı-olgusal (aynı tohum, yükseltme kolu açık/kapalı, 1836–2036):**
+
+| | kapalı | açık | değişim |
+|---|---|---|---|
+| ort. c/v | 1.102 | 1.790 | **+0.689** |
+| ort. kâr oranı `r` | 0.0682 | 0.0600 | **−0.0082** |
+| ort. mikro marj | 0.5577 | 0.5576 | −0.0001 |
+
+Kâr oranı **%12 düşüyor**, mikro marj kıpırdamıyor: `|Δmarj|/|Δr| = 0.011`.
+Tuzak ölçüldü. `--v2-uretim` **17/17**.
+
+### Üç hata ölçümle yakalandı — üçü de oynayarak fark edilmezdi
+
+**1. "Mikro" marj makro tuzağı zaten içeriyordu.** Marj ilk yazımda sermaye
+üzerinden tanımlanmıştı: `(Y_i − w·L_i)/K_i`. Bu cebirsel olarak
+`(1 − w/q_i)/kv`'ye eşittir — yani içinde `kv` taşır, `kv` ise makro bir
+büyüklüktür ve yükseltmeyle birlikte yükselir. Sonuç: iki katman **aynı**
+işareti verdi (mikro −0.0033, makro −0.0123) ve tuzak ölçülemedi. Tek tek
+kapitalist ekonominin `kv`'sini görmez; onun defterinde teknik değişme
+**satış üzerinden marjdır**. Marx'ın kâr marjı ↔ kâr oranı ayrımı ve oyunun
+tuzağı tam olarak o ayrımda yaşıyor.
+
+**2. Toplu bedel ile haftalık akım karşılaştırılamaz.** Yükseltme bedeli
+binanın sermayesine oranlı toplu bir tutar, yatırım ise haftalık bir akım:
+haftalık yükseltme bütçesi ~0.17 iken en küçük binanın bedeli ~44 idi. Koşul
+200 yılda **bir kez bile** sağlanmadı — merdiven kuruldu ama hiç tırmanılmadı.
+Çözüm taksitlendirme, ve iktisadi olarak da doğrusu: yeni teknik yapı bir
+günde satın alınmaz, parça parça inşa edilir. Ödenen her taksit anında
+binanın sermayesine yazıldığı için özdeşlik kırılmaz.
+
+**3. Merdiveni `era_min` ile kapılamak çağ tablosunu tersine çeviriyordu.**
+İlk yazımda basamaklar elle yazılmış altı satırdı ve her biri bir çağ
+istiyordu. Ölçüldü: 200 yılda 15 yükseltme, q 1.00 → **1.33** (aynı pencerede
+kapalı form 55.4 veriyor). Çağ tablosu teknolojik gelişmeyi böyle kurmuyor:
+her çağın bir `q_tavan`ı var ve q çağ **içinde** o tavana doğru doyarak
+büyüyor. Yani çağ, hangi yöntemin açıldığını değil **üretkenliğin
+ulaşabileceği tavanı** belirler. `era_min` kapıları 1836–1975 arası 139 yıl
+boyunca merdiveni tek basamakta dondurmuştu. Merdiven artık **üretilmiş**
+(72 basamak × %10) ve yukarıdan çağın kendi `q_tavan`ı kesiyor — yeni bir
+kalibrasyon sabiti eklenmedi, kapı zaten var olan tablodan geliyor.
+
+### Yükseltme maliyeti kalibre edildi — ve ilk değer çifte sayımdı
+
+`yukseltme_maliyeti` başta 0.45 (binanın sermayesinin %45'i) yazılmıştı. Bu
+**tekniğin maliyetini iki kez saymaktır**: asıl bedel değer katmanında zaten
+ödeniyor (q ↑ → c/v ↑ → `kv` ↑ → aynı sermaye daha az kapasite). Buraya
+yazılması gereken yalnızca **fark**tır — yeni tekniği kurmak, eskisini olduğu
+gibi yenilemekten ne kadar pahalı.
+
+Çapa olarak çekirdeğin **kapalı formu** alındı: o kalibrasyon `--v2-olcek`
+23/23 ve `--v2-tarih`ten geçiyor, yani üretkenlik büyüme hızı bu motorda
+zaten sınanmış. B1b'de `vt_siddet` için kullanılan gerekçenin aynısı.
+
+**Tarama iki kez düzeltildi, çünkü ilk hâli yanlış şeyi ölçüyordu.**
+
+*Yanlış konfigürasyon.* İlk tarama 1836/çağ-2 kurulumundan koşuyordu; oysa
+üzerinde karar verilen ölçüt `--v2-tarih`tir ve o **1825'te çağ 1'den**
+başlar. Çağ 1'in `q_tavan`ı 4.0, çağ 2'ninki 8.0 — merdivenin tavanı baştan
+farklı. Başka bir kurulumda kalibre edilen sabit, karar verilen kurulumda
+geçerli değildir.
+
+*Yanlış ölçü.* Yalnızca **uç nokta** karşılaştırılıyordu. Uç nokta çapaya
+0.88 oranıyla yakın çıkarken yörünge tamamen ayrışıyordu: mikro kol 1865'te
+2.59'a, kapalı form 1.58'e varmıştı. **Bir eğriyi tek noktadan eşleştirmek
+onu eşleştirmez.**
+
+> **ÇAPA (mikro yok): devrim 1923, ort r 0.0653**
+> **q yörüngesi: 1.27 1.58 1.90 2.24 3.23 4.33 5.69 8.58**
+
+| maliyet | yükseltme | log-sapma | devrim | ort r | q(1885) | q(1965) |
+|---|---|---|---|---|---|---|
+| 0.050 | 177 | 0.694 | 1903 | 0.0401 | 3.70 | 15.86 |
+| **0.100** | **81** | **0.340** | **1918** | **0.0594** | **1.61** | **3.29** |
+| 0.200 | 35 | 0.764 | 1922 | 0.0660 | 1.21 | 1.69 |
+| 0.350 | 20 | 0.906 | 1924 | 0.0674 | 1.10 | 1.33 |
+| 0.500 | 15 | 0.954 | 1928 | 0.0700 | 1.09 | 1.26 |
+| 0.800 | 10 | 0.997 | 1927 | 0.0670 | 1.06 | 1.16 |
+| 1.200 | 7 | 1.036 | 1925 | 0.0684 | 1.00 | 1.10 |
+
+0.100 seçildi: yörüngeye en yakın, ve devrim 1918 ile çapanın 1923'ünden
+yalnızca beş yıl önce — tohum gürültüsünün içinde.
+
+**Kalan sapma dürüstçe yazılıyor:** 0.340'lık log sapma sıfır değil. Mikro
+kol geç on yıllarda çapadan **yavaş** kalıyor (q(1965) 3.29 / 5.69). Basamak
+çarpanı ile çağ tavanının birlikte belirlediği bir şey; tarihsel ölçüt ve
+devrim zamanlaması tuttuğu için B2b'den önce kovalanması gerekmiyor.
+
+### Erken devrim: gerçek bir zincirdi, kalibrasyon hatasıydı
+
+İlk kalibrasyonla (`maliyet = 0.05`) devrim 1903'e kayıyordu — kapalı formda
+1923. `--v2-uretim-iz` zinciri gösterdi ve teşhis **eleme yoluyla** yapıldı:
+
+| büyüklük | kapalı ↔ mikro | okuma |
+|---|---|---|
+| `pay` | 0.461 ↔ 0.461, 0.432 ↔ 0.435 | **aynı** — Goodwin kanalı değil |
+| `PR` | ~0.99 ↔ ~0.99 | ikisinde de **doymuş** — protesto riski değil |
+| `q` (1885) | 1.90 ↔ **3.70** | ayrışan bu |
+| çağ (1885) | 1 ↔ **2** | ve sonucu bu |
+
+Zincir: merdiven erken hızlı tırmanıyor → `q` çağın `q_esik`ini erken aşıyor
+→ **çağ geçişi erkene kayıyor** → her geçiş `Omega`'yı zıplatıyor
+(`gecis_omega`) → devrim erken geliyor.
+
+> **Devrim `PR` üzerinden değil, ÇAĞ ZAMANLAMASI üzerinden kaymıştı.** İki
+> aday kanalı (ücret pazarlığı, protesto riski) ölçüm eledi; ikisi de iki
+> kolda aynıydı. Kalibrasyon düzeltilince devrim 1918'e döndü, yani çapadan
+> beş yıl uzağa.
+
+Bu, `q`'nun bu motorda yalnızca bir üretkenlik değişkeni olmadığını da
+gösteriyor: **çağ tablosunun tetikleyicisi.** Mikro katmanın `q`'yu yazması,
+farkında olmadan tarihin hızını da yazması demektir.
+
+### Merdiven ikinci kez kalibre edildi — çağ kuplajı
+
+**B5'in haritası bir bulgu çıkardı ve o bulgu B2a'ya aitti**: otomasyon modu
+tam kampanya boyunca düz kalıyordu. Sebep, mikro katman takılıyken `oto`
+otoritesinin `UretimKatmani`'ne geçmesi ve `basamak_oto`nun **mutlak q ≥ 36**
+istemesiydi; merdiven 2100'de 12.4'te kalıyordu.
+
+**Teşhis: iki eğri zıt yönlü.** Merdivenin tırmanma hızı yapısal olarak
+
+```
+basamak/yıl = (yatırım · yukseltme_payi) / (K_bina · yukseltme_maliyeti)
+```
+
+yani **birikim oranıyla orantılıdır**. Birikim oranı kâr oranıyla birlikte
+düşer — LTRPF'nin kendisi — dolayısıyla merdiven kampanya ilerledikçe
+**yavaşlar**. Çağ tablosunun `qg`si ise tersine **hızlanır** (0.0045 → 0.0175).
+Tek bir sabit bedel bu ikisini birden tutturamaz, ve ölçüm bunu gösteriyordu:
+0.05 erken on yılları iki kat hızlandırırken (q(1885) 3.70, çapa 1.90),
+0.10 geç kampanyayı bir mertebe geride bırakıyordu (q(2085) 6.1, çapa 106.0).
+
+> **Eski tarama bunu göremezdi, ve sebebi penceresiydi.** Ölçüm 1985'te
+> bitiyordu; iki kol erken on yıllarda yakın duruyor, ayrışma geç kampanyada
+> açılıyor. **Kalibrasyon penceresi oyunun ufkunu kapsamalı** — 1825–2100.
+> Bu, "bir eğriyi tek noktadan eşleştirmek onu eşleştirmez" dersinin zaman
+> eksenindeki hâli: bir eğriyi yarım pencerede eşleştirmek de eşleştirmez.
+
+**Çözüm yeni bir sabit değil, tablonun okunması.** Basamağın bedeli çağın
+kendi `qg`siyle ters orantılı ölçeklenir:
+
+```
+carpan = (qg[çağ 1] / qg[çağ]) ^ cag_esneklik
+```
+
+`q_tavan` kapısındaki ilkenin aynısı: **tablo tekrarlanmaz, okunur.** Çağ zaten
+"üretkenliğin ne kadar hızlı büyüyebileceğini" söylüyordu; merdiven onu
+görmezden geliyordu.
+
+**Ortak tarama** (`--v2-uretim-tarama`, 1825–2100, çapa = kapalı form):
+
+| esneklik | log sapma | q(2085) | `oto` | ort. `r` | devrim | **B2b işsizlik** |
+|---|---|---|---|---|---|---|
+| 0.00 | 0.963 | 6.1 | 0.000 | 0.04596 | 1918 | 0.2248 ✓ |
+| 0.70 | 0.509 | 25.5 | 0.000 | 0.04520 | 1917 | 0.2535 ✗ |
+| 0.80 | 0.370 | 45.3 | 0.767 | 0.04487 | 1917 | 0.2970 ✗ |
+| 0.90 | 0.168 | 114.5 | 0.800 | 0.04424 | 1917 | 0.3371 ✗ |
+| **1.00** | **0.141** | **129.1** | **0.800** | 0.04370 | 1917 | 0.3815 ✗ |
+| çapa | — | 106.0 | 0.489 | 0.04863 | 1923 | **0.3169 ✗** |
+
+Bedel ayrıca tarandı (0.08–0.35 × esneklik 0.8–1.2): en iyi nokta **bedel
+0.10, esneklik 1.00**. İki şey birden önemli — **bedel değişmedi** (B2a'nın
+kalibre ettiği değer yerinde, eksik olan ikinci boyuttu) ve **üs 1.00 çıktı**
+(çarpan tam olarak çağın kendi `qg` oranının tersi; ayarlanmış bir sayı değil).
+
+### İki ölçüt çakıştı — ve B2b'nin bandı çapaya taşındı
+
+Merdiven düzeliyor: log sapma **0.963 → 0.141**, otomasyon 0.000 → 0.800.
+Buna karşılık **B2b'nin yozlaşma bandı** (`iss_ort < 0.25`) düşüyordu —
+üstelik daha **esneklik 0.70'te**, yani otomasyon canlanmadan önce. Aradaki
+hiçbir değer ikisini birden sağlamıyor.
+
+Bandı gevşetmek yerine **çapalar ölçüldü**, ve ölçüm bandın ne olduğunu
+gösterdi:
+
+| kol | ort. işsizlik |
+|---|---|
+| çekirdeğin kendi kapalı formu (çapa) | **0.3169** |
+| yalnız nüfus katmanı | **0.3015** |
+| nüfus+üretim, yavaş merdiven (esneklik 0) | 0.2248 |
+| nüfus+üretim, kalibre merdiven (esneklik 1) | 0.3815 |
+
+`< 0.25`'i sağlayan **tek** kol yavaş merdivenli koldu; çapanın kendisi de,
+nüfus katmanının kendisi de bandın dışındaydı. Yani bant bağımsız bir ölçüt
+değil, **yavaş merdivenin parmak iziydi**.
+
+Deponun dört kez tekrarlanan dersi burada da geçerli: **bir düzey
+karşılaştırması trendi ölçer, mekanizmayı değil.** Doğru soru "işsizlik mutlak
+olarak küçük mü" değil, "katmanları takmak çekirdeğin *kendi* işsizliğini ne
+kadar aşıyor". Bant bu yüzden **çapaya göre** yeniden yazıldı:
+
+```
+iss_ort < çapa + 0.10
+```
+
+Yön de teorik olarak beklenen yön: hızlanan teknik değişme **yedek sanayi
+ordusunu büyütür**. Eski davranışta üretim katmanı işsizliği nüfus-tek koluna
+göre 6 puan *düşürüyordu* — anomali o taraftaydı.
+
+> **Bandın hâlâ bir şey iddia ettiği doğrulandı.** Pay 0.10 keyfi değil
+> ayırt edici seçildi: kalibre merdiven **0.3815** ile geçiyor (payı 0.035),
+> aşırı kol (esneklik 1.5) **0.4706** ile **kalıyor**. Gevşetilmiş bir bant
+> ikisini de geçirirdi.
+
+Bandın yakalamak için kurulduğu yozlaşma zaten **bileşikti**: yüksek işsizlik
+*ve* `pay`ın tabana çakılması. `pay` denetimleri yeni kolda da geçiyor (ücret
+payı 0.3878, kampanyanın yalnızca %22'sinde kırpma).
+
+**Kapılar:** `--v2-uretim` 17/17, `--v2-nufus` 13/13, `--v2-tarih-mikro`
+geçiyor, `--v2-tarih` ve `--v2-olcek` etkilenmiyor (mikro katman takılı
+değil), `--v2-harita` otomasyon modunu artık **canlı** ölçüyor (yayılım
+0.794).
+
+### Tarihsel kayıt mikro katmanla### Tarihsel kayıt mikro katmanla### Tarihsel kayıt mikro katmanla
+
+`--v2-tarih-mikro` (aynı ölçüt, mikro katman takılı) **geçiyor**:
+
+| | kapalı form | mikro katman | tarihsel |
+|---|---|---|---|
+| ham sicil toplamı (medyan) | 35.0 | **29.5** | 27 |
+| ayrık olay, 2 yıl (medyan) | 21.0 | 21.0 | 24 |
+| olay / 100 kapitalist yıl | 19.2 | 20.5 | 12.1 |
+| devrim (tohum 42) | 1923 | 1918 | — |
+
+Ham kriz toplamı 35.0'ten **29.5**'e iniyor, yani tarihsel 27'ye yaklaşıyor —
+B1a'nın "fazla kriz-yatkın" fazlalığını mikro katman bir miktar kısıyor.
+Sebebi muhtemelen sermayenin binalara gömülü ve departmanlar arası kaymanın
+yavaş olmasıdır, ama **ölçülmedi**; iddia edilmiyor.
+
+---
+
+## 6c. B2b — sınıf kohortları
+
+### Ölçüt üçüncü kez düzeltildi
+
+Tablodaki ölçüt "Goodwin otoritesi pop katmanına geçer, salınım ölmez"di. Bu
+da ayırt etmiyor: salınım B2b hiç yokken de var. Kohortlar olmadan
+**kurulamayan** iddia şudur:
+
+> Ücret payı pazarlanan bir skaler değildir. Pazarlık hiç olmasa bile **sınıf
+> bileşimi** değiştiğinde ücret payı değişir.
+
+`pay` bir skalerken "bileşim" diye bir şey yoktur; cümle telaffuz edilemez.
+Kapı: **`--v2-nufus`**, 13/13.
+
+### Saklanan dört, türetilen iki
+
+§5.9 altı kohort sayıyor; burada dördü saklanır (`sermayedar`,
+`kucuk_burjuva`, `kir_emegi`, `emek_gucu`), ikisi türer: `issiz =
+emek_gucu·(1−e)` ve `hapis = emek_gucu·cezaevi_orani`. İşsizi saklamak bir
+**döngü** kurardı — işsizlik istihdamdan, istihdam emek arzından, emek arzı da
+işsizi içeren emek gücünden gelir. Türetmek o döngüyü yapısal olarak imkânsız
+kılıyor.
+
+**Geçişler çift üzerinde tanımlı**, `Dunya`nın kuralının aynısı: bir geçiş tek
+yerde hesaplanır ve iki kohorta ters işaretle yazılır, yani `sum(kohort) ==
+toplam_nufus` bir özdeşliktir. Ölçülen sapma **6.3e-15** (10 300 adım).
+
+### Ölçülen
+
+| iddia | ölçüm |
+|---|---|
+| kuruluşta emek arzı ve `pay` çekirdekle özdeş | **0.0** (ikisi de) |
+| nüfus korunumu, kampanya boyunca | **6.3e-15** |
+| küçük burjuva payı düşer (tasfiye) | 0.220 → 0.035 |
+| kır emeği payı düşer (kentleşme) | 0.550 → 0.356 |
+| emek gücü payı yükselir (**proleterleşme**) | 0.200 → **0.579** |
+| **bileşim kanalı** (pazarlık donduruldu, karşı-olgusal) | **+0.0201** |
+
+Bileşim kanalının ölçülme biçimi önemli: `pazarlik_sabit` bayrağı
+`w_nom_buyume_yil`'i enflasyona eşitliyor, yani reel ücret düzeyi donuyor ve
+`pay`ı hareket ettirebilecek **tek** şey bileşim kalıyor. Bayrak olmadan test
+dışından dondurma işlemiyor — `_goodwin` her adımda yeniden hesaplıyor.
+
+### Ücret payı bir DÜZEY değil, GÖRELİ ücret — bir kez yanlış kuruldu
+
+İlk yazımda `pay = w · kütle / V` biçiminde, `w` bir ücret **düzeyi** olarak
+kuruldu. Cebirsel olarak `pay ~ w/q` ediyor: `V` üretkenlikle büyüyor ama bir
+düzey olarak `w` onu takip etmiyor. Ölçüldü — `pay` kampanyanın **%74'ünü**
+`pay_taban`a çakılmış geçiriyor, bileşim kanalı ölü kalıyor (+0.00064) ve
+**kapı yine de yeşil veriyordu**: yön doğru, mekanizma ölü.
+
+Doğrusu: `w` bir **göreli** ücret (üretkenliğe oran), dinamiği çekirdeğin kendi
+`d_pay`i, ve `pay = w · bileşim_çarpanı`. Bileşim dondurulunca çekirdeğe **tam
+indirgeniyor** — "yeni katman eskisini özel durum olarak içerir" disiplini.
+Düzeltmeden sonra bileşim etkisi 30 kat büyüdü (+0.0201) ve tabanda geçen süre
+%74'ten **%23**'e indi.
+
+> **Bir mekanizmanın YÖNÜ doğru çıkabilir ve mekanizma yine de ölü olabilir.**
+> Yön denetimleri bunu yakalamaz. `--v2-nufus`'a bu yüzden **yozlaşma
+> denetimleri** eklendi: ortalama işsizlik bandı, ve `pay`ın tabanda geçirdiği
+> sürenin yarıyı aşmaması. Kapı ancak yozlaşmayı görebiliyorsa "yeşile boyamak
+> için eşik gevşetilmedi" cümlesi anlam taşır.
+
+### Yedek sanayi ordusu: yönü doğru, ADOPTE EDİLMEDİ
+
+Marx'ta ücreti disipline eden şey istihdam düzeyi değil işsiz kütlesidir. Kanal
+kuruldu ve yönü ölçüldü (açıkken ücret düzeyi daha düşük, −0.36). Ama çapaya
+karşı tarandığında:
+
+> **ÇAPA (nüfus katmanı yok): ort pay 0.4433**
+
+| etki | ort pay | pay/çapa | tabanda | devrim |
+|---|---|---|---|---|
+| **0.00** | **0.3802** | **0.86** | **0.23** | **1926** |
+| 0.05 | 0.3525 | 0.80 | 0.29 | 1924 |
+| 0.20 | 0.3071 | 0.69 | 0.43 | 1924 |
+| 0.60 | 0.2564 | 0.58 | 0.54 | 1925 |
+
+Çapaya **en yakın olan 0.00**; her pozitif ağırlık ücret payını çapadan
+uzaklaştırıyor.
+
+> **Sebep çifte sayım — B2a'daki hatanın yeni kılığı.** Çekirdeğin Goodwin
+> terimi `bos_e = emek_gerginlik − e_norm` üzerinden işsizlik kanalını **zaten**
+> taşıyor. Üzerine ikinci bir işsizlik terimi eklemek aynı kuvveti iki kez
+> saymaktır; B2a'da "sermaye yoğunluğu iki kez yazılmaz" diye kayda geçen
+> kuralın aynısı.
+
+Kanal **silinmedi, adopte edilmedi**: varsayılan 0.0, yönü ölçülmeye devam
+ediyor. Goodwin'in kendi terimiyle **yer değiştirmesi** gerekir ve pazarlık
+bloğunu yeniden yazmak B3'ün işi — örgütlü/örgütsüz ayrımı ve `bolunme` orada
+kurulacak, özgün kanal orada tanımlanabilir hale gelecek.
+
+Bir ara adım da denendi ve yetmedi: sabit `issiz_norm` yerine **hareketli**
+norm (çekirdeğin `e_norm`u ile aynı gerekçe — kalıcı bir işsizlik kalıcı bir
+kesinti değil yeni bir normal üretir). Ücret düzeyini 1.10'dan 1.15'e taşıdı,
+yani sorunu çözmedi; hareketli norm yine de korundu çünkü kendi başına doğru.
+
+### Kalan sapma
+
+| | çapa | B2a+B2b |
+|---|---|---|
+| ort istihdam `e` | 0.6831 | **0.7752** |
+| ort ücret payı | 0.4433 | **0.3802** (0.86) |
+| devrim (tohum 42) | 1923 | 1926 |
+
+İstihdam çapadan **daha iyi**, ücret payı çapanın %86'sı, devrim üç yıl geç.
+Ücret payındaki fark kapatılmadı ve sebebi biliniyor: proleterleşme emek arzını
+nüfus artışının üstünde büyütüyor (emek gücü nüfusun 0.75'inden 0.93'üne), yani
+**yedek ordu kohortlardan kendiliğinden doğuyor**. Bu bir kusur değil B3'ün
+zemini; orada `pay`ın tabanı `org` ile birlikte hareket edecek.
+
+---
+
+## 7. Doğrulama: ne taşınır, ne taşınmaz
+
+| katman | v2'de |
+|---|---|
+| RNG akış paritesi, crc32, iz karşılaştırması | **düşer** — kâhin yok |
+| 10 kabul bandı | **düşer** — eski kalibrasyonun kaydıydı |
+| **9 mekanizma yön testi** | **TAŞINIR — tek ve birincil ölçüt** |
+
+Sebep belgenin kendi epistemolojisinde (§9.14): *"kabul bantları kalibrasyonun
+kaydıdır, bağımsız kriter değil; bağımsız olan yön testleridir"*. Yön testleri
+**büyüklük değil yön** iddia eder, dolayısıyla yeni bir motorda da sınanabilir.
+
+| test | iddia |
+|---|---|
+| LTRPF | `q↑` → `c/v↑` → `r↓` |
+| Otomasyon | `oto↑` → `canli_pay↓` → `r↓` |
+| Goodwin | `e ↔ pay` pozitif, `pay ↔ r` negatif |
+| Thirlwall | yüksek `q` → yüksek `eps/pi_m` |
+| Minsky | finansallaşma kapalı → daha az Minsky |
+| Kriz devalüasyonu | devalüasyon kapalı → `r` daha çok düşer |
+| Sosyalist bolluk/kıtlık | bolluk → düşük protesto riski |
+| Karanlık devlet | tolerans kapalı → daha az uyuşturucu |
+| Politik özne | parti açık → daha yüksek örgütlü güç |
+
+**Karanlık devlet için yeni yön testleri** (§4 mekanizması test edilebilir
+olmalı, yoksa "çalışıyor" diyemeyiz):
+
+| yeni test | iddia |
+|---|---|
+| Bölünme → örgütlenme | `bolunme↑` → `org` birikimi yavaşlar |
+| Bölünme → ücret | `bolunme↑` → `pay` kazanımı düşer, `r` korunur |
+| Rıza aygıtının bedeli | rıza kolu açık → `qg` düşer → uzun vadede `r` **daha çok** düşer |
+| Zor aygıtının bedeli | zor kolu açık → `cezaevi_orani↑` → `l_etkin()↓` → `V↓` |
+| Şehit etkisi | siyasi cinayet → kısa vadede `org↓`, orta vadede `Omega↑` |
+| Karşı hareket | sendika/parti güçlü → `bolunme` birikimi tersine döner |
+
+> **Kural:** B3 bitmeden B5'e geçilmez. Testleri geçmeyen bir motor Victoria
+> kabuğuna sarıldığında **güzel görünen ama iktisadi olarak anlamsız** bir oyun
+> olur — ve bu oynayarak fark edilmez.
+
+---
+
+## 8. Riskler
+
+**8.1 Ölçekleme sessizliği.** §5.2. Tur→hafta dönüşümü her oran parametresini
+etkiler; bazıları stok, bazıları akım — toplu çarpanla geçiştirilemez.
+
+**8.2 Mikro-makro tutarsızlığı.** Mikro katman `pay` ve `e` üretiyor, Goodwin
+bloğu `pay`'i **geri** yazıyor. Her alan için kimin otorite olduğu
+kararlaştırılmalı, yoksa iki katman birbirini ezer.
+
+**8.3 Başarım.** 5200 tik × ~100 ülke = 520 000 ülke-tik; v4.4'ün 1259 × 20'si
+25 180'di, yani **~21 kat** ağır — üstelik bu yalnızca değer katmanı.
+
+**8.4 Bölünme mekanizmasının dengesi.** §4 güçlü bir kol: yanlış kalibre
+edilirse ya devrimi imkânsız kılar ya da etkisiz kalır. Karşı hareket (§4.4)
+ve rıza aygıtının `qg` bedeli bu dengenin iki sigortasıdır; ikisi de yön
+testiyle korunmalı.
+
+**8.5 Kapsam.** B0–B3 iktisadi çekirdeği kurar ve tek başına anlamlı bir
+oyundur; B4–B7 kademeli büyütülebilir.
+
+**8.6 Kapalı ekonomi kriz üretmiyor — bu modelin KUSURU.**
+
+B0 sonunda "bu modelde kriz uluslararasıdır, kapalı ekonomi istikrarlıdır"
+diye yazmıştım. **Bu aşırı yorumdu ve geri alınıyor.**
+
+Marx'ta kriz eğilimi sermayenin kendi içindedir: aşırı üretim işçilerin
+toplam ürünü satın alamamasından, kâr oranının düşüşü organik bileşimin
+yükselmesinden doğar. İkisi de dış ticaret gerektirmez. **Kapalı bir
+kapitalist ekonomi krizsiz kalamaz.**
+
+Ölçtüğüm ile çıkardığım ayrılmalı:
+
+| ölçüm | çıkarım |
+|---|---|
+| Tek ülkeli koşu 198 yılda 0 kriz; v4.4'ün ABD'si de `talep_acigi=0` | ~~"kriz uluslararasıdır"~~ **yanlış** |
+| | **doğrusu:** model, olması gereken krizi üretmiyor |
+
+Kendi verim de bunu doğruluyordu ve okumamıştım: aynı dökümde, **çağ 1'de,
+otomasyon yokken** Almanya `talep_acigi = 0.295`, Çin `0.303`. Yani v4.4'ün
+19. yüzyıl aşırı üretim kanalı **vardır**; benim tek ülkeli parametrelemem
+tesadüfen talebin bol olduğu bölgeye düşmüştü.
+
+### B1a'da yapılanlar ve kalan
+
+Üç mekanizma eklendi. **Üçü de gerekli, üçü birlikte hâlâ yeterli değil.**
+
+**1. Yenileme yatırımı kârlılığa bağlandı.** v4.4'te brüt yatırım
+`(g + δ)·K` idi; `δ·K` kârlılıktan bağımsız bir **talep tabanı** kuruyordu.
+Marx'ta kârlılık kaybolunca kapitalist eskiyen sermayeyi yenilemez bile.
+Artık `yenileme = taban + (1−taban)·sg(duyarlılık · (r−i)/i)`.
+
+**2. Departman I / II kuruldu.** Bu **yapısal bir zorunluluktu**: tek mallı
+bir modelde gerçekleşme krizi imkânsızdır, çünkü yatırım talebi ile tüketim
+talebi aynı farksız hasılayı satın alır ve orantısızlık doğamaz. Artık
+Departman I üretim aracı üretir (alıcısı yatırım), Departman II tüketim malı
+(alıcısı ücret ve kamu), ve **ikisi birbirinin yerine geçemez**. Sermayenin
+departmanlar arası yeniden dağılımı yavaştır — kriz tam da bu yavaşlığın
+ürünüdür.
+
+**3. Emek gerginliği eklendi.** `e` tanımı gereği 1.0'da doyar; emek bağlayıcı
+kısıt olduğunda Goodwin terimi `bos_e = e − e_norm → 0` ile **ölür**.
+Gerçekte tam istihdam ücret baskısının bittiği yer değil, en şiddetli olduğu
+yerdir. Gerginlik 1.0'ı aşabilir ve pazarlığı yaşatır.
+
+Sonuç: fiyat ve faiz artık **salınıyor** (`pi` 0.018→0.027→0.001→0.026,
+`i` 0.005→0.023→0.032→0.005). Goodwin kanalı canlandı.
+
+### Kalan sorun: salınım genliği trende göre çok küçük
+
+Ölçüldü (1836–1956, haftalık):
+
+| | değer |
+|---|---|
+| toplam talep / potansiyel hasıla | **1.27 → 1.86** |
+| yatırım / potansiyel hasıla | 0.52 → **1.09** |
+| kâr oranı | 0.098 → 0.053 |
+| faiz | 0.005 → 0.032 |
+
+Talep kapasiteyi kalıcı olarak aşıyor, dolayısıyla **hiçbir departmanda
+satılamayan mal birikemiyor.** Kök neden nicel: `c/v` 8'e çıkınca yıllık
+`K/Y ≈ 8` oluyor ve `δ = %7.6/yıl` ile **amortisman tek başına hasılanın
+%60'ı** ediyor. Gerçek ekonomilerde bu oran %10–20'dir.
+
+Ve `r` (0.05–0.10) faizin (0.005–0.03) çok üstünde kaldığı için kârlılık
+sıkışması hiç bitmiyor; model kârlılık krizini ancak yayın **sonunda**
+(2050–2100, `r → 0.005`) üretiyor. Yani **tek bir terminal kriz** çıkıyor,
+tarihsel kayıt ise 198 yılda ~27 çevrimsel kriz istiyor.
+
+> **Teşhis: mekanizmalar yerinde, genlik yetersiz.** Çevrim trendin
+> etrafında salınmıyor, trendin üstünde düzgün ilerliyor.
+
+Sıradaki adaylar, en umut vericiden başlayarak:
+
+1. **Goodwin kazancı** (`phi`) ve **hızlandırıcı** çok zayıf — çevrimi
+   büyütecek olan bunlar
+2. **Kredi çevrimi** — `kredi_egilimi` ve borç limiti balonu besleyecek kadar
+   büyük değil; Minsky hiç ateşlenmiyor (`varlik → 0`, çünkü `r > i_spec`)
+3. **`kv`'nin sürüklenmesi** — `K/Y`'nin 8'e çıkması amortisman talebini
+   şişiriyor; `kappa_v`'ye tavan ya da `δ`'nın sermaye kalitesiyle düşmesi
+
+
+---
+
+## 6d. B2c — mal piyasası
+
+### Ölçüt dördüncü kez: "okunur" bir niyet, kapı değil
+
+§6 B2c için "gerçekleşme krizi bir sayı değil kütle olarak okunur" diyordu.
+Bu, öncekilerin aksine **ayırt ediyor** — stok olmadan cümle kurulamaz. Ama
+"okunur" bir niyettir; kapıya çevrilmesi gerekti. Stok olmadan tanımsız olan
+iddia:
+
+> Aşırı üretim krizinin bir **süresi** vardır. Yığın birikince kapitalist dolu
+> depoya üretim yapmaz; üretim kısılır, istihdam düşer, talep daha da düşer.
+
+Bir akım bunu üretemez: "geçen dönem satılmadı" der ve susar. Bir stok "hâlâ
+duruyor" demeye devam eder. Ölçüt bu yüzden **süre**dir, sıklık değil.
+
+### Tek yapısal ekleme: `stok += uretim − satis`
+
+Çekirdek satılamayan ürünü `satilamayan_I/II` diye tutuyordu ama bunlar
+**akım**dı — dönem bitince buharlaşıyorlardı. Dört kategori (§5.10: tüketim,
+sermaye, hammadde, lüks) artık stok taşıyor, satış `min(arz, talep)` ile
+temizleniyor ve defter her dönem birebir kapanıyor. `max(0,…)` koruması
+kampanya boyunca yalnızca **1.1e-15** mertebesinde ateşliyor — yani hiç.
+
+### İlk iddia ters çıktı
+
+"Stok krize süre kazandırır" diye yazmıştım. Ölçüldüğünde tam tersi çıktı:
+
+| | stok yok | stok var, kısma yok | stok + kısma |
+|---|---|---|---|
+| aşırı üretim epizodu | 9 | 4 | **43** |
+| ort. epizot süresi | **15.72 yıl** | 48.69 yıl | **2.07 yıl** |
+| ort. talep açığı | 0.2247 | 0.7499 | 0.0881 |
+
+Sebep anlaşılınca iddia da düzeldi. Stoksuz kolda `talep_acigi` bir akım
+oranıdır ve onu geri çekecek hiçbir mekanizma yoktur: açık açılır ve
+**onyıllarca açık kalır**. Yani orada "epizot" diye ölçülen şey bir kriz değil
+**kalıcı bir durumdur** — tarihsel kayıtta öyle bir şey yok. Stok, yığını
+üretimi kısarak temizliyor ve aşırı üretimi tekrar bir **olaya** çeviriyor.
+
+> **Doğru ölçüt yön değil BANT.** İki kol da bandın dışındaydı — biri onlarca
+> kat uzun, diğeri beş kat kısa. Tarihsel aşırı üretim krizleri 1–3 yıl sürer.
+
+### Kalibrasyon — ve çapa bu kez tarihsel
+
+B2a ve B2b'de çapa çekirdeğin kapalı formuydu. Burada olamazdı: kapalı formda
+epizot 15.7 yıl sürüyor, yani çapa olacak büyüklük orada zaten bozuk.
+
+| kısma | erime | epizot | ort süre | ort açık |
+|---|---|---|---|---|
+| 0.05 | 0.20 | 8 | 19.48 | 0.3504 |
+| 0.20 | 0.20 | 13 | 9.30 | 0.1401 |
+| 0.28 | 0.20 | 26 | 3.72 | 0.1026 |
+| 0.30 | 0.20 | 27 | 3.65 | 0.0970 |
+| **0.33** | **0.20** | **43** | **2.07** | **0.0881** |
+| 0.36 | 0.20 | 50 | 1.46 | 0.0805 |
+| 0.60 | 0.20 | 78 | 0.21 | 0.0349 |
+
+> **İki çapa çelişiyor ve seçim kayda geçiyor.** Epizot **sayısı** için en iyi
+> değer 0.30 (27 epizot, tarihsel 27 ile birebir); **süre** için 0.33 (2.07
+> yıl). Süre seçildi çünkü B2c'nin iddiası süredir ve sayıyı `--v2-tarih`
+> zaten kendi ölçütüyle kapılıyor. 43 epizot tarihsel 27'nin üstünde, ama bu
+> B2c'nin getirdiği bir fazlalık değil: B1a'dan beri bilinen "model tarihten
+> daha kriz-yatkın" özelliği.
+
+### Orantısızlık ölçüldü
+
+Kategoriler ayrışıyor: ortalama (en dolu − en boş) stok/üretim farkı **0.236**.
+Biri dolarken diğeri boş — Marx'ın orantısızlık krizinin motordaki imzası, ve
+tek bir `talep_acigi` skaleriyle **tanımsız**.
+
+---
+
+## 6e. B3 — karanlık devlet, bölünme ve karşı hareket
+
+### Ölçüt beşinci kez düzeltilmedi — §7 baştan ayırt ediyordu
+
+B1b, B2a, B2b ve B2c'de ölçüt dört kez düzeltilmek zorunda kalmıştı: eski
+kapılar mekanizma eklenmeden de yeşil veriyordu. B3'te bu sorun yok. §7'nin
+altı yön testinin altısı da `bolunme` olmadan **tanımsız** — bir kapı ancak
+ölçtüğü şey yokken kurulamıyorsa gerçekten kapıdır.
+
+Ama §7'nin listesi yön iddialarıdır ve B2b'nin dersi hâlâ geçerli (yönü doğru
+bir mekanizma ölü olabilir). Kapı bu yüzden **üç kademelidir**: özdeşlik →
+yön → canlılık. 33 denetim.
+
+### Tek bir "karanlık devlet kadranı" yok — sekiz adlandırılmış taktik var
+
+§4.6'nın temsil ilkesi bunu zaten şart koşuyordu ("mağdurları adlandırılmış,
+bedelleri sayılmış politikalar; 'etkinlik' kolu gibi sunulmaz"). Ama gerekçe
+temsilî olduğu kadar mekaniktir de: sekiz taktik tek ölçeğe indirgenseydi
+hepsi aynı davranır ve **"bedeli kim ödüyor" sorusu motorda tanımsız kalırdı.**
+
+| taktik | aygıt | bölünme | kendi kanalı |
+|---|---|---|---|
+| uyuşturucuya göz yumma | rıza | orta | `mafya_tolerans` → `uo` → lumpen → gasp → **spekülatif stok** (Minsky'yi besler) |
+| cemaat / tarikat ağları | rıza | orta | eğitim tabanı aşınır |
+| mistisizm, astroloji, evrim karşıtlığı, düz dünyacılık | rıza | düşük | **eğitim/bilim en ağır aşınma** → `qg` düşer |
+| milliyetçilik, mülteci düşmanlığı, ırkçılık | rıza | **en yüksek** | topluluklar arası şiddet → `PR` sönümü |
+| LGBT düşmanlığı, kadınlara baskı | rıza | yüksek | **katılım düşer** → canlı emek → `V` düşer |
+| sendikal harekete baskı, grev kırma | zor | düşük | `org` doğrudan kırılır |
+| muhalif tutuklama | zor | düşük | `cezaevi_orani` → `l_etkin`, `PC`, eğitim |
+| paramiliter faşist gruplar, siyasi cinayet | zor | yüksek | **şehit stoku** → `org` kısa, `Omega` orta |
+
+Milliyetçilik en ağır basar çünkü §4.1'in tarif ettiği şey tam olarak odur:
+öfkenin **hedefini** sınıftan komşuya çevirmek. Ötekiler zemini hazırlar.
+
+### v4.4'ün karanlık devleti dar değil TAMDI — taşınmamıştı
+
+v2'nin ilk yazımında `uyusturucu_orani` ve `cezaevi_orani` **çıktı olarak**
+taşınmış, onları **süren denklemler** taşınmamıştı. Yani iki alan çekirdekte
+okunuyor ama hiçbir şey tarafından yazılmıyordu: lumpen kanalı, karseral
+sönüm ve meşruiyet aşınması 198 yıl boyunca 0.0'da **ölü** duruyordu.
+
+Taşınanlar (v4.4'ün kendi denklemleri, birim çevrimiyle): endojen mafya
+toleransı, lojistik uyuşturucu yayılımı, karseral nüfus formülü, eğitim
+birikimi (güvenlik harcamasının eğitimi dışlaması), nitelikli emek çarpanı.
+
+Eklenenler (v4.4'te karşılığı yok): `bolunme` ve üç kanalı, sekiz taktik,
+şehit stoku, **karşı hareket**, `topluluk_siddeti`, `sinif_basinci`.
+
+### Çapa özdeşliği — ve neden gölge gerekti
+
+Katman takılı değilken çekirdek **birebir** aynı (dokuz kapının dokuzu da
+bayt bayt aynı çıktı verdi). Ama `nitelik` için bu yetmedi.
+
+İlk yazımda `nitelik` **başlangıç değerine** göre normalize ediliyordu ve
+özdeşlik kırıldı: taşınan eğitim denklemi kendi dengesine gidiyor (0.30 →
+0.09), ham `nitelik` taktikler **kapalıyken bile** 0.9019'a düşüyordu. Yani
+katmanı takmak tek başına `q` büyümesini %10 yavaşlatırdı — ve `q` yalnızca
+üretkenlik değil **çağ tablosunun tetikleyicisidir**, yani bu sessiz yavaşlama
+devrimin takvimini kaydırırdı. B2a'da tam olarak bu yaşanmıştı.
+
+Çözüm dört **gölge değişken**: `tolerans_capa`, `uo_capa`, `cezaevi_capa`,
+`egitim_capa`. Gerçekle aynı denklemleri koşarlar, tek fark taktik
+terimlerinin sıfır olmasıdır. Böylece `nitelik` bir **düzey değil sapma**
+ölçer ve taktikler kapalıyken oran birebir 1.0'dır.
+
+### §4.3'ün kâr oranı iddiası ölçüldü ve TERS ÇIKTI
+
+Belge şöyle diyordu:
+
+> `q` büyümesi, LTRPF'ye karşı elindeki **tek karşı eğilimdir**. Karanlık
+> devlet bugün devrimi öteler, **yarın kâr oranını daha da düşürür.**
+
+**Bu motorda yanlış.** `qg` LTRPF'nin karşı eğilimi değil, **sebebidir**:
+q yükselir → c/v yükselir → r **düşer**. Dolayısıyla q büyümesini aşındırmak
+kâr oranını düşürmez, **yükseltir**.
+
+| mistisizm 1.0 | çapa | taktik açık |
+|---|---|---|
+| eğitim (son) | 0.0882 | **0.0000** |
+| `q` (son) | 20.01 | **15.87** |
+| hasıla (ort) | 1570.5 | **1268.2** |
+| **kâr oranı (son ⅓)** | 0.04915 | **0.06684** |
+
+İddia düzeltildi: **rıza aygıtının bedeli kâr oranında değil, üretkenlik ve
+hasıladadır.** Ortaya çıkan sonuç daha da çarpıcı — karanlık devlet, kârlılığı
+aşındıran sürecin **kendisini** yavaşlatarak kâr oranını ayrıca korur; ödenen
+bedel üretici güçlerin gelişimidir. §4.3'ün "geleceğini yiyerek satın alır"
+tezi ayakta, ama yenen şey kâr oranı değil **hasıla**.
+
+Rıza aygıtının kâr oranına giden asıl kanalı başkadır ve o tutuyor:
+uyuşturucu → gasp → **spekülatif stok** (1955.65 → 2108.59), yani Minsky.
+
+### §4.1'in "öfke yerinde kalır" iddiası — ölçüm iki kez düzeltildi
+
+İlk kurulumda tam kapasite kol kullanıldı ve imza **tersine** çıktı: `Omega`
+0.2377'den 0.0018'e çöküyordu. Sebep bölünme değil — uyuşturucu ve hapsetme
+v4.4'ün **kendi yatıştırma kanallarıdır** (`lumpen_sonum`, `karseral_sonum`)
+ve uyuşturulmuş ya da hapsedilmiş bir nüfus gerçekten öfkesini kaybeder.
+Onlar öfkeyi **azaltır**; bölünme ise öfkeyi azaltmaz, **hedefini** değiştirir.
+
+İkinci düzeltme: iddia `Omega` üzerinden kurulamaz. `Omega` bir **stoktur** ve
+örgütlülükle **çarpılarak** birikir, dolayısıyla bölünmüş bir sınıfta daha
+yavaş birikir. Ölçülmesi gereken **basınçtır**. Motora iki yeni çıktı eklendi:
+
+```
+sinif_basinci  ==  PR  +  topluluk_siddeti        (özdeşlik)
+```
+
+Saf bölünme (milliyetçilik 1.0) ile ölçüm:
+
+| | çapa | bölünme |
+|---|---|---|
+| sınıfsal basınç | 0.7360 | **0.7853** (azalmıyor) |
+| `PR` (sınıfsal ifade) | 0.7360 | **0.5939** (kırılıyor) |
+| topluluklar arası şiddet | 0.0000 | **0.1914** |
+
+`topluluk_siddeti` §4.6 gereği **görünür bir metriktir**, gizli bir çarpan
+değil: sınıfsal kanaldan çekilen enerji yok olmaz, komşuya yönelir.
+
+### §8.4'ün birinci riski gerçekleşti — ve mekanizmanın içinden çözüldü
+
+§8.4: *"yanlış kalibre edilirse ya devrimi imkânsız kılar ya da etkisiz
+kalır."* Birincisi gerçekleşti: bölünme devrimi ertelemiyor, **tümden
+kapatıyordu**.
+
+Sebep çekirdeğin eşik yapısının keskinliği: `pr_esik = 0.74`,
+`pr_esik_omega = 0.06`, yani öfke tavana dayansa bile eşik ancak 0.68'e iner.
+Çapa koşusunda `PR` 0.736 ile o eşiği **kıl payı** aşıyor — dolayısıyla `PR`'yi
+%8'den fazla sönümleyen **herhangi** bir mekanizma devrimi sonsuza kadar kapatır.
+
+Ölçüldü: sönüm tavanı 0.35'ten 0.05'e indirildiğinde bile (`PR` 0.580 → 0.728,
+çapaya neredeyse eşit) devrim **575 yıllık ufukta bile** gelmiyordu. Yani
+seçenek "mekanizmayı öldüresiye zayıflat" ile "devrimi imkânsız kıl"
+arasındaydı; ikisi de kabul edilemez.
+
+Üçüncü yol mekanizmanın kendi içindeydi ve Marx'ın kendi iddiasıdır:
+**kriz sınıf çizgilerini gizlemez, görünür kılar.** Protesto sönümü `Omega`
+ile zayıflar (`bolunme_omega_kirilma = 0.85`); yeterince derinleşmiş bir
+öfkede bölünme anlatısı tutmaz.
+
+> `pr_esik_omega`'yı büyütmek de bir seçenekti ve **reddedildi**: o sabit çapa
+> koşusunu da değiştirir, yani B1/B2'nin bütün kalibrasyonunu kaydırırdı.
+> Seçilen çözüm `bolunme = 0` iken özdeşlikle nötrdür.
+
+Sonuç: devrim **1984 → 2241**, yani 258 yıl ertelendi ama olmaya devam ediyor.
+
+### Bir mertebe hatası, ölçümle yakalandı
+
+`sehit_org_yil` önce 0.30 seçilmişti. Çekirdeğin örgütlenme akımları yılda
+**0.006–0.013** mertebesindedir (`org_kent_yil` 0.0059, `org_kriz_yil` 0.0081,
+`org_baski_yil` 0.0130) — yani ilk değer otuz kat büyüktü. Sonucu: `org`
+0.465'ten 0.04'e çöküyor, `Omega` onunla sönüyor ve devrim imkânsızlaşıyordu.
+
+> **Yeni bir kanal eklerken büyüklüğü komşu terimlerle kıyasla.** Tek başına
+> "makul görünen" bir sayı, motorun kendi ölçeğinde bir felaket olabilir.
+
+### Karşı hareket dekor değil — iki katlı
+
+§4.4 sendika ve partinin "karşı etkileri olmalı" diyordu. Motorda iki ayrı
+katman olarak kuruldu:
+
+1. **Geri çekme** — `bolunme` stokunu doğrudan eritirler. Ölçüldü: karşı
+   hareket kapalıyken bölünme 1.0000'a dayanıyor, açıkken 0.7487'de duruyor.
+2. **Direnç** — `parti_direnc` üç kanalın **üçünde birden** sönümlemeyi kırar,
+   yani bilinçlendirme karanlık devletin kanallarını tek tek kapatır.
+
+Canlılık denetimi: bölünme taktikler **açıkken bile** kampanyanın %85.1'inde
+gerileyebiliyor. Yani yarış gerçekten iki taraflı.
+
+### Tam kapasite — kapı değil kayıt
+
+Sekiz taktiği birden tam kapasite kullanan bir devlet devrimi gerçekten
+önler. Bedeli:
+
+| | çapa | tam kapasite |
+|---|---|---|
+| `q` (son) | 20.0 | **15.0** |
+| hasıla (ort) | 1571 | **916** |
+| yeni değer `V` (ort) | 713 | **598** |
+| devrim | 1984 | **yok** |
+
+§4.3'ün tezi burada sayılarla duruyor: toplumsal barış satın alınabilir, ve
+bedeli üretici güçlerin gelişimidir.
+
+---
+
+## 6f. B4 — savaş bir kriz çıkışı olarak
+
+### Ölçüt beşinci kez düzeltilmedi
+
+§6'nın tablosu B4 için tek cümle yazıyordu: **"savaş sonrası kâr oranı yukarı,
+nüfus aşağı."** Bu, B1b/B2a/B2b/B2c'nin aksine baştan ayırt ediyor — savaş
+katmanı olmadan kurulamaz bile, çünkü "savaş sonrası" diye bir an yoktur.
+
+Ama tek başına yetmiyor, ve sebebi §3.2'nin kendi cümlesinde: *"savaş sermayeyi
+imha eder, sermayenin imhası kâr oranını yükseltir."* Yani ölçüt bir **mekanizma
+iddiasıdır**, bir sonuç gözlemi değil. `r = s/K` olduğu için `K`'yı yıkan
+**herhangi** bir şey `r`'yi yükseltir; testin işi bunun savaş yıkımından
+geldiğini göstermek. Kapı bu yüzden zinciri ayrı ayrı ölçüyor.
+
+### Ana ölçüt — 3 tohum, 14 epizot
+
+| | ölçüm |
+|---|---|
+| kâr oranı, savaş sonrası | **+0.02213**, 14/14 epizotta artıyor |
+| nüfus, savaş sonrası | **−%13.20**, 14/14 epizotta azalıyor |
+| sermaye stoku (karşı-olgusal) | savaşlı 666 239 < barışçı 868 674 |
+
+Tek tohumda iki epizot bir ölçüm değil anekdottur; deponun kendi kuralı
+(§10: "en az üç tohum gerekir") savaş için de geçerli.
+
+### Savaş süresi v4.4'ten devralınmadı — tarihsel çapaya çekildi
+
+v4.4 `sv_min_sure = 20`, `sv_max_sure = 70` **tur** diyor, yani 5.4–18.9 yıl.
+Ölçüldü: ortalama savaş **15.3 yıl** sürdü ve epizot başına nüfus kaybı
+**%31.8**'e çıktı — yönü doğru, büyüklüğü tarihin iki katından fazla. Çapa:
+1. Dünya Savaşı 4 yıl (Fransa ~%4), 2. Dünya Savaşı 6 yıl (SSCB ~%13).
+
+v2 v4.4'ün **kalibrasyonunu değil denklemlerini** devralır (§1). Süre 1.5–7
+yıla çekildi; ortalama 6.4 yıl, kayıp %13.2 — 20. yüzyılın büyük savaşlarının
+mertebesi.
+
+> **Bir yön testi bandı olmadan yeşil verir.** İlk kalibrasyonda "nüfus aşağı"
+> denetimi 14/14 geçiyordu — %31.8 kayıpla. Yön doğruydu, büyüklük saçmaydı.
+> B2b'nin dersinin savaş biçimi: bant denetimi yön denetiminin yerini tutmaz.
+
+### Muhasebe zinciri yanlış kuruldu, ölçümle düzeldi
+
+İlk yazımda "savaş içinde `K` dip < `K` baş" diye ölçüldü ve **0/2 epizotta**
+kaldı. Mekanizma yok değildi — ölçüm yanlış kurulmuştu: `K` savaş sırasında da
+birikimle büyüyor, yani yıkım gerçek ama net düzey yine de yükselebiliyor.
+
+Doğru soru "K düştü mü" değil, **"savaş olmasaydı K ne olurdu"** — yani
+karşı-olgusal. Aynı tohum, savaş katmanı açık/kapalı: 666 239 vs 868 674.
+
+### §3.1'in kanalları ölçüldü
+
+| iddia | ölçüm |
+|---|---|
+| savaş **krizden doğar** (`sikisma = (sv_r_ref − r)/sv_r_ref`) | savaşa girenin kâr oranı 0.0586, girmeyenin 0.0662 |
+| `saldirganlik` gerçekten o kol | 0.0'da **hiç** savaş yok, 0.35'te var |
+| savaş **aşırı üretimi emer** | talep açığı savaşta 0.1455, barışta 0.2205 |
+
+Üçüncüsü §3.1'in "aşırı üretim → yeni pazar, gerekirse zorla" satırının
+motordaki en dolaysız biçimi: savaş gerçekleşme krizini **çözer**, çünkü
+satılamayan ürün sorunu ortadan kalkar. Bedeli yıkımdır.
+
+### Birim tuzağı denetimi
+
+`sv_min_sure`/`sv_max_sure` tur cinsindendi; haftalık döngüye kopyalansaydı
+savaşlar 14 kat kısa sürerdi. Haftalık ile aylık koşu aynı savaş yoğunluğunu
+veriyor (%1.3 / %1.0), yani tuzağa düşülmemiş.
+
+### Karşı-devrim kuruldu
+
+Yenilen bir sosyalist rejimde kapitalizm zorla restore edilebiliyor
+(`kd_askeri_olasilik`). §3.1'in "bir yerde devrim oldu → kuşatma, abluka,
+müdahale" satırının en sert ucu. Emperyalist müdahale ayrıca ayrı bir kanal
+olarak duruyor ve ayrı kapatılabiliyor — ikisi aynı kapıdan geçseydi hangi
+kanalın sonucu ürettiği bilinemezdi.
+
+### B3'ten devredilen ölçüm: karanlık devletin bedeli çok ülkeli dünyada
+
+B3'te bir denge açığı ölçülmüştü — tek ülkeli koşuda karanlık devlet devrimi
+önlüyor **ve** kâr oranını yükseltiyor, tek bedeli hasıla; zafer koşulu
+olmadığı için kol neredeyse **bedavaydı**. Karar kayda geçmişti: *"önce
+ölçelim, sonra karar."* B4 çok ülkeli dünyayı kurduğu için ölçüm artık yapıldı.
+
+Ölçülen ülke "Orta", sekiz taktik tam kapasite, aynı tohum, aynı dünya:
+
+| | karanlıksız | karanlık |
+|---|---|---|
+| ort kâr oranı | 0.0691 | **0.0983** |
+| üretkenlik `q` | 20.01 | 14.22 |
+| sermaye `K` | 50 136 | **3 773** |
+| birikmiş `NX` | −4 790 | −3 328 |
+| bileşik dış konum | −10 214 | −6 044 |
+| devrim | 1922 | **yok** |
+| **savaşta geçen dönem** | **0** | **160** |
+| yenilgi | 0 | 0 |
+
+**Karşı ağırlık doğdu ama zayıf.** Karanlık devlete sarılan ülke 13 kat
+küçülüyor ve savaşa çekiliyor (0 → 160 dönem) — `guc() = K·q` çöktüğü için av
+haline geliyor, `savas_karari`'nın hedef seçimi tam da zayıfı arıyor. Ama
+henüz **yenilgi yok**, yani ceza fiilen kesilmiyor.
+
+> **Karar hâlâ açık.** Ölçüm karşı ağırlığın var olduğunu gösteriyor ama
+> yeterli olduğunu göstermiyor: kapitalist oyuncu için kâr oranı hâlâ yüksek,
+> devrim hâlâ yok. Abluka ve ambargo (B4'ün kalan işi) bu tabloyu değiştirebilir
+> — ülke zaten küçülmüşken dış pazarı da kesilirse ceza gerçekleşir. Tablo o
+> mekanizmalar kurulduktan sonra tekrar okunmalı.
+
+### B4'ün kalan işi
+
+Savaş kuruldu. §3.3'ün ittifak/blok mekanizması (`muttefik` alanı hazır ama
+işlenmiyor), abluka ve ambargo (`Dunya.aciklik` hazır ama savaşa bağlı değil),
+ve himaye henüz yok.
+
+### B4'ün kalanı kuruldu — abluka, ambargo, ittifak
+
+**Abluka çift üzerinde tanımlıdır**, ve bu zorunluydu. Deponun kuralı açık:
+"ülke başına çarpan uygulamak (abluka, açıklık) **çifte simetrik** olmalıdır",
+ve v4.4'ün L bloğunu bozan şey tam olarak buydu (korunum hatası %57). Kesinti
+çiftin **toplam hacmine** uygulanır; iki taraf aynı küçülmüş hacmi paylaştığı
+için `sum(NX) == 0` kırılmaz. Ölçüldü: abluka açıkken bağıl korunum hatası
+`< 1e-9`.
+
+Üç kaynak, üçü de §3.1'in tablosundan: **savaş** (0.95 — tam kapanma değil,
+kaçakçılık her savaşta vardır), **kuşatma** (devrim olan ülkeye, kuşatanın
+saldırganlığıyla ölçeklenir), **ambargo** (rejim karşıtlığı + blok tehdidi).
+
+İttifaklar: sosyalist pakt kendiliğinden kurulur; kapitalist ittifak **ortak
+düşmana** bağlıdır. v4.4'ün `PYTHONHASHSEED` kusuru devralınmadı — dizi sıralı.
+
+**§4.5 kapandı.** `otomatik` kolu artık sınanıyor: AI ülkeleri karanlık araca
+kendiliğinden sarılıyor (en yüksek tolerans 0.887).
+
+### Savaş sıklığı — çapa tutturulamadı, ve sebebi yapısal
+
+Süre tarihsel çapaya çekilmişti; sıklık çekilmemişti. Ölçüldü ve **iki kez
+şaşırttı**.
+
+Önce `saldirganlik` tarandı: 0.20→0.90 aralığında sıklık 0.34 / 0.54 / 0.47 /
+0.27 / 0.61 — **gradyan değil gürültü**. Sonra ayrı bir çarpan eklendi, 10 kat
+büyütüldüğünde sıklık ancak 2 katına çıktı. Yani bağlayıcı kısıt **olasılık
+değil**.
+
+Hipotez ölçüldü: **hedef bulunabilirliği.** Hedef seçimi `guc < 1.15·guc`
+istiyor; beş ülkeli ve ayrışmış bir dünyada zayıf ülkenin saldıracağı kimse
+yok, güçlü ülke de savaşa girince kilitleniyor.
+
+| ülke sayısı | zaman payı | savaş/ülke-yüzyıl |
+|---|---|---|
+| 5 | 0.013 | 0.27 |
+| 10 | 0.016 | 0.34 |
+| 20 | 0.033 | 0.79 |
+
+Doğrulandı. Ve tarihsel çapanın (yüzyılda 1–4 savaş) kendisi zaten **50+
+devletli** bir dünyadan geliyor.
+
+> **Seçim 20 ülkelik kolda yapıldı, 5'te değil.** Kalibrasyon karar verilen
+> kurulumda yapılır ve oyunun hedefi ~100 ülkedir (B6), test dünyası değil.
+> `savas_siklik = 5.0` → 20 ülkede zamanın %6.9'u savaşta, yüzyılda 1.58 savaş
+> — iki eksende de bantta. Beş ülkelik test kolunda oran daha düşük kalır ve
+> bu beklenendir. **Ölçüt B6'da ~100 ülkeyle yeniden okunmalıdır.**
+
+### Aynı ölçüm hatası üçüncü ve dördüncü kez
+
+Sıklık 5'e çıkarılınca iki denetim düştü, ikisi de **ölçüm tasarımı** hatasıydı:
+
+1. **Kâr oranı karşılaştırması trendi ölçüyordu.** İlan anındaki `r` kampanya
+   geneli ortalamayla karşılaştırılıyordu; `r` 0.10'dan 0.04'e düştüğü ve
+   ilanlar erken yıllarda kümelendiği için ilan edenler otomatik olarak yüksek
+   çıkıyordu (0.0937 vs 0.0711). Eş-zamanlı kesitle ölçülünce **−0.0067**.
+2. **Abluka dünya toplamıyla ölçülüyordu.** Abluka açıkken dünya hacmi *daha
+   büyük* çıktı — abluka edilen ülkenin malları satılamayınca `_itki` onu kalan
+   çiftlere daha sert asıyor, ve iki yörünge 198 yılda kaotik olarak ayrışıyor.
+   Abluka edilen **çiftin kendi hacmiyle** ölçülünce: **1.9 / 61.6**.
+
+> Bu ailenin dört üyesi oldu: mutlak `NX` yerine `NX/Y`, ham `l_etkin` yerine
+> çarpan, kampanya ortalaması yerine eş-zamanlı kesit, dünya toplamı yerine
+> çift hacmi. **Düzey karşılaştırması trendi ölçer, mekanizmayı değil.**
+
+---
+
+## 6g. B5 — harita
+
+### Ölçüt: üç sayı yetmiyordu
+
+§6'nın tablosu "20+ ülke, dokuz mod, bağlar çizili" diyor. Sayılabilir ama
+**tek başına kapı değil**: üçünü de tutturan, üstelik yanlış yeri gösteren bir
+harita yazmak kolaydır. Haritada yanlış olmanın üç yolu var ve üçü de
+**oynayarak fark edilmez**:
+
+1. **Geometri bozuk olabilir** — üçgenlemesi boşa düşen bir halka. Ekranda bir
+   ülke eksik olur ve kimse hangisinin eksik olduğunu bilmez.
+2. **İsabet testi kayabilir** — tıklanan yer ile seçilen ülke ayrışır. Komşu
+   ülkeyi seçmek doğru görünür.
+3. **Mod ölü olabilir** — B2b'nin dersi. Bütün dünyayı tek renge boyayan bir
+   mod "çalışıyor" görünür ve hiçbir şey anlatmaz.
+
+Kapı (`--v2-harita`, **44 denetim**) üçünü de ölçer, ve dördüncü bir şeyi daha:
+haritanın motora **dokunmadığını** (aynı tohum, bir kolda harita her tik
+sorgulanıyor → iki dünya birebir aynı).
+
+**Kapı gerçekten düşebiliyor** — deponun kuralı gereği bir kez bozuldu:
+izdüşüm bir derece kaydırılınca `--v2-harita-veri` `18 geçti, 2 kaldı` ve
+`rc=1` verdi. İlginç olan hangi ikisinin düştüğü: gidiş-dönüş ve birim kare
+oturması. Başkent çapaları **düşmedi**, çünkü isabet testi derece uzayında
+çalışır ve izdüşümden bağımsızdır — yani iki denetim ailesi gerçekten ayrı
+şeyler ölçüyor.
+
+İki kapı var ve ayrılmaları bilinçli: `--v2-harita-veri` (geometri, izdüşüm,
+isabet — **~2 sn**, dünya koşmaz) ve `--v2-harita` (hepsi + tam kampanya,
+**~4 dk**). Geometri her değiştiğinde dört dakika beklemek üreticiyi elle
+doğrulamaktan yavaş olurdu.
+
+### Ne kuruldu
+
+| parça | ne |
+|---|---|
+| `tools/gen_harita.py` | Natural Earth 110m → `harita_verisi.gd` (üretilmiş) |
+| `HaritaVerisi` | 156 ülke, 201 halka, 4490 nokta, 1/16° tam sayı ızgara |
+| `Harita` | izdüşüm, isabet testi, ülke kaydı, dünya kurulumu, bağlar |
+| `HaritaModu` | dokuz mod: değer, aralık, renk, efsane |
+| `HaritaGorunum` | `_draw()` — sıfır asset, pan/zoom, seçim, efsane |
+
+**Sıfır asset kuralı §5.1'in izin verdiği kadar gevşedi**: `.png` yok, üretilmiş
+vektör tablosu var. Kaynak **kamu malı** (Natural Earth), Türkçe adlar
+kaynağın kendi `NAME_TR` alanından — elle çevrilmedi.
+
+**Elle yazılan tek şey kimlik tablosudur**: 19 oynanabilir ülkenin 1836 adı
+(§5.8b'nin tablosu) ve 54 ülkenin dünya sistemindeki 1836 konumu. Konum bir
+kalibrasyon değil, B1b'nin ölçülmüş merdiveninden hangi basamağın seçileceği:
+merkez 1.60/0.42, yarı 1.00/0.30, çevre 0.65/0.18. **Ülkelere büyüklük
+verilmedi** (`L_etkin` hepsinde aynı) — tarihsel büyüklük B6'nın işi, ve o
+yapılana kadar haritadaki ayrışma yalnızca üretkenlik farkından ve kaotik
+ayrışmadan geliyor.
+
+**Çizilen ≠ simüle edilen.** 156 ülke çizilir, 54'ü simüle edilir; kalanı
+"veri yok" rengindedir. Grönland'ı ya da Batı Sahra'yı çizmemek dünyada delik
+açardı ve oyunun egemenlik tartışmasında tarafı yok.
+
+### Üç sessiz hata — üçü de ölçümle yakalandı
+
+**1. Kendini kesen iki halka, iki ayrı sebep.** Godot'un
+`triangulate_polygon`u kendini kesen halkada **boş döner**; o ülke ekranda hiç
+görünmez. İki halka bunu yaptı ve sebepleri farklıydı:
+
+| halka | kaynak halka | sebep | çözüm |
+|---|---|---|---|
+| SAH (Batı Sahra) | temiz | Douglas-Peucker'ın kendisi yarattı | tolerans küçült (şekil korunur) |
+| SDN (Sudan) | **kendini kesiyor** | Natural Earth'ün veri kusuru | 2-opt düğüm çözme |
+
+**Sıra önemli.** SAH'ta 2-opt önce denenseydi alan **%49** şişerdi (ölçüldü);
+tolerans küçültme şekli koruyor. SDN'de hiçbir tolerans düzeltmiyor, 2-opt ise
+alanı %0.2 oynatıyor.
+
+**2. Üçgenleme eşiği MUTLAKTIR — birim uzayda küçük ada kayboluyor.**
+`Geometry2D.triangulate_polygon` `real_t` (float32) çalışır ve iç eşikleri
+mutlaktır. [0,1]² birim uzayda küçük bir adanın alanı ~2e-5'e düşüyor ve kulak
+kırpma üçgenleri sessizce atlıyor. Ölçüldü: Endonezya'nın 5 numaralı halkası
+10 noktalı, üçgenleme **8 üçgen** (yani doğru sayıda) döndürüyor ama kapladığı
+alan poligonun **%35'i**. Aynı halka 1000 kat büyütülünce sapma 1.8e-7'ye
+iniyor. Üçgen sayısına bakan bir denetim bunu **göremezdi**; yakalayan şey
+alan ölçümü oldu.
+
+**3. En/boy oranı normalizasyonda kayboldu.** `yansit` iki ekseni de ayrı ayrı
+[0,1]'e indiriyor; oran orada kaybolur ve çizim tarafında geri verilmezse dünya
+dikeyde **1.57 kat** gerilir. Ölçüldü: Brezilya'nın etiketi 489 piksel yerine
+768'e düştü, güney yarıküre ekranın altından taştı. Ekranda "biraz uzun"
+görünen bir dünya ile doğru olan arasındaki farkı gözle ayırmak zor — bu yüzden
+ölçek artık iki bileşenli ve sebebi kodda yazılı.
+
+### Pencere asimetrik: +84 / −58
+
+Kırpma zorunlu (Miller'ın y'si kutupta sonsuza gider) ama **simetrik kırpmak
+için sebep yok**: Antarktika dışarıda (nüfus yok) ve verideki en güney nokta
+−55.6 (Tierra del Fuego). Simetrik kırpınca ekranın alt beşte biri boş
+kalıyordu. Sınırlar veriden seçildi, sonuçta en/boy **1.99** — dünya
+haritasının doğal oranı. Kapı ayrıca "pencere bütün veriyi kapsıyor mu" diye
+sorar: veri değişip sınırlar unutulursa bir ülke kırpma çizgisine yapışır ve
+haritada düz bir kenar olarak görünür.
+
+### Dokuz mod
+
+| mod | okuduğu alan | tip |
+|---|---|---|
+| Siyasi | `rejim` + `kurum` | kategorik |
+| Kâr oranı | `r_yil` | ayrışan (medyan) |
+| Bunalım | `1 − Y_ort/Y_trend` | sıralı |
+| İşsizlik | `iss_duzeltilmis()` | sıralı |
+| Bölünme | `bolunme` | sıralı |
+| Örgütlenme | `orgutlu` | sıralı |
+| Dış ticaret | `NX/Y` | ayrışan (sıfır) |
+| Dış konum | `toplam_dis/Y` | ayrışan (sıfır) |
+| Otomasyon | `oto` | sıralı |
+
+**Hiçbiri türetilmiş bir skor değil**; dokuzu da motorun kendi alanı ya da
+motorun kendi kullandığı ifade. Bunalım modu `_kriz_tescili`nin *kendi*
+derinlik ifadesini okur — ayrıca hesaplasaydı harita motorun bunalım
+tanımından sessizce ayrışırdı.
+
+**Ölçek veriden gelir, sabit aralıktan değil** (`Chart`in dersi). Bedeli
+bilinçli: renkler kampanya boyunca yeniden ölçeklenir, bu yüzden efsane her
+zaman **sayıyı da** yazar.
+
+**Sadakat ayrı ölçülür.** Canlılık testinin yakalayamadığı hata şu: iki alan da
+hareket ediyorsa yanlış alanı okuyan bir mod da "canlı" görünür. Kapı bu yüzden
+dokuz alanı **doğrudan yazıp** modun o yazıyı gösterdiğini sınar.
+
+### İki mod düz — ve ikisi de haritanın değil dünyanın durumu
+
+Kampanya boyunca (54 ülke, 1836–2100, yıllık örnekleme) ölçüldüğünde **iki**
+mod düz çıktı. İkisi de sadakat testini geçiyordu, yani okudukları alan doğru;
+o alanlar hareket etmiyordu. Biri sonradan çözüldü, öteki duruyor.
+
+**1. `bolunme` sürücüsüz.** Karanlık devletin sekiz taktiğini (`t_*`) yazan bir
+aktör yok: ne oyuncu var, ne AI politika katmanı. `KaranlikDevlet.otomatik`
+yalnızca `mafya_tolerans`ı sürüyor, taktikleri değil. Mekanizma B3'te kuruldu
+ve `--v2-bolunme` onu **taktikleri kendi yazarak** sınıyor — dünyada
+sürücülüğünü yapan bir şey yok. Politika aktörü B7'nin işi.
+
+**2. `otomasyon` eşiğe varmıyordu — ÇÖZÜLDÜ, ve çözümü B5'te değildi.**
+`UretimKatmani` takılıyken `oto` otoritesi ona geçer ve `basamak_oto` **mutlak
+q ≥ 36** ister. Karşı-olgusal ölçüldü (3 ülke, 1836–2100, tohum 42, GBR kolu):
+
+| | q (1836 → 2100) | `oto` (2100) |
+|---|---|---|
+| mikro katman **takılı** | 1.60 → **12.4** | **0.000** |
+| mikro katman **takılı değil** | 1.60 → **156.3** | **0.489** |
+
+Yani üretim merdiveni kapalı formun bir mertebe altında kalıyordu ve otomasyon
+— §5.3'ün "LTRPF'nin doruk noktası" dediği şey — oyun dünyasında hiç
+başlamıyordu. **Bu bir harita hatası değildi**; haritanın yaptığı tek şey onu
+görünür kılmaktı, çünkü geç kampanyanın bütün dünyasını aynı anda çizen ilk
+şey oydu.
+
+Teşhis ve düzeltme **B2a'ya** aitti ve orada yapıldı (§6b, "çağ kuplajı"):
+merdivenin tırmanma hızı birikim oranıyla orantılıdır ve LTRPF onu düşürür,
+çağ tablosunun `qg`si ise yükselir — iki zıt eğri. Basamağın bedeli çağın
+kendi `qg`siyle ölçeklenince log sapma 0.963'ten 0.141'e indi ve otomasyon
+canlandı: harita modunun kampanya yayılımı **0.000 → 0.794**.
+
+> **Ters yönlü kapı işini gördü.** Denetim "hâlâ düz mü" diye soruyordu;
+> kuplaj açıldığı gün **düştü**, belge güncellendi ve denetim yerine
+> "otomasyon anlamlı paya varıyor" iddiası kondu. Gevşek bırakılsaydı
+> (`>= 0`) o gün hiçbir şey haber vermezdi.
+
+### Bağlar: tam ilişki çizilemez
+
+Dört bağ türü de dünyanın kendi durumundan okunur — savaş (`d.savas`), ittifak
+(`d.muttefik`), abluka (`w.abluka`), ticaret (`w.cift_hacmi`). Kampanya boyunca
+dördü de doğuyor (en yüksek eşzamanlı sayılar: savaş 13, ittifak 703, abluka
+730, ticaret 40 — kapı dördünü de görmeyi şart koşuyor).
+
+**İttifak bir KLİKTİR ve çizilemez.** Sosyalist pakt herkesi herkesle
+bağlıyor: 38 sosyalist ülke 38·37/2 = **703** çift eder. Yıldıza indirgenince
+**37** çizgi kalıyor ve 38 ülkenin 38'i de çizimde bir bağ taşıyor (kapı bunu
+ayrıca sınıyor). Bu yüzden model ile
+çizim ayrıldı: `baglar()` ilişkinin tamamını verir (kapı onu denetler),
+`gorunur_baglar()` bir **seçim** yapar —
+
+- savaş: hepsi (nadir, ve en önemlisi)
+- abluka: en şiddetli 40
+- ittifak: **kapsayan yıldız** — her ülke yalnızca en küçük indisli
+  müttefiğine bağlanır; blok üyeliği görünür, klik çizilmez (n üye → n−1 çizgi)
+- ticaret: en büyük 40 çift
+
+Politika `RefCounted` içinde durur, çizimde değil — **çizime bağlanan hiçbir
+şey CI'da ölçülemez** (`--headless` `_draw()` koşturmaz). Kapı ayrıca
+"ittifakı olan her ülkenin çizimde bir bağı var" der: yıldız bir bloğu
+düşürseydi harita eksik görünürdü ve bunu gözle fark etmek imkânsızdır.
+
+### Tik maliyeti — B6'nın girdisi
+
+54 ülke × 264 yıl = 13 728 tik, **227 sn**, yani **16.5 ms/tik** (tam katman
+yığını takılı: üretim, nüfus, mal, karanlık devlet + dünya katmanı). B5'te
+**eşik yok**, kayıt var. B6'nın sorusu tam olarak budur ve ~100 ülkede maliyet
+çift bileşenli büyür: ülke döngüsü doğrusal, ticaret çifti karesel
+(54 ülke → 1431 çift).
+
+### B5'in yapmadıkları
+
+- **Ekonomik tohumlama yok** — bütün ülkeler aynı `L_etkin` ile başlar. B6.
+- **Politika aktörü yok** — AI ne taktik yazar ne politika ilan eder. B7.
+- **Blok gösterimi yok** — ittifak yıldızla çizilir; dolgu/kabuk gösterimi B7.
+- **Ad değişimi yok** — oynanabilir ülkeler kampanya boyunca 1836 adını taşır;
+  "Osmanlı → Türkiye" geçişinin takvimi B7.
+
+---
+
+## 6h. B6 — ölçek
+
+### "Kabul edilebilir" tek başına ölçülemez
+
+Tablo B6 için "~100 ülke, kabul edilebilir tik süresi" diyor. İkinci yarısı
+olduğu gibi ölçülebilir değil — hangi makinede, hangi kurulumda? Ölçüm bu
+yüzden üç parçalı: **mutlak maliyet** (makineye bağlı, kayıt), **ölçeklenme
+biçimi** (makineden bağımsız, asıl soru) ve **korunumun ölçek altındaki
+davranışı**.
+
+### Kadro 54 → 113
+
+Harita zaten 156 ülke çiziyordu; simüle edilen küme 54'ten **113'e** çıktı
+(§5.6'nın "~100+" hedefi). Eklenenlerin bir kısmı 1836'da egemen değildi
+(Çekya, Beyaz Rusya, Özbekistan, Zimbabve…) ve bu **adı konması gereken bir
+soyutlamadır**: simüle edilen birim devlet değil, o toprağın ekonomisidir.
+§5.6'nın "dinamik kurulma / ilhak" mekanizması yok; §3.4'ün kapsam dürüstlüğü
+gereği kurulmamış bir mekanizmayı varmış gibi göstermektense birimin ne
+olduğunu yazarız.
+
+### Maliyetin iki bileşeni, ve nerede kesiştikleri
+
+Ülke döngüsü doğrusal (her ülke kendi çekirdeğini koşar), çift döngüsü
+karesel (ticaret, transfer, abluka matrisi). Beş boyda ölçülüp
+`ms = a·n + b·n²` çözüldü:
+
+| | a (doğrusal) | b (karesel) | başabaş n | n=113 |
+|---|---|---|---|---|
+| optimizasyon öncesi | 0.1969 | 0.00302 | 65 | 59.8 ms |
+| **sonrası** | 0.2014 | **0.00178** | **113** | **45.6 ms** |
+
+**Kazanç sonucu değiştirmeden alındı.** `ticaret()`'in iç döngüsünde üç ifade
+yalnızca `i`'ye bağlıydı — `_itki(i)`, `eps/pi_m` bölümü ve `maxf(Y,0)` — ve
+n² kez hesaplanıyordu: 113 ülkede tik başına 6328 gereksiz `_itki` çağrısı.
+Döngü dışına alındılar; `transferler()`'de `cv` aynı şekilde.
+
+> **İfade sırası bilerek korundu.** `(yog·Ya)·Yb / Yd` ile `(yog·Ya/Yd)·Yb`
+> kayan noktada **aynı sayı değildir**. Bölüm yerinde bırakıldı ve sonuç
+> `--v2-dunya` çıktısının **bayt bayt** karşılaştırılmasıyla doğrulandı:
+> optimizasyon öncesi ve sonrası birebir aynı.
+
+Tik başına 45.6 ms oynanabilirlik açısından sorun değil (saniyede ~22 hafta,
+tür normunun kat kat üstünde); tam kampanya 626 sn.
+
+### Korunum ölçekten bağımsız — ölçüldü
+
+`--v2-dunya` korunum özdeşliklerini **beş** ülkede ölçüyor. Risk tam da
+ölçekte: 6328 çiftte biriken yuvarlama beş çiftte görünmez. Ölçüldü (113
+ülke, 100 yıl): değer transferi, ticaret ve borç korunumunda en büyük bağıl
+hata **tam olarak 0.0**. Özdeşlik gerçekten özdeşlikmiş.
+
+### B4'ün savaş çapası taşınmadı — ve sebep beklenen sebep değil
+
+B4 `savas_siklik = 5.0`'i 20 ülkelik bir kolda seçmiş ve notu düşmüştü:
+"ölçüt B6'da ~100 ülkeyle yeniden okunmalıdır". Okundu. B4 ülke sayısının
+sıklığı **artırdığını** bulmuştu (5 ülke 0.27 → 20 ülke 0.79), dolayısıyla
+~100'de yükselmesi bekleniyordu. Ölçülen bunun tersi:
+
+| ülke | 10 | 20 | 40 | 113 |
+|---|---|---|---|---|
+| savaş/ülke-yüzyıl | 0.20 | 0.30 | 0.33 | 0.23 |
+
+Ayrışan şey **ülke sayısı değil kurulum**: B4'ün taraması sentetik bir dünyada
+koşuyordu (sürekli tek merdiven, **katmansız**); oyunun dünyası üç konum
+basamağı ve **tam katman yığını**. Aynı sabit iki kurulumda 4–7 kat farklı
+sonuç veriyor. Bu, deponun kendi kuralının üçüncü kez doğrulanması:
+**kalibrasyon karar verilen kurulumda yapılır.**
+
+### Çarpan sıklığı satın alıyor, bedelini §3.1'in imzasından ödüyor
+
+Tam kadroda tarandı ve bandı sağlayan değer bulundu:
+
+| sıklık | savaş/ülke-yüzyıl | zaman payı |
+|---|---|---|
+| 5.0 | 0.23 | %2.0 |
+| **38.0** | **1.45** | **%11.1** |
+| 45.0 | 1.61 | %14.0 |
+| 60.0 | 2.16 | %18.2 |
+
+38.0 iki bandı da ortalıyor (çapa: 1–4 savaş, zamanın %5–15'i). **Ama
+alınmadı**, çünkü bedeli ölçüldü: `--v2-savas`'ın §3.1 denetimi —
+"savaşa girenin kâr oranı, o anda diğerlerinin altında" — işaret değiştiriyor.
+
+| | eş-zamanlı fark |
+|---|---|
+| sıklık 5.0 | **−0.0067** (doğru işaret) |
+| sıklık 38.0 | **+0.00235** (işaret dönüyor) |
+
+Sebep yapısal: ilan olasılığı `istek · sv_carpan · 0.10 · savas_siklik`.
+Çarpanı 7.6 kat büyütmek olasılığı **doyuruyor** ve krizdeki ülke ile sağlam
+ülke arasındaki farkı eziyor. Yani çarpan bir sıklık kolu değil, aynı zamanda
+bir **seçicilik** kolu — ve büyüdükçe seçmez oluyor.
+
+> **YUKARIDAKİ AÇIKLAMA ÖLÇÜLDÜ VE YANLIŞ ÇIKTI — bkz. §6n.** Doyum yok:
+> `_tehlike` bu olasılık bölgesinde fiilen doğrusal ve iki çarpan kesitin
+> CV'sini birebir aynı bırakıyor. Ölçülen sapmanın sebebi başka; işaretin
+> neden döndüğü ise hâlâ açık. Bandın ve `savas_siklik = 5.0` kararının
+> kendisi ayakta — çürüyen tek şey **gerekçe**.
+
+> **Karar deponun kendi hiyerarşisinden çıkıyor**: "bantlar ayarlanabilir,
+> yön ayarlanamaz" (§9.14). Sıklık bir bant, "kriz dışa iter" bir **yön**
+> iddiasıdır. `savas_siklik = 5.0` korundu ve gerçekleşen sıklık (0.23,
+> çapanın altı) açık bir eksiklik olarak kayda geçti. `--v2-b6` "hâlâ düşük
+> mü" diye soruyor: ilan olasılığının kriz duyarlılığı doyuma gitmeyen bir
+> biçimde yeniden yazıldığı gün **kapı düşer**. Bu B4'ün işi.
+
+### Kapı dünyası kadrodan ayrıldı
+
+Kadro 113'e çıkınca tam kampanya koşan kapıların maliyeti üçe katlandı
+(harita kapısı 227 → ~620 sn). `Harita.kapi_kodlar()` sabit bir alt küme
+(54 ülke) verir ve harita kapısı onu kullanır. Ayrım aynı zamanda doğru iş
+bölümü: haritanın kapısı **mod canlılığını ve bağ kapsamını** ölçer, ölçeği
+değil — ölçek B6'nın kapısıdır ve tam kadroda koşar.
+
+---
+
+## 6i. B7a — oyun kabuğu
+
+### Kabuk motoru değiştirmez — ve bu kapının en sert kademesi
+
+B5 haritanın motora dokunmadığını kanıtlamıştı; kabuk için aynı soru daha
+ağır, çünkü kabuk motoru **sürüyor**. Gözlemci kipinde (`oyuncu < 0`) bir
+oturum yalnızca `dunya.adim()` çağırır ve okur; kapı onu doğrudan
+`Dunya.adim()` ile sürülen bir dünyayla **alan alan** karşılaştırır.
+
+Denetim dekoratif değil: `Gecmis.ornekle` içine `saldirganlik += 1e-12`
+konularak kırmızı olduğu doğrulandı ve kapı yakaladı. Örnekleme ya da günce
+toplama motora geri yazsaydı **B0–B6'nın bütün ölçümleri oyunun içinde
+sessizce geçersizleşirdi** ve bunu söyleyecek başka hiçbir şey yoktu.
+
+### Oynayarak fark edilmeyecek iki ekran hatası
+
+**Birinci örnek `t=0`'da alınıyordu.** Orada `r_yil` 0.0'dır — kâr oranı bir
+alan değil çekirdeğin **çıktısıdır** ve ilk `adim()` koşmadan hesaplanmamıştır.
+Her kâr oranı grafiği 1836'da sıfırdan başlayıp 1837'de 0.10'a sıçrayacaktı;
+olmayan bir çöküş ve toparlanma. Daha kötüsü **metriğin türüne göre
+değişiyordu**: `pay` ve `q` gerçek başlangıç alanları olduğu için bazı
+eğrilerde artefakt görünecek, bazılarında görünmeyecekti. Seri artık ilk yılın
+sonunda başlıyor.
+
+**Takvim yılı bir yıl geri kayıyordu.** `yil` her tik 1/52 ekleyerek birikir ve
+52 tikten sonra 1836.9999999999998'e varır; `int()` bunu 1836'ya kırpar.
+Örneğin yılı artık tik sayısından türetiliyor — eşiğe kayan nokta
+karşılaştırmak yerine tik saymanın aynı disiplini.
+
+### `borc` ve `varlik` STOKTUR — panel onları oran diye etiketliyordu
+
+Ekran görüntüsüne bakılınca yakalandı: Osmanlı'nın paneli **"Hanehalkı borcu /
+Y = 244.34"** gösteriyordu. v4.4'ün metrik listesi kopyalanmış, ama v2'de bu
+iki alan mutlak **stok**. Çekirdeğin kendisi ikisini de her kullandığı yerde
+`Y_yil`'e bölüyor (`kriz_cekirdegi.gd:499, 550, 966`); ekran da aynısını
+yapmalı, yoksa eksen adı ile eksendeki sayı ayrı şeyler anlatır. Düzeltmeden
+sonra 1.90.
+
+Bu üç hatanın üçü de headless kapıların hepsinden geçiyordu. **B7'nin ölçütü
+bu yüzden "ekran `--ss=` ile çizdirilip bakılmış"tır** — ve gerçekten bakmak
+gerekiyormuş.
+
+### §4.6 bir kapıya çevrildi
+
+Temsil ilkesi ("mağduru adlandırılmış, bedeli sayılmış politikalar") bir niyet
+olarak bırakılamazdı: panel kaydırmalı, ve listenin dibinde adsız kalan bir
+taktiği kimse görmez. Kapı sekiz taktiğin her biri için **adının, aygıtının
+(rıza/zor) ve bedelinin** yazılı olduğunu, alanın motorda gerçekten
+bulunduğunu, ve karanlık devletin altı çıktısının çizilen metrik kümesinde
+olduğunu sayarak denetliyor.
+
+Metinler `Oyun.TAKTIKLER`den, o da `KaranlikDevlet`in kendi tablosundan
+türetilmiştir — ekranda yazan bedel ile motorda işleyen kanal aynı kaynaktan
+gelir ve ayrışamaz.
+
+### Altı kol, altısı da karşı-olgusal olarak sınandı
+
+Ölü bir kol arayüzde çapraz görünmez: kaydırıcı kayar, sayı değişir, dünya
+değişmez. Her kol aynı tohumla açık/kapalı koşulup yörüngenin **ayrıştığı**
+doğrulandı. Merdiven kolu zincirin ucuna kadar sınanıyor — 30 yılda
+`q` 0.650 → 1.686, `c/v` 0.820 → 1.497, `r` 0.0814 → **0.0660**: §2.4'ün
+tuzağı kabuğun kolundan geçiyor.
+
+### Kapı penceresinde kâr oranı YÜKSELİR — ve bu LTRPF'yi çürütmez
+
+İlk yazımda kapıya "kâr oranı 60 yılda düşer" denetimi konmuştu ve **düştü**.
+Hak ettiği için: iddia o pencerede yanlış. `--v2-oyun-iz=230` aynı kadroda
+eğrinin biçimini veriyor:
+
+| | 1837 | zirve | 2065 |
+|---|---|---|---|
+| `r` | 0.027 | **0.380 @ 1948** | 0.033 |
+| `c/v` | 1.13 | | 6.87 |
+| `q` | 0.65 | | 76.3 |
+
+Zirveden **−%91.3**. Eğilim yerinde; altmış yıl onu görmek için çok kısa, ve
+ilk on yıllar başlangıç geçici rejiminin altında kalıyor. Bandın kapısı
+`--v2-tarih` ve `--v2-olcek`tir; **kabuğun kendi iddiası serilerinin SADIK
+olmasıdır**, eğilimin yönü değil. Denetim bu yüzden kayda çevrildi ve ters
+yönde bırakıldı: pencere gerçekten geçici rejimse başlangıç değeri zirvenin
+yarısının altında olmalı.
+
+### B7a'nın yapmadıkları
+
+- ~~**Politika aktörü yok**~~ — B7b'de geldi (§6j).
+- ~~**Blok gösterimi ve ad değişimi takvimi yok**~~ — B7c'de geldi (§6k).
+- ~~**Kayıt/yükleme yok**~~ — B7d'de geldi (§6l).
+- **Varsayılan giriş hâlâ v1.** `_oyunu_baslat()` v4.4 menüsünü açıyor; v2
+  `--v2-menu` ve `--v2-oyna` ile giriliyor. Devir B7 bitince yapılmalı —
+  Pages'e ve APK'ya çıkan sürüm yarım bir kabuk olmamalı.
+
+---
+
+## 6j. B7b — politika aktörü
+
+§4.5'in AI tarafı. B3 mekanizmayı kurmuş, B7a oyuncunun kollarını bağlamıştı;
+dünyada sekiz taktiği **yazan kimse yoktu**. `KaranlikDevlet.otomatik` yalnızca
+`mafya_tolerans`ı sürüyordu, yani sekiz `t_*` alanından yedisi 264 yıl boyunca
+0.0'da duruyordu.
+
+### Sürücü ilk yazımda ölçümle çürütüldü
+
+İlk tasarım tehdidi `PR` üzerinden okuyordu — çekirdeğin protesto riski
+çıktısı, karanlık devletin var olma sebebi. Ölçüm bunu reddetti:
+
+| bileşen | min | medyan | max | aralık |
+|---|---|---|---|---|
+| `PR` | 0.4501 | 0.4875 | 0.5050 | **0.055** |
+| `tikanma` | 0.0000 | 1.0000 | 1.0000 | doygun |
+| `baski_egilimi` | 0.4000 | 0.4000 | 0.4000 | **0.000** |
+| `PC` | 0.0005 | 0.1664 | 0.1865 | 0.186 |
+
+Dört bileşenin üçü doygun ya da sabit. `tehdit_olcek = 0.35` ile `PR/0.35`
+her ülkede her tik 1.0'a kırpılıyordu — sürücü bir sabit olmuştu. B6'nın savaş
+sabitinde ölçülen doygunluk hatasının aynısı.
+
+Sonuç ölçülebilir biçimde yanlıştı: **kesit tersine dönmüştü.** Ayakta kalan
+tek varyans `PC`'ninkiydi ve eksi işaretle girdiği için "tehdidi yüksek ülke
+daha *az* uzanıyor" çıkıyordu (0.4662 vs 0.4815). Ölçülen şey tehdidin değil
+meşruiyetin ilişkisiydi — bu ailenin **beşinci** üyesi.
+
+Yerine geçen büyüklük §4.1'in kendi hedefi: **örgütlü öfke** (`Omega ×
+orgutlu`). Ölçüldü — `Omega` 0.0–1.0, çarpım 0.0–0.380 (medyan 0.086). Yani
+çarpım gerçekten ayırt ediyor, `PR` etmiyordu. Kesit bütün tarama hücrelerinde
+artıya döndü.
+
+### Karışım uydurulmadı, `bol_*_yil` tablosundan okundu
+
+"Hangi taktiğe ne kadar ağırlık" sorusuna yeni sabitlerle cevap vermek tabloyu
+ikinci bir yerde tekrarlamak olurdu. Aktörün amacı **bölünme satın almaktır**,
+dolayısıyla çabayı her taktiğin kendi bölünme katsayısıyla orantılı dağıtır —
+milliyetçilik 0.075 ile en ağır, mistisizm 0.015 ile en hafif. Normalizasyon
+**aygıt içindedir**: yoksa zor aygıtı rızanınkinin gölgesinde kalır (en ağır
+zor taktiği 0.040, en ağır rıza taktiği 0.075) ve §4.2'nin sırası sayısal
+olarak kendini gösteremezdi.
+
+### Yarım pencerede kalibre etmek de eşleştirmez
+
+İlk tarama 150 yılda bitiyordu ve seçilen kol (`0.30/0.70`) orada ölçütlerin
+dördünü de sağlıyordu. 200 yıla uzatılınca **devrimi sıfırladı**. Pencere tam
+ufka (264 yıl) çıkarılınca resim değişti:
+
+| ölçek/tavan | yayılım | rıza | zor | rıza_yıl | zor_yıl | devrim | kesit |
+|---|---|---|---|---|---|---|---|
+| 0.30 / 0.70 | 0.504 | 0.327 | **0.341** | 1936 | 1942 | 1 | +0.0001 |
+| 0.50 / 1.00 | 0.528 | 0.387 | 0.386 | 1937 | 1944 | 2 | +0.0188 |
+| **0.75 / 0.70** | **0.353** | **0.206** | **0.164** | **1972** | **1995** | **2** | +0.0069 |
+| aktörsüz taban | 0.000 | — | — | — | — | 3 | — |
+
+`0.30` reddedildi: geç kampanyada `Omega` doyunca kesit sıfıra çöküyor **ve**
+`zor` rızayı geçiyor (0.341 > 0.327) — §4.2'nin sırası kampanya sonunda
+tersine dönüyor. `0.75/0.70` alındı: rıza baskın kalır, zor **yirmi üç yıl**
+sonra açılır, devrim tabandan az ama sıfır değil.
+
+### Devrim ertelenir, önlenmez — ölçüldü
+
+Çekirdeğin kendi yorumu (`kriz_cekirdegi.gd:1336`) bu. Aynı tohumda:
+aktörsüz kol AUT@1974 ve BEL@1938; aktörlü kol BEL@**1941**. Yani devrim hem
+azalıyor hem de **üç yıl geriye itiliyor**. Kapı iki yönlü: sıfır devrim o
+cümleyi yalanlar, taban kadar devrim ise kolun etkisiz olduğunu gösterir.
+
+### Kayıt: geç kampanyada sürücü doyar
+
+`Omega` 2036'da bütün ülkelerde 1.0'a dayanıyor (aralık **0.0000**), yani
+"örgütlü öfkesi büyük olan daha çok uzanır" ilişkisi geç kampanyada
+ölçülemiyor (kesit +0.0069). Ayrım erken kampanyada oluyor; `bolunme`
+yayılımı (0.353) o ayrımın **birikmiş izi**. Bu bir B7b kusuru değil,
+`Omega`'nın çekirdekteki davranışı — doğru adres B0–B3, ve kapı değil kayıt.
+
+### B5'in ters yönde bıraktığı kayıt işe yaradı
+
+B5 `bolunme` yayılımının **tam sıfır** olduğunu iddia ediyordu ve bunu bilerek
+gevşek bırakmamıştı: "sürücü geldiği gün bu kapı düşsün." Düştü. Yayılım
+0.000 → **0.374**, ve iddia yön değil büyüklük soracak biçimde yeniden
+yazıldı (`> 0.20`), tıpkı otomasyonunki gibi.
+
+---
+
+## 6k. B7c — bloklar ve ad takvimi
+
+B5'in devrettiği iki sunum kalemi. İkisi de motoru değiştirmez; sınanan şey
+sözleşmedir.
+
+### Blok gösterimi: dolgu modun, kabuk bloğun
+
+İttifaklar bir **graftır** ve bloklar onun bağlı bileşenleridir. B5 onları
+kapsayan yıldızla çiziyordu — çizgi kalabalığı sorununu çözüyordu ama "kim
+hangi blokta" sorusu hâlâ çizgi takip etmeyi gerektiriyordu.
+
+Çözüm ikisini ayırmak: **dolgu o anki harita modunun değeri, kabuk blok
+üyeliği.** Böylece blok üyeliği dokuz modun hepsinde okunur ve iki soru
+birbirini ezmez. Palet de ayrı tutuldu — aynı palet kullanılsaydı "bu ülke
+kırmızı çünkü kâr oranı düşük mü, yoksa kırmızı blokta mı" sorusu ekranda
+cevaplanamazdı.
+
+**Blok kimliği en küçük üye indeksidir.** Blok boyuna ya da oluşum sırasına
+göre numaralandırılsaydı bir ülke bloğa katıldığında bütün blokların renkleri
+kayardı; en küçük indeks üyelik değişmediği sürece sabittir.
+
+Yıldız kaldırılmadı: kapı dört bağ türünün de kampanyada doğduğunu iddia
+ediyor, ve yıldız ikili bağı gösteriyor. İkisi ayrı sorulara cevap veriyor.
+
+**Canlılık haritanın kapısında ölçülür, `--v2-oyun`da değil.** İş bölümü
+B5'in kendi ilkesi. Ölçüldü: on ülkelik kapı dünyasında ittifak neredeyse hiç
+oluşmuyor (1 blok, 2 üye), 54 ülkelik harita dünyasında ise **1 blok, 10
+ülke**. Sözleşme denetimleri (kimlik, tutarlılık, tek üyeli blok yok)
+`--v2-oyun`da; canlılık `--v2-harita`da.
+
+### Ad takvimi — sunumdur, mekanizma değil
+
+Kampanya 1836'da başlıyor ve oynanabilir ülkeler o tarihin adıyla anılıyor
+(§5.8b). Takvim olmadan 2100'de hâlâ "Osmanlı İmparatorluğu" yazıyordu.
+
+§3.4'ün kapsam dürüstlüğü kuralı burada bağlayıcı: **dinamik devlet oluşumu
+modellenmiyor.** Dolayısıyla ad değişimi karşı-olgusal değil, sabit bir
+takvimdir — ve öyle olduğu tablonun başında yazılı. Oyunun dünyası tarihten
+sapar, ama sapmayı ada çevirecek bir olay modelde yok; sabit takvim, olmayan
+bir mekanizmayı ima etmemenin en dürüst yolu.
+
+**Ad tek kaynaktan gelir** (`Harita.gorunen_ad`). Harita, günce, ülke paneli
+ve üst şerit onu çağırır; her biri kendi mantığını taşısaydı aynı ülke aynı
+yılda iki ekranda iki farklı adla görünebilirdi.
+
+**Güncedeki ad tescil anındaki addır.** 1890'da Osmanlı'nın bunalımı günceye
+"Osmanlı İmparatorluğu" diye düşer ve 1923'ten sonra da öyle kalır — satır
+yazıldığı anda dondurulur, çünkü günce bir kayıttır.
+
+Kapı üç şeyi birden sayıyor, ve ikisi ters yönde: tablodaki her kodun
+haritada karşılığı **ve tarihsel adı** var mı (yoksa satır sessizce hiçbir şey
+yapmaz), ve tersine — adı modernden farklı olan her ülkenin takvimde bir yılı
+var mı (yoksa o ülke 2100'de hâlâ 1836 adıyla durur, yani B7c'nin var olma
+sebebi geri gelir). Üçüncüsü epsilon: `yil` haftalık birikimle geçiş yılının
+bir tık altına düşer (1922.9999999) ve tam eşitlik karşılaştırması geçişi bir
+yıl geciktirirdi.
+
+---
+
+## 6l. B7d — kayıt ve yükleme
+
+B7a'nın "yapmadıkları" listesinde duran son kalem. Kampanya 264 yıl ve tam
+kadroda azami hızda 10 dakika; oturumun tek seferde bitmesi gerekmemeli.
+
+### İskelet normal yoldan kurulur, üstüne durum yazılır
+
+Nesne grafiğini (113 ülke × kriz çekirdeği × dört katman × iki RNG) elle
+yeniden inşa etmek hem uzun hem kırılgan olurdu: bir alan unutulduğunda
+yükleme **sessizce başka bir dünya** üretirdi. Bunun yerine dünya
+`Harita.dunya_kur()` ile her zamanki gibi kurulur — kodlar ve tohum kayıttan
+gelir — ve sonra bütün durum üzerine yazılır.
+
+Alanlar `get_property_list()` ile gezilir, elle sayılmaz. Elle sayılsaydı
+motora eklenen her yeni alan kayıtta eksik kalırdı ve bu bir hata olarak
+değil, "biraz farklı" bir dünya olarak görünürdü.
+
+### RNG durumu kaydedilir — ve kapı bunu geleceğe bakarak sınar
+
+Üç ayrı RNG var: her ülkenin çekirdeğinde bir `PyRandom` (MT19937, 624
+kelime + indeks), savaş katmanında bir `PyRandom`, `Dunya`'da bir
+`RandomNumberGenerator`. Yalnızca **tohumu** kaydetmek yetmez: tohum
+başlangıcı verir, oyuncu ise ortasından devam eder.
+
+Asıl denetim bu yüzden yüklemeden **sonrasına** bakar. "Yükleme sonrası dünya
+aynı" tek başına yetersizdir — RNG durumu kaydedilmemiş olsa bile o an aynı
+görünür, çünkü RNG bir sonraki tikte konuşur. Kapı iki dünyayı yükledikten
+sonra **10 yıl daha birlikte sürüyor** ve hâlâ alan alan aynı olmalarını
+bekliyor. Kaydedilmemiş tek bir MT19937 kelimesi orada ortaya çıkar.
+
+### Biçim ikili, JSON değil
+
+Tam kadroda geçmiş deposu tek başına 113 × 264 × 19 = 566 000 kayan noktadır.
+JSON'da her sayı ondalık metne çevrilir; `var_to_bytes` aynı veriyi ikili
+tutar. Ölçüldü: 6 ülke × 40 yıl için **130 KB**, 24 ülke × 45 yıl için
+**560 KB**.
+
+`save.json` küçük ve insan okur kalır (ayarlar, koşu özetleri); oturum ayrı
+bir dosyaya gider. İkisini aynı dosyaya koymak küçüğü büyüğün rehinesi
+yapardı. `Save` yine `user://`ye erişen tek yerdir — `Kayit` dosya sistemine
+hiç dokunmaz, yalnızca sözlük üretir.
+
+### Disk yolu ayrıca sınanır
+
+Sözlük yuvarlağı diskten geçmeyi **kanıtlamaz**: `store_var` ile `get_var`
+arasında bir biçim farkı, bir izin hatası ya da yarım yazılmış bir dosya
+ancak orada görünür. Kapı yazma, okuma ve yeniden kurma adımlarını ayrıca
+koşar — ve kendi arkasını temizler, çünkü bir kapı kalıcı durum bırakmamalı.
+
+Bozuk ya da gelecekten gelen bir kayıt reddedilir ve **açık oturuma
+dokunmaz**; `Save`in v4.4 sözleşmesiyle aynı ilke: hiçbir koşulda ölümcül
+değil.
+
+
+---
+
+## 6m. Kampanya sonu — tarihsel sonuç raporu
+
+§9.8'in kuralı: **zafer koşulu yoktur.** Koşu ufuk dolunca biter ve bir
+tarihsel sonuç raporu üretir; devrim bir kayıp değil, oyuncunun elindeki
+politika setinin değişmesidir. v2'de bu rapor **hiç yoktu** — kampanya 2100'de
+sessizce duruyordu.
+
+Raporda ne puan var, ne "kazandın", ne yıldız. Olan şey sayılır; yorumu okuyana
+kalır. Bir skor eklenseydi oyunun anlattığı şey değişirdi: kriz yönetilmesi
+gereken bir sınav olurdu, oysa oyun onun **yapısal** olduğunu söylüyor.
+
+Hiçbir sayı yeniden hesaplanmaz — hepsi `gecmis`, `gunce` ve dünyanın o anki
+durumundan türetilir. Rapor kendi ölçümünü yapsaydı ekrandaki grafikle raporun
+sayısı ayrışabilirdi ve hangisinin doğru olduğu sorulamazdı.
+
+LTRPF **zirveden** ölçülür, baştan değil: kampanya başı bir geçici rejimdir
+(§6i), ve "baştan sona" karşılaştırması eğilimi değil o artefaktı ölçerdi.
+Örnek koşu (Osmanlı/Türkiye, tohum 42, 24 ülke):
+
+| | |
+|---|---|
+| kâr oranı zirvesi | **0.274 @ 1959** |
+| kâr oranı 2100 | **0.027** — zirveden **−%90.3** |
+| verimlilik `q` | 92.33 |
+| organik bileşim `c/v` | 7.82 |
+| otomasyon payı | %80.0 |
+
+### Ufuk hiç dolmuyormuş
+
+Raporu bağlarken çıktı: `bitti()` `yil >= 2100.0` diye bakıyordu, ama 264 yıl
+koşulunca `yil` haftalık birikimle 2099.9999999…'a varıyor ve koşul **hiç**
+sağlanmıyordu. Üst şerit 2100 yazıyordu çünkü o zaten epsilon toleranslı
+`takvim_yili()`'ni kullanıyor — yani **ekran "bitti" derken motor "bitmedi"
+diyordu**, ve rapor hiç açılmıyordu. Ufuk artık tik sayar.
+
+Bu, kayan nokta ailesinin üçüncü üyesi (örnekleme zamanı, takvim etiketi, ve
+şimdi ufuk) ve en sinsisi: diğer ikisi yanlış bir sayı gösteriyordu, bu ise
+bir mekanizmayı hiç çalıştırmıyordu.
+
+---
+
+## 6n. Kesit tanısı — iki açık kalem aynı soruyu soruyormuş
+
+Yol haritasında iki kalem açık duruyordu ve ayrı yazılmışlardı: **ekonomik
+tohumlama** (B5 → B6 → hâlâ yok) ve **savaş sıklığı** (B4'ün kalan işi).
+İkisi tek kampanyada ölçüldü (`--v2-kesit`, 54 ülke, tohum 42, 1836–2100) ve
+ölçüm ikisinin **aynı** kusurun iki yüzü olduğunu gösterdi: bu dünyada
+ülkelerin kendilerine ait bir niteliği yok.
+
+Aynı koşudan ölçmek bilinçli. İki ayrı koşu iki ayrı kaotik yörünge demektir
+ve §6c'nin dört kez öğrenilmiş sorusu ("ölçtüğüm fark mekanizmadan mı, iki
+kolun zaten ayrıştığı yerden mi?") yine sorulamaz olurdu.
+
+### A — Büyüklük: yapı doğru, atama rastgele
+
+`Harita._ulke()` her ülkeye `L_etkin = 110.0` verir; konum merdiveni yalnızca
+`q0` ve `egitim` dağıtır. Sonuç:
+
+| yıl | L_max/L_min | L_cv | Y_max/Y_min | Y_cv |
+|---|---|---|---|---|
+| 1836 | 1.00 | 0.000 | 2.46 | 0.307 |
+| 1960 | 1.08 | 0.017 | 25.4 | 1.104 |
+| 2100 | **1.01** | **0.002** | 587 | 2.106 |
+
+`L_etkin` kampanya boyunca düz. `Y_yil` ayrışıyor ve **konum merdiveni
+istatistiksel olarak çalışıyor** — merkez/çevre ortalama oranı 2.46 → 12.82.
+Ama ayrışma ülke **kimliğine** oturmuyor:
+
+```
+2100'de en büyük 5:  BGR 175078 | GBR 143641 | BEL 138978 | AUS 120262 | ARE 112110
+2100'de en küçük 5:  IDN 326 | GRC 326 | BOL 313 | DOM 305 | ECU 298
+```
+
+Bulgaristan dünyanın en büyük ekonomisi, Endonezya en küçüklerinden biri.
+§0'ın "dünya sistemindeki konumun" cümlesi merkez/yarı/çevre düzeyinde
+duruyor, ülke düzeyinde durmuyor.
+
+> **Toplam yayılım tek başına bir şey söylemez.** Y_cv 2.106 büyük bir
+> sayıdır ve "dünya ayrışmış" diye okunabilirdi; uçlara bakılmadan o okuma
+> yanlışlanamazdı. Tanı bu yüzden sıralamanın iki ucunu **basar**.
+
+### B — Savaş seçiciliği: doyum yok, kriz kanalı ölü
+
+§6h çarpanın §3.1'in işaretini çevirmesini doyuma bağlamıştı. Ölçüldü:
+
+| yıl | siklik=5 CV | siklik=38 CV |
+|---|---|---|
+| 1960 | 0.598 | 0.598 |
+| 2000 | 0.086 | 0.086 |
+| 2100 | 0.042 | 0.042 |
+
+**Kesitin CV'si birebir aynı.** Yıllık ilan olasılıkları 0.002–0.08
+aralığında; `1 − (1−h)^dt` orada fiilen doğrusaldır, yani çarpan kesiti
+olduğu gibi ölçekler. Doyum bir açıklama olarak **çürüdü**.
+
+Ölçülen asıl olgu şu: `sikisma = max(0, (r_ref − r)/r_ref)` eşiği
+`sv_r_ref = 0.048` ile **mutlak** ve v4.4'ten devralınmış. v2'nin kâr oranı
+onun iki-üç katında geziyor:
+
+| dönem | r_ort | r < r_ref | ilan |
+|---|---|---|---|
+| 1860–1879 | 0.0866 | **%0.0** | 6 |
+| 1900–1919 | 0.1278 | **%0.0** | 1 |
+| 1940–1959 | 0.0892 | %3.4 | 11 |
+| 1960–1979 | 0.0868 | %7.9 | 18 |
+| 2000–2019 | 0.0589 | %40.8 | 7 |
+| 2060–2079 | 0.0293 | %98.5 | 7 |
+
+**95 ilanın 66'sı (%69.5) kriz kanalının ölü olduğu dönemlerde düşüyor.** Ve
+o dönemlerde ilan olasılığı kesitte **tek bir sayıdır** — 1880 ve 1920'de
+ölçülen CV tam `0.000`: `saldirganlik` bütün AI ülkelerinde sabit 0.35
+(`kriz_durumu.gd:310`, yalnızca oyuncu yazabiliyor), `era` ortak, `sikisma`
+sıfır. Yani çarpan sinyali değil **gürültüyü** büyütüyor, ve "kriz dışa iter"
+kampanyanın çoğunda çalışmayan bir cümle.
+
+**İşaretin neden döndüğü hâlâ açık.** Bu ölçüm doyumu eledi ama yerine bir
+mekanizma koymadı. Akla yakın bir aday var — savaştaki ülke ilan edemiyor
+(`if c.savasta(): continue`) ve savaş `r`'yi düşürüyor, dolayısıyla sıklık
+artınca düşük-`r` ülkeler ilan havuzundan orantısız eleniyor olabilir — ama
+**ölçülmedi**, o yüzden burada bir hipotez olarak duruyor, bir sonuç olarak
+değil.
+
+### Sıra: A önce, çünkü B'nin ölçülebilmesini A açıyor
+
+`L_etkin = 110.0` ile `saldirganlik = 0.35` aynı satırın iki hâli. B'nin
+doğru düzeltmesi — eşiği dünyanın kendi ortalamasını izleyen **göreli** bir
+referansa çevirmek, ve saldırganlığı ülkeye bağlamak — ancak ülkeler
+ayırt edilebilir olduğunda ölçülebilir. `guc() = K · q` bile şu an yalnızca
+kaotik ayrışmadan besleniyor; hedef seçimi de öyle.

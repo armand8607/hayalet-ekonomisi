@@ -17,3 +17,8 @@
 
 # PowerShell betikleri Windows'ta CRLF ile daha guvenli calisir.
 *.ps1 text eol=crlf
+
+# Toplu is dosyalari CRLF SART: cmd.exe LF ile gelen bir .bat'i satir satir
+# yanlis ayirabilir. Ustteki global LF kurali uretilen dosyalarin bayt bayt
+# karsilastirilmasi icindi; .bat uretilen bir dosya degil, istisna guvenli.
+*.bat text eol=crlf

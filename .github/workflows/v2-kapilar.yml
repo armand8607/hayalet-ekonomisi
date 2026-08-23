@@ -1,0 +1,191 @@
+name: v2 kapilari
+
+# NEDEN AYRI BIR IS AKISI
+#
+# `deploy.yml` ve `android.yml` yalnizca `main`'e push'ta kosar ve yalnizca
+# `--self-test` calistirir -- o da v4.4'un VERI KATMANI kapisidir. Yani
+# `scripts/v2/` altindaki motorun tamami, ve aktif gelistirmenin tamami, CI'da
+# hic denenmiyordu.
+#
+# Bu, mekanizma eklendikce buyuyen bir riskti: B3 cekirdegin S/Q/T bloklarina,
+# B4 uc ayri yerine dokundu. Her ikisinde de "on kapinin onu da birebir ayni
+# cikti veriyor" diye elle dogrulandi -- ama bu ancak o gun Godot'u indirmis
+# birinin yapabilecegi bir denetim. Regresyon korumasi bir insanin o anki
+# kurulumuna bagli kalmamali.
+#
+# KAPILAR GERCEKTEN DUSEBILIYOR. Dogrulandi: `_dogrula`ya kasten `kosul=false`
+# konulup kosuldu, `SONUC: 0 gecti, 7 kaldi` ve `rc=1` verdi. `main.gd`
+# `get_tree().quit(cikis)` ile cikis kodunu tasiyor, yani yesil bir kapi
+# gercekten bir sey iddia ediyor.
+#
+# BURADA OLMAYANLAR: `--kabul=N` ve `--yon-testleri=N` (v4.4'un agir parite
+# kapilari, kampanya basina ~6 sn x 6 tohum). v4.4 DONDURULMUS ve v2 onun
+# dosyalarina dokunmuyor, dolayisiyla her push'ta kosmalari gerekmiyor.
+# Elle: `--kabul=1259`, `--yon-testleri=6`.
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  kapilar:
+    name: Butun v2 kapilari
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: barichello/godot-ci:4.7
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Projeyi ice aktar
+        run: |
+          # `class_name` tasiyan scriptler `.godot/global_script_class_cache.cfg`
+          # uzerinden cozulur ve onu yalnizca tarama kurar. Depoda `.godot/`
+          # olmadigi icin bu adim SART; yoksa butun kapilar
+          # "Identifier not declared" ile duser.
+          cd godot
+          godot --headless --import || true
+
+      # --- v4.4 (dondurulmus motor -- yalnizca sizinti denetimi) -------------
+
+      - name: 'v4.4: veri katmani'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --self-test
+
+      - name: 'v4.4: Sim katmani duman testi'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --sim-test
+
+      # --- v2 (aktif gelistirme) ---------------------------------------------
+      #
+      # Her kapi AYRI adim: dusen kapi is akisi ekraninda dogrudan gorunsun.
+      # Tek adimda toplansalardi hangisinin dustugunu gormek icin log
+      # karistirmak gerekirdi.
+      #
+      # SIRA UCUZDAN PAHALIYA. Erken dusen bir kapi 200 saniyelik dunya
+      # kosusunu beklemeden geri bildirim versin.
+
+      - name: 'B0/B1a: olcek degismezligi (23 denetim)'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-olcek
+
+      - name: 'B2a: uretim katmani (17 denetim)'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-uretim
+
+      - name: 'B2b: sinif kohortlari (13 denetim)'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-nufus
+
+      - name: 'B2c: mal piyasasi (7 denetim)'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-mal
+
+      - name: 'B1a: tarihsel kayit (1825-2023)'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-tarih
+
+      - name: 'B2: tarihsel kayit, iki mikro katman takili'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-tarih-mikro
+
+      - name: 'B3: karanlik devlet ve bolunme (33 denetim)'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-bolunme
+
+      - name: 'B4: savas bir kriz cikisi olarak (23 denetim)'
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-savas
+
+      - name: 'B5: harita verisi (geometri, izdusum, isabet)'
+        # ~2 sn. Ana harita kapisindan AYRI ve ONCE: geometri bozuldugunda
+        # dort dakikalik kampanyayi beklemeden dussun.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-harita-veri
+
+      - name: 'B1b: dunya katmani (17 denetim)'
+        # Bes ulke x 198 yil x haftalik tik, birden cok kampanya (~220 sn).
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-dunya
+
+      - name: 'B6: olcek -- tam kadro (7 denetim)'
+        # ~280 sn: 113 ulke x 100 yil. Korunum ozdeslikleri OLCEK ALTINDA
+        # burada sinanir; `--v2-dunya` onlari bes ulkede olcuyor.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-b6
+
+      - name: 'B7: oyun kabugu (68 denetim)'
+        # Oturum, gecmis, gunce ve oyuncu kollari. En sert kademesi kabugun
+        # motoru DEGISTIRMEDIGI: gozlemci kipinde surulen dunya, dogrudan
+        # `Dunya.adim()` ile surulen dunyayla alan alan karsilastirilir.
+        #
+        # SON KADEME PAHALI (~2 dk): B7b'nin politika aktoru iki kolu TAM
+        # UFUKTA kosturur. Kisaltilamaz -- ilk kalibrasyon 150 yilda
+        # yapilmisti ve secilen kol 200 yilda devrimi sifirliyordu.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-oyun
+
+      - name: 'B7: oyun ekrani gercekten CIZILIYOR mu'
+        # `--headless` `_draw()` KOSTURMAZ, yani bozuk bir cizim butun
+        # yukaridaki kapilardan sessizce gecer. Ekrani cizdirmenin tek yolu
+        # gercek bir pencere; `xvfb-run` tam olarak bunun icin.
+        #
+        # GODOT SCRIPT HATASINDA SIFIR DONER, dolayisiyla cikis kodu tek
+        # basina bir sey soylemez: cikti "SCRIPT ERROR" iceriyor mu ve PNG
+        # gercekten yazildi mi, ikisi de denetlenir.
+        run: |
+          # KAP HEADLESS ICIN KURULMUS. Olculdu (kosu 32564081223): yalnizca
+          # xvfb kurmak YETMEZ -- Godot'un X istemci kutuphaneleri de yok ve
+          # DisplayServer hic dogmuyor:
+          #   libfontconfig.so.1 / libXcursor.so.1 / libwayland-cursor.so.0
+          #   -> "Unable to create DisplayServer, all display drivers failed"
+          # xvfb bir X SUNUCUSU verir; eksik olan X ISTEMCI tarafiydi.
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+              xvfb libfontconfig1 libxcursor1 libxinerama1 libxrandr2 \
+              libxi6 libgl1 libglx-mesa0 libgl1-mesa-dri libegl1
+          cd godot
+          # `--display-driver x11` ACIKCA verilir: x11 dusunce Godot wayland'a
+          # dusuyor ve orada da kutuphane arayip ikinci bir hata uretiyor;
+          # tek surucude kalmak teshisi okunur birakir. Ekran boyutu da
+          # aciktir -- xvfb'nin varsayilani 1600x900'den kucuk olabilir ve
+          # pencere kirpilirsa paneller "cizilmemis" gibi gorunur.
+          xvfb-run -a -s "-screen 0 1600x900x24" \
+              godot --display-driver x11 res://scenes/Main.tscn \
+              --resolution 1600x900 \
+              -- --v2-oyna=TUR:42:12:16 --ss=/tmp/b7.png 2>&1 | tee /tmp/b7.log
+          if grep -q "SCRIPT ERROR" /tmp/b7.log; then
+            echo "Oyun ekraninda script hatasi:"
+            grep -A 4 "SCRIPT ERROR" /tmp/b7.log
+            exit 1
+          fi
+          test -s /tmp/b7.png || { echo "Ekran goruntusu yazilmadi"; exit 1; }
+
+      - name: 'B7: ekran goruntusu'
+        # Kapi degil KAYIT: cizimin dogru gorunup gorunmedigine insan bakar.
+        # B7'nin olcutu belgede zaten oyle tanimli ("ekran `--ss=` ile
+        # cizdirilip BAKILMIS").
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b7-oyun-ekrani
+          path: /tmp/b7.png
+          if-no-files-found: warn
+
+      - name: 'B5: harita (45 denetim)'
+        # EN PAHALISI (~260 sn): 54 ulke x 264 yil, tam katman yigini.
+        # Kampanya boyu kosmasi zorunlu -- `otomasyon` 1836'da sifirdir ve
+        # savas/ittifak/abluka baglari ancak savas ciktiginda dogar; kisa
+        # kosuda "olu mod" ile "henuz baslamamis mod" ayirt edilemez.
+        run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-harita
+
+  kahin:
+    # AYRI IS, VE KAPSIZ BIR RUNNER'DA.
+    #
+    # `barichello/godot-ci:4.7` kabinda python3 YOK -- ilk kosuda bu adim
+    # `exit 127` (command not found) ile dustu, on iki kapinin on ikisi de
+    # gectikten sonra. Denetimin Godot'a zaten ihtiyaci olmadigi icin dogru
+    # yer kabin ici degil; ayri is olarak paralel de kosar.
+    name: Kahin turetilmis mi
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 'Turetilmis Python dosyalari belgeyle ayni mi'
+        run: |
+          # `python/` ikilisi frozen markdown'daki kod bloklarindan URETILIR.
+          # Elle duzenlenirlerse zincir belgeden kopar ve bunu fark etmenin
+          # baska yolu yok.
+          python3 tools/extract_sources.py --check

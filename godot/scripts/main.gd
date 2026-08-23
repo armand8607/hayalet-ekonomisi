@@ -32,6 +32,148 @@ func _ready() -> void:
 				cikis = Parity.self_test()
 			"--sim-test":
 				cikis = SimTest.kos()
+			"--v2-tarih":
+				# v2 cekirdeginin 1825-2023 tarihsel kayda karsi sinanmasi.
+				cikis = TarihTesti.kos()
+			"--v2-olcek":
+				# v2 kriz cekirdeginin olcek degismezligi. v4.4'e DOKUNMAZ.
+				cikis = OlcekTesti.kos()
+			"--v2-dunya":
+				# Dunya katmani: deger akisi korunuyor mu, ve esitsiz
+				# mubadelenin kriz yogunlugundaki imzasi olculebiliyor mu.
+				cikis = DunyaTesti.kos()
+			"--v2-uretim":
+				# Mikro uretim katmani (B2a): toplama ozdesligi ve §2.4'un
+				# tuzagi -- bina defterinde karli gorunen yukseltme toplam
+				# kar oranini dusuruyor mu.
+				cikis = UretimTesti.kos()
+			"--v2-mal-tarama":
+				# Yigin kisma ve erime kalibrasyonu. Tani kapisi.
+				cikis = MalTesti.tarama()
+			"--v2-mal":
+				# Mal piyasasi (B2c): satilamayan urun bir AKIM mi STOK mu --
+				# ve stok asiri uretim krizine SURE kazandiriyor mu.
+				cikis = MalTesti.kos()
+			"--v2-savas-tarama":
+				# Savas SIKLIGININ tarihsel capaya karsi kalibrasyonu.
+				# Tani kapisi.
+				cikis = SavasTesti.tarama()
+			_ when a.begins_with("--v2-savas-siklik="):
+				# --v2-savas-siklik=DEGER[:ulke] -- kalibrasyon tek noktasi.
+				var sa := a.get_slice("=", 1)
+				cikis = BasarimTesti.savas_noktasi(
+						float(sa.get_slice(":", 0)),
+						int(sa.get_slice(":", 1)) if sa.contains(":") else -1)
+			"--v2-b6":
+				# B6: tam kadro (~100 ulke) -- olcek altinda korunum, maliyet
+				# bicimi ve B4'un savas capasinin yeniden okunmasi.
+				cikis = BasarimTesti.kos()
+			"--v2-kesit":
+				# Kesit tanisi: ulkeler birbirinden ne kadar ayirt
+				# edilebilir -- buyukluk ve savas seciciligi, tek kampanya.
+				# TANI, kapi degil (~3 dk); CI'da yeri yok.
+				cikis = KesitTesti.kos()
+			"--v2-olcek-tarama":
+				# B6: tik maliyeti ulke sayisiyla nasil buyuyor. Tani kapisi.
+				cikis = BasarimTesti.tarama()
+			"--v2-harita-veri":
+				# Harita veri katmani tanisi: geometri + izdusum + isabet,
+				# dunya kosmadan. Ana kapi kampanya kosar, bu kosmaz.
+				cikis = HaritaTesti.veri()
+			"--v2-harita":
+				# Harita (B5): geometri, izdusum, isabet testi, dokuz mod,
+				# baglar -- ve haritanin motora DOKUNMADIGI.
+				cikis = HaritaTesti.kos()
+			"--v2-oyun":
+				# Oyun kabugu (B7): oturum, gecmis, gunce ve oyuncu kollari.
+				# En sert kademesi kabugun motoru DEGISTIRMEDIGI.
+				cikis = OyunTesti.kos()
+			_ when a.begins_with("--v2-kayit-yaz"):
+				# --v2-kayit-yaz[=YIL[:KOD[:kadro]]] -- kisa bir oturum kosup
+				# `user://`ye kaydeder. Tani kapisi: menudeki "devam et"
+				# dugmesinin gorunur oldugunu ELDEN sinamanin yolu.
+				var ky := a.get_slice("=", 1) if a.contains("=") else ""
+				var o := Oyun.new()
+				o.kur(ky.get_slice(":", 1) if ky.count(":") >= 1 else "TUR", 42,
+						Harita.oyun_kodlar(
+								int(ky.get_slice(":", 2)) if ky.count(":") >= 2
+								else 24))
+				o.ilerle((int(ky.get_slice(":", 0)) if ky != "" else 40)
+						* Oyun.YILDA_TIK)
+				print("kayit yazildi: %s (yil %d)"
+						% [Save.oturum_yaz(o.sozluge()), o.takvim_yili()])
+			"--v2-aktor-tarama":
+				# B7b kalibrasyonu: olcek x tavan. Tani kapisi.
+				cikis = OyunTesti.aktor_tarama()
+			_ when a.begins_with("--v2-aktor-iz"):
+				# --v2-aktor-iz[=YIL[:ulke]] -- politika aktoru ne yapiyor.
+				# Tani kapisi; aktorlu ve aktorsuz kollar yan yana.
+				var ai := a.get_slice("=", 1) if a.contains("=") else ""
+				cikis = OyunTesti.aktor_iz(
+						int(ai.get_slice(":", 0)) if ai != "" else 200,
+						int(ai.get_slice(":", 1)) if ai.count(":") >= 1 else 12)
+			_ when a.begins_with("--v2-oyun-iz"):
+				# --v2-oyun-iz[=YIL] -- oyuncunun ana grafiginin kampanya boyu
+				# bicimi. Tani kapisi.
+				var oi := a.get_slice("=", 1) if a.contains("=") else ""
+				cikis = OyunTesti.iz(int(oi) if oi != "" else 230)
+			"--v2-savas":
+				# Savas bir kriz cikisi olarak (B4): §3.2'nin muhasebesi --
+				# savastan sonra kar orani yukari, nufus asagi. Ayrica B3'ten
+				# devredilen olcum: karanlik devletin bedeli cok ulkeli
+				# dunyada doguyor mu.
+				cikis = SavasTesti.kos()
+			"--v2-bolunme-tarama":
+				# Bolunme kanallarinin siddeti ve karsi hareketin agirligi.
+				# Tani kapisi.
+				cikis = BolunmeTesti.tarama()
+			"--v2-bolunme":
+				# Karanlik devlet (B3): riza ve zor aygitlari, `bolunme`, ve
+				# karsisindaki sendika/parti. Uc kademe -- katman takili
+				# degilken cekirdek zerre degismiyor mu, §7'nin alti yon
+				# iddiasi tutuyor mu, ve mekanizma CANLI mi (yonu dogru bir
+				# mekanizma yine de olu olabilir).
+				cikis = BolunmeTesti.kos()
+			"--v2-nufus-tarama":
+				# Yedek ordu etkisinin kalibrasyonu. Tani kapisi.
+				cikis = NufusTesti.tarama()
+			"--v2-nufus":
+				# Sinif kohortlari (B2b): nufus korunumu, bilesim kanali ve
+				# yedek sanayi ordusu -- ucret payi pazarlanan bir skaler mi,
+				# yoksa bilesim x duzey mi.
+				cikis = NufusTesti.kos()
+			"--v2-uretim-tarama":
+				# Yukseltme maliyetinin kalibrasyonu. Tani kapisi.
+				cikis = UretimTesti.tarama()
+			"--v2-uretim-iz":
+				# Mikro kol ile kapali form yan yana -- devrimin neden erkene
+				# kaydigini aramak icin. Tani kapisi.
+				cikis = UretimTesti.iz()
+			"--v2-tarih-mikro":
+				# Ayni tarihsel olcut, IKI mikro katman da TAKILI. B2'nin
+				# kendi olcutu: toplamlar mikro katmanlardan gelirken tarihsel
+				# kayit hala tutuyor mu.
+				TarihTesti.mikro_acik = true
+				TarihTesti.nufus_acik = true
+				cikis = TarihTesti.kos()
+				TarihTesti.mikro_acik = false
+				TarihTesti.nufus_acik = false
+			"--v2-dunya-ayrim":
+				# Dis konum gradyanindaki duzluk gercek mi, temerrut
+				# sikliginin eseri mi. 36 kampanya; ayri kapi.
+				cikis = DunyaTesti.ayrim_taramasi()
+			"--v2-dunya-siddet":
+				# Transferin agirligi ne kadar olmali ki kural gurultuden
+				# ciksin. Tani kapisi; ana testin dort kati surer.
+				cikis = DunyaTesti.siddet_taramasi()
+			_ when a.begins_with("--v2-iz"):
+				# --v2-iz[=YIL[:baslangic[:donem_yil]]] -- cekirdegin teshis izi.
+				# donem_yil verilirse o olcekte kosar (olcek ayrismasi avi).
+				var z := a.get_slice("=", 1) if a.contains("=") else ""
+				OlcekTesti.iz(
+						float(z.get_slice(":", 0)) if z != "" else 100.0,
+						float(z.get_slice(":", 2)) if z.count(":") >= 2 else OlcekTesti.HAFTA,
+						float(z.get_slice(":", 1)) if z.count(":") >= 1 else 1836.0)
 			"--dump-rng":
 				Parity.dump_rng(42)
 			"--dump-crc32":
@@ -79,6 +221,37 @@ func _ready() -> void:
 						int(o.get_slice(":", 3)) if o.count(":") >= 3 else 0)
 				_ss_kontrol(argumanlar)
 				return
+			_ when a.begins_with("--v2-harita-goster"):
+				# --v2-harita-goster[=YIL[:tohum[:mod]]] -- haritayi CIZER.
+				# `--ss=` ile birlikte kullanilir; `--headless` cizmez.
+				var hg := a.get_slice("=", 1) if a.contains("=") else ""
+				_haritayi_goster(
+						float(hg.get_slice(":", 0)) if hg != "" else 40.0,
+						int(hg.get_slice(":", 1)) if hg.count(":") >= 1 else 42,
+						hg.get_slice(":", 2) if hg.count(":") >= 2 else "siyasi")
+				_ss_kontrol(argumanlar)
+				return
+			_ when a.begins_with("--v2-oyna"):
+				# --v2-oyna[=KOD[:tohum[:yil[:kadro[:panel]]]]] -- OYUN EKRANI.
+				# `panel`: ulke | politika | gunce | yok -- gorsel kapi
+				# kapali bir panelin cizimini deneyemez.
+				# `kadro` verilirse dunya o kadar ulkeyle kurulur; ekran
+				# goruntusu icin tam kadro (113 ulke) gereksiz pahalidir.
+				# `--headless` `_draw()` KOSTURMAZ; bu kapi bayraksiz ya da
+				# `xvfb-run` altinda kosulmalidir.
+				var vo := a.get_slice("=", 1) if a.contains("=") else ""
+				_v2_oyna(
+						vo.get_slice(":", 0) if vo != "" else "",
+						int(vo.get_slice(":", 1)) if vo.count(":") >= 1 else 42,
+						int(vo.get_slice(":", 2)) if vo.count(":") >= 2 else 0,
+						int(vo.get_slice(":", 3)) if vo.count(":") >= 3 else 0,
+						vo.get_slice(":", 4) if vo.count(":") >= 4 else "")
+				_ss_kontrol(argumanlar)
+				return
+			"--v2-menu":
+				_v2_menuyu_ac()
+				_ss_kontrol(argumanlar)
+				return
 			"--menu":
 				_menuyu_ac()
 				_ss_kontrol(argumanlar)
@@ -90,8 +263,17 @@ func _ready() -> void:
 	get_tree().quit(cikis)
 
 
+## OYUN ACILDIGINDA v2 GELIR (B7 bitince yapilan devir).
+##
+## B7a'da varsayilan bilerek v4.4'te birakilmisti: Pages'e ve APK'ya cikan
+## surum yarim bir kabuk olmamaliydi. B7 uc parcasiyla kapandi (kabuk, politika
+## aktoru, sunum) ve devir artik yapilabilir.
+##
+## v4.4 KALDIRILMADI, bayraga tasindi: `--menu` eski menuyu, `--oyna` eski
+## paneli acar. Dondurulmus motor ve onun oyun katmani hala kosulabilir
+## durumda -- `--kabul`, `--yon-testleri` ve `--sim-test` onlara bagli.
 func _oyunu_baslat() -> void:
-	_menuyu_ac()
+	_v2_menuyu_ac()
 
 
 ## Menuyu atlayip dogrudan panele girer; `tur` verilirse o kadar ilerletir.
@@ -99,6 +281,76 @@ func _dogrudan_oyna(senaryo: String, tohum: int, ulke: String, tur: int) -> void
 	_kosuyu_baslat(senaryo, tohum, ulke)
 	if tur > 0:
 		Sim.ilerle(tur)
+
+
+## Haritayi kurar, `yil` kadar ilerletir ve cizer. B5'in GORSEL kapisi:
+## `--headless` `_draw()` KOSTURMAZ, yani bozuk bir harita butun headless
+## kapilardan gecer. Ekrani gormenin tek yolu budur.
+func _haritayi_goster(yil: float, tohum: int, mod: String) -> void:
+	_ekrani_temizle()
+	var hafta := 1.0 / 52.0
+	var w := Harita.dunya_kur(PackedStringArray(), tohum, 1836.0)
+	for _i in range(Oran.donem_sayisi(yil, hafta)):
+		w.adim(hafta)
+	var g := HaritaGorunum.new()
+	g.set_anchors_preset(Control.PRESET_FULL_RECT)
+	g.mod_id = mod
+	add_child(g)
+	g.kur(w)
+
+
+## v2'nin kampanya kurulum ekrani (B7).
+func _v2_menuyu_ac() -> void:
+	_ekrani_temizle()
+	var m := OyunMenusu.new()
+	m.kosu_istendi.connect(func(kod: String, tohum: int, kadro: int) -> void:
+		_v2_oyna(kod, tohum, 0, kadro))
+	m.devam_istendi.connect(_v2_devam)
+	add_child(m)
+
+
+## Kayittan devam. BASARISIZSA MENUDE KALIR: bozuk bir kayit oyuncuyu bos bir
+## ekrana dusurmemeli.
+func _v2_devam() -> void:
+	var c := Save.oturum_oku()
+	var o := Oyun.new()
+	if c.is_empty() or not o.sozlukten(c):
+		push_warning("Kayit yuklenemedi; menude kaliniyor.")
+		return
+	_ekrani_temizle()
+	var e := OyunEkrani.new()
+	e.menuye_don.connect(_v2_menuyu_ac)
+	add_child(e)
+	e.kur(o)
+
+
+## v2 oyun ekranini kurar ve istege bagli olarak `yil` kadar ilerletir.
+##
+## `kur()` add_child'DAN SONRA cagrilir: ekran alt dugumlerini `_ready`de
+## kurar, once cagrilsaydi harita ve paneller henuz yok olurdu.
+func _v2_oyna(kod: String, tohum: int, yil: int, kadro: int,
+		panel: String = "") -> void:
+	_ekrani_temizle()
+	var o := Oyun.new()
+	var kodlar := PackedStringArray()
+	if kadro > 0:
+		# OYUNCUNUN ULKESI KADROYA ZORLA EKLENIR. `kapi_kodlar` sabit bir alt
+		# kumedir ve TUR'u icermiyordu; gorsel kapi sessizce GOZLEMCI kipine
+		# dusuyor, butun kollar kapali cikiyordu -- yani panelin asil sinanmak
+		# istenen hali hic cizilmiyordu.
+		# `oyun_kodlar` OYNANABILIR KUMEYI HER ZAMAN ICERIR, dolayisiyla
+		# oyuncunun ulkesi kadro disinda kalamaz. `kapi_kodlar` kullanilirken
+		# tam bu yuzden elle eklemek gerekiyordu.
+		kodlar = Harita.oyun_kodlar(kadro)
+	o.kur(kod, tohum, kodlar)
+	if yil > 0:
+		o.ilerle(yil * Oyun.YILDA_TIK)
+	var e := OyunEkrani.new()
+	e.menuye_don.connect(_v2_menuyu_ac)
+	add_child(e)
+	e.kur(o)
+	if panel != "":
+		e.panel_goster(panel)
 
 
 ## Ekran goruntusu alir ve cikar. Paneli GERCEKTEN gormenin tek yolu budur:

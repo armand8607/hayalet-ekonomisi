@@ -1,18 +1,32 @@
 # CLAUDE.md
 
 Bu depoda çalışan Claude Code oturumları için kılavuz. Önce bunu oku — koddan
-anlaşılmayanları anlatır. Modelin kendi tam dokümantasyonu
-[docs/hayalet_ekonomisi_v44_frozen.md](docs/hayalet_ekonomisi_v44_frozen.md)
-içindedir; burada tekrarlama.
+anlaşılmayanları anlatır. İki referans belge var, ikisi de burada tekrarlanmaz:
+
+| belge | ne |
+|---|---|
+| [hayalet_ekonomisi_v44_frozen.md](docs/hayalet_ekonomisi_v44_frozen.md) | v4.4 motorunun tam dokümantasyonu + iki Python dosyasının kaynağı |
+| [oyun_tasarimi_v2.md](docs/oyun_tasarimi_v2.md) | **v2 oyununun karar kaydı** — mimari, aşamalar, ölçütler |
 
 ## Bu ne
 
 "Hayalet Ekonomisi" — Marksist değer teorisini simüle eden çok ülkeli bir
-makroekonomi oyunu. Motor **v4.4-Frozen**: 20 ülke, 1760–2100 arası 1259 tur,
-LTRPF (kâr oranlarının düşme eğilimi) çekirdekli.
+makroekonomi oyunu. Godot 4.7 + GDScript, GL Compatibility.
 
-Godot 4.7 + GDScript, GL Compatibility. Halihazırda **motorun GDScript portu
-sürüyor**; Python sürümü doğrulama kâhini olarak depoda durur ve oyuna girmez.
+**Depoda iki motor var ve karıştırılmamalı.**
+
+**v4.4-Frozen** — 20 ülke, 1760–2100 arası 1259 tur, LTRPF çekirdekli.
+Portu **bitti**, oyunu oynanabilir ve yayında (Pages + APK). Python sürümü
+doğrulama kâhini olarak durur, oyuna girmez.
+
+**v2** — `godot/scripts/v2/` altında kurulmakta olan **yeni** oyun: Victoria
+biçiminde büyük strateji, haftalık tik, 1836–2100. v4.4'ün denklemlerini
+kullanır ama kalibrasyonunu, tur yapısını ve ülke kümesini kullanmaz. v2 için
+**v4.4 artık otorite değil, denklem kaynağıdır** (bkz. tasarım belgesi §1).
+
+> Aktif geliştirme v2'dedir. v4.4 dondurulmuştur ve öyle kalır — v2'de bir
+> mekanizma değiştirmek v4.4'te değiştirmek anlamına GELMEZ; v2'nin kendi
+> dosyaları vardır ve v4.4'e dokunmadan değişir.
 
 ## Üç katmanlı depo
 
@@ -20,9 +34,9 @@ sürüyor**; Python sürümü doğrulama kâhini olarak depoda durur ve oyuna gi
 
 | klasör | ne |
 |---|---|
-| `docs/` | **Tek doğruluk kaynağı.** `hayalet_ekonomisi_v44_frozen.md` — model dokümantasyonu + iki Python dosyasının tam kaynağı |
+| `docs/` | **Tek doğruluk kaynağı.** `hayalet_ekonomisi_v44_frozen.md` (v4.4 + Python kaynağı) ve `oyun_tasarimi_v2.md` (v2 karar kaydı) |
 | `python/` | Kâhin. Belgeden **türetilmiş** motor + dört kabul testi. Oyuna girmez, export'a dahil değil |
-| `godot/` | Godot projesi. `project.godot`, `scripts/`, `scenes/` burada |
+| `godot/` | Godot projesi. `project.godot`, `scripts/`, `scenes/` burada. `scripts/v2/` **ayrı motordur** — v4.4 dosyalarına dokunmaz |
 | `tools/` | Üretim ve karşılaştırma araçları |
 
 **`python/hayalet_ekonomi_motoru_v43.py` ve `hayalet_ekonomisi_oyunu_v32.py`
@@ -42,7 +56,33 @@ de **üretilmiştir** (`python tools/gen_gdscript.py`). 355 kalibrasyon sabitini
 elle kopyalamak kabul edilemez bir risktir — tek basamak hatası motoru sessizce
 değiştirir ve oynayarak fark edilmez.
 
+Üçüncü üretilmiş dosya **`godot/scripts/v2/data/harita_verisi.gd`**
+(`python tools/gen_harita.py`) — B5'in harita geometrisi, kaynağı **Natural
+Earth 110m** (kamu malı). Elle çizilmiş bir dünya haritası hem binlerce sayı
+hem de **kaynaksız** olurdu. `--check` kaynağı yeniden indirip karşılaştırır
+ama **CI'da koşmaz**: denetim bizim dışımızdaki bir deponun `master` dalına
+bağlanırdı. Verinin doğruluğunu `--v2-harita` **yapısal** olarak sınar.
+
 ## Nasıl çalıştırılır
+
+Oyunu **oynamak** için (Windows): `tools\oyna.bat`. Godot'u `%GODOT%` →
+bilinen kurulum yolları → PATH sırasıyla arar, `.godot/` yoksa bir kez
+`--import` koşar ve oyunu açar. Masaüstüne kısayol:
+`powershell -ExecutionPolicy Bypass -File tools\masaustu_kisayolu.ps1`.
+
+> **Argümansız açılış artık v2'yi getirir** (B7 bitince yapılan devir).
+> v4.4 kaldırılmadı, bayrağa taşındı: `--menu` eski menüyü, `--oyna` eski
+> gösterge panelini açar. `--sim-test`, `--kabul` ve `--yon-testleri` hâlâ
+> onlara bağlı.
+
+Linux'ta / uzak oturumda oynamak için (aşağıdaki binary indirmesinden sonra):
+
+```bash
+xvfb-run -a -s "-screen 0 1280x720x24" ./Godot_v4.7-stable_linux.x86_64 \
+    --display-driver x11 --path godot --resolution 1280x720
+```
+
+Kâhin:
 
 ```bash
 python python/hayalet_ekonomisi_oyunu_v32.py turkey_2001 endojen 42 120
@@ -55,10 +95,80 @@ Godot tarafı (doğrulama koşuları). `--` sonrası her şey
 "C:\Program Files\Godot\Godot.exe.exe" --headless --path godot res://scenes/Main.tscn -- --self-test
 ```
 
-Argüman kapıları: `--self-test`, `--dump-rng`, `--dump-crc32`, `--dump-params`,
-`--dump-formulas`, `--dump-agg`, `--dump-init`, `--dump-turn=N[:senaryo]`,
-`--dump-scenario=AD`, `--dump-report=N[:senaryo]`, `--kabul=N`,
-`--yon-testleri=N[:baş[:yalnızca]]`.
+Argüman kapıları — **v4.4**: `--self-test`, `--sim-test`, `--dump-rng`,
+`--dump-crc32`, `--dump-params`, `--dump-formulas`, `--dump-libm`,
+`--dump-agg`, `--dump-init`, `--dump-turn=N[:senaryo]`, `--dump-scenario=AD`,
+`--dump-report=N[:senaryo]`, `--kabul=N`, `--yon-testleri=N[:baş[:yalnızca]]`.
+
+**Oyun**: `--oyna[=kayıt:tohum:ülke:tur]`, `--menu`, `--ss=DOSYA`.
+
+**v2** (hiçbiri v4.4'e dokunmaz): `--v2-olcek` (ölçek değişmezliği, 23 denetim),
+`--v2-tarih` (1825–2023 tarihsel kayıt), `--v2-tarih-mikro` (aynısı, iki mikro
+katman takılı), `--v2-dunya` (dünya katmanı, 17 denetim), `--v2-uretim`
+(üretim katmanı, 17 denetim), `--v2-nufus` (sınıf kohortları, 13 denetim),
+`--v2-mal` (mal piyasası, 7 denetim), `--v2-bolunme` (karanlık devlet,
+bölünme ve karşı hareket, 33 denetim), `--v2-savas` (savaş bir kriz çıkışı
+olarak, 23 denetim), `--v2-dunya-siddet`, `--v2-dunya-ayrim`,
+`--v2-uretim-tarama`, `--v2-nufus-tarama`, `--v2-mal-tarama`,
+`--v2-bolunme-tarama` ve `--v2-savas-tarama` (kalibrasyon taramaları — tanı,
+ana kapıdan yavaş), `--v2-harita` (harita, 45 denetim — **tam kampanya koşar,
+~4 dk**), `--v2-harita-veri` (yalnızca geometri/izdüşüm/isabet, ~2 sn — tanı),
+`--v2-harita-goster[=yıl[:tohum[:mod]]]` (haritayı **çizer**, `--ss=` ile
+birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
+7 denetim — **~5 dk**), `--v2-olcek-tarama` ve
+`--v2-savas-siklik=DEĞER[:ülke]` (B6 tanıları), `--v2-kesit` (kesit tanısı:
+ülkeler birbirinden ne kadar ayırt edilebilir — büyüklük ve savaş seçiciliği,
+tek kampanya, ~3 dk),
+`--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
+(teşhis izleri).
+
+**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (68 denetim, ~3 dk — son
+kademesi iki kolu tam ufukta koşar). Tanılar: `--v2-aktor-iz[=YIL[:ülke]]` ve
+`--v2-aktor-tarama` (B7b kalibrasyonu).
+`--v2-menu` kampanya kurulum ekranını,
+`--v2-oyna[=KOD[:tohum[:yıl[:kadro[:panel]]]]]` doğrudan oyun ekranını açar;
+`panel` = `ulke|politika|gunce|yok`. **İkisi de `--headless` ile anlamsızdır**
+(`_draw()` koşmaz) — `--ss=` ile birlikte `xvfb-run` altında koşulmalı:
+
+```bash
+xvfb-run -a -s "-screen 0 1600x900x24" ./Godot_v4.7-stable_linux.x86_64 \
+    --path godot res://scenes/Main.tscn --resolution 1600x900 \
+    -- --v2-oyna=TUR:42:60:16:politika --ss=/tmp/b7.png
+```
+
+> **Kadro menüden seçilir** (tam 113 / orta 54 / küçük 24) ve tarayıcıda
+> varsayılan **orta**dır: web export tek iş parçacıklıdır ve tam kadro orada
+> takvimi sürünerek ilerletir. `Harita.oyun_kodlar(n)` oynanabilir kümeyi her
+> zaman içerir — `kapi_kodlar(n)` alfabetik ilk n'i verdiği için oyun kadrosu
+> olarak KULLANILMAZ: 24 ülkelik alfabetik bir küme ABD'siz bir dünya sistemi
+> demektir.
+
+> **`kadro` verilirse oyuncunun ülkesi kadroya ZORLA eklenir.**
+> `Harita.kapi_kodlar(n)` sabit bir alt kümedir ve TUR'u içermiyordu; görsel
+> kapı sessizce **gözlemci** kipine düşüyor, bütün kollar kapalı çıkıyordu —
+> yani sınanmak istenen ekran hiç çizilmiyordu.
+
+**Godot yoksa (Linux / uzak oturum):** binary'yi indirmek yeterli, kurulum
+gerekmiyor. Ölçüldü — `--headless` için xvfb bile gerekmez:
+
+```bash
+curl -sSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
+unzip -q godot.zip && chmod +x Godot_v4.7-stable_linux.x86_64
+./Godot_v4.7-stable_linux.x86_64 --headless --path godot --import   # bir kez
+./Godot_v4.7-stable_linux.x86_64 --headless --path godot res://scenes/Main.tscn -- --v2-savas
+```
+
+`--import` şart ve depoda `.godot/` olmadığı için ilk iş odur. Sekiz v2
+kapısının tamamı ~7 dakika sürer. **Ekranı görmek** için `--ss=` kapısı hâlâ
+`xvfb-run` ister (aşağıya bak); yalnızca headless doğrulama koşuları
+gerektirmez.
+
+> **v2'de SAYAÇLAR dönem cinsindendir, tur cinsinden DEĞİL.** v4.4'ün bütün
+> `*_sure` sabitleri 0.27 yıllık tur cinsindendir; haftalık döngüye olduğu gibi
+> kopyalanırsa **14 kat hızlı** dolar. Bir kez yaşandı: `fx_baski >= 8` (v4.4'te
+> 2.16 yıl, haftalıkta 0.15 yıl) döviz krizini salgına çevirdi — 198 yılda ülke
+> başına 22 kriz — ve dünya katmanının ana ölçütünü sessizce yok etti.
+> `Oran.v44_sayac(tur, donem_yil)` kullan.
 
 **Döküm kapıları yavaştır, motor değil.** Ölçüldü: maliyetin neredeyse tamamı
 stdout'a satır basmaktan geliyor (~3 ms/satır), simülasyondan değil. Gerçek
@@ -109,10 +219,17 @@ Sonuçları:
 
 İki iş akışı da `main`'e push'ta çalışır:
 
-| iş akışı | çıktı |
-|---|---|
-| `.github/workflows/deploy.yml` | Web export → GitHub Pages |
-| `.github/workflows/android.yml` | Debug APK → koşu **Artifacts**'ı, `v*` etiketinde **GitHub Release** |
+| iş akışı | ne zaman | çıktı |
+|---|---|---|
+| `.github/workflows/v2-kapilar.yml` | **her dala** push + PR | on v2 kapısı + iki v4.4 kapısı + türetilmiş dosya denetimi (~17 dk) |
+| `.github/workflows/deploy.yml` | `main`'e push | Web export → GitHub Pages |
+| `.github/workflows/android.yml` | `main`'e push | Debug APK → koşu **Artifacts**'ı, `v*` etiketinde **GitHub Release** |
+
+**Kapılar gerçekten düşebiliyor — doğrulandı.** `_dogrula`ya kasten
+`kosul = false` konup koşuldu: `SONUC: 0 geçti, 7 kaldı` ve `rc=1`.
+`main.gd` `get_tree().quit(cikis)` ile çıkış kodunu taşıyor. Bu denetim
+olmadan yeşil bir CI hiçbir şey iddia etmez; yeni bir kapı eklerken aynı
+şekilde bir kez bozup kırmızıya döndüğünü gör.
 
 - İkisi de `barichello/godot-ci:4.7` kabında derlenir. Android'e dair hiçbir şey
   yerel makinede kurulu değil; APK'yı yerelde derlemeye çalışma.
@@ -251,9 +368,11 @@ Bir iz sapması savaş/ittifak olayında çıkarsa ilk şüpheli budur.
 
 ## Portun durumu
 
-**Motor portu bitti.** `step()`, 13 yardımcısı, `load_scenario`, politika
-API'si ve raporlama katmanı taşındı; doğrulama merdiveninin yedi basamağının
-hepsi geçiyor. Kalan iş oyun katmanıdır (gösterge paneli, kalıcılık, CI).
+**v4.4 bitti — motor da, oyun katmanı da.** `step()`, 13 yardımcısı,
+`load_scenario`, politika API'si ve raporlama katmanı taşındı; doğrulama
+merdiveninin yedi basamağının hepsi geçiyor. Gösterge paneli, menü, rapor
+ekranı, kalıcılık ve CI da yerinde: oyun oynanabiliyor ve iki iş akışıyla
+yayına çıkıyor. **v4.4 tarafında kalan iş yok**; yeni geliştirme v2'dedir.
 
 `Sim` otoload'u oyun katmanının motora **tek kapısıdır** ve kendi duman testi
 vardır (`--sim-test`, 31 denetim). Motorla karşılaştırılacak bir kâhini yok:
@@ -286,6 +405,33 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   kez: `Godot.exe.exe --headless --path godot --import`
 - **`--headless` hiçbir şey çizmez, `_draw()` koşmaz.** Bozuk bir çizim
   headless koşuyu sessizce geçer. Gösterge paneli testleri bayraksız koşulmalı.
+  Ekranı **görmenin** yolu `--ss=` kapısıdır; başsız bir makinede bile
+  `xvfb-run -a -s "-screen 0 1280x720x24" Godot --path godot
+  res://scenes/Main.tscn -- --oyna=:42:Turkiye:600 --ss=panel.png` ile çalışır
+  (Mesa llvmpipe yeter). Rapor ekranının sol boşluğunun hiç uygulanmadığı
+  böyle yakalandı — beş doğrulama kapısının hepsi o hatayı geçiyordu.
+- **v4.4'ün metrik listesini v2'ye KOPYALAMA — birimler aynı değil.**
+  v2'de `borc` ve `varlik` mutlak **stoktur**; v4.4'te normalize edilmişti.
+  Panel "Hanehalkı borcu / Y" etiketiyle ham stoku gösteriyordu: Osmanlı'da
+  **244.34**, düzeltince 1.90. Çekirdek ikisini de her kullandığı yerde
+  `Y_yil`'e bölüyor (`kriz_cekirdegi.gd:499, 550, 966`). `Gecmis` metriğine
+  `"payda"` verilir. Beş headless kapının beşi de bu hatayı geçiyordu; ekrana
+  bakınca yakalandı.
+- **Türetilmiş metrikler `t=0`'da YOKTUR.** `r_yil`, `u`, `PR`, `Omega` alan
+  değil çekirdeğin çıktısıdır ve ilk `adim()` koşmadan 0.0'dır. Başlangıç
+  satırı örneklenirse her kâr oranı grafiği olmayan bir çöküşle başlar — ve
+  hata **metriğin türüne göre** değişir (`pay`, `q` gerçek başlangıç alanı
+  olduğu için onlarda görünmez). `Gecmis` ilk örneği ilk yılın sonunda alır.
+- **UFUK DA TIK SAYARAK BULUNUR.** Ayni kayan nokta ailesinin ucuncu uyesi ve
+  en sinsisi: `bitti()` `yil >= 2100.0` diye bakiyordu, ama 264 yil kosunca
+  `yil` 2099.9999999...'a variyor ve kosul HIC saglanmiyordu — kampanya
+  bitmiyor, bitis raporu hic acilmiyordu. Ust serit 2100 yaziyordu cunku o
+  zaten epsilon toleransli `takvim_yili()`i kullaniyor: **ekran "bitti" derken
+  motor "bitmedi" diyordu.** `Oyun.UFUK_TIK` tik sayar.
+- **`yil` kayan noktada birikir: 52 tik sonra 1836.9999999999998.** `int()`
+  bunu 1836'ya kırpar ve grafiğin, güncenin, üst şeridin bütün yıl etiketleri
+  bir yıl geri kayar. Takvim yılı **tik sayısından** türetilir
+  (`Oyun.takvim_yili()` epsilon toleransı taşır).
 - **Android export ETC2/ASTC ister**: `project.godot` içinde
   `textures/vram_compression/import_etc2_astc=true` — oyunda hiç doku olmasa
   bile. Yoksa export "configuration error" ile durur.
@@ -300,6 +446,141 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
 - **GDScript lambda'ları DEĞERE göre yakalar.** `var x = {}; sinyal.connect(
   func(r): x = r)` dıştaki `x`'i değiştirmez — sinyal testleri sessizce hep
   "boş" görür. Sözlük/dizi gibi referans tiplerinin *içini* doldurmak gerekir.
+- **v2'de MİKRO ile MAKRO büyüklüğü aynı formülle yazma.** "Bina kârlılığı"
+  sermaye üzerinden (`(Y_i − w·L_i)/K_i`) tanımlanırsa cebirsel olarak
+  `(1 − w/q_i)/kv` eder — yani içine `kv` girer, o da makro bir büyüklüktür.
+  Ölçüldü: iki katman aynı işareti verdi ve §2.4'ün tuzağı ölçülemedi.
+  Kapitalistin defterindeki büyüklük **satış üzerinden marjdır**; kâr oranı
+  makro defterde durur. Ayrım Marx'ın kendi ayrımıdır, kozmetik değildir.
+- **v2'de çağ tablosu `q_tavan` demektir, `era_min` değil.** `Tables.ERAS`
+  teknolojik gelişmeyi "her çağın bir üretkenlik tavanı var, q çağ içinde ona
+  doğru doyar" diye kurar. Yeni mekanizmaları çağ **numarasıyla** kapılamak bu
+  mantığı tersine çevirir: üretim yöntemi merdiveni bir kez öyle yazıldı ve
+  1836–1975 arası 139 yıl tek basamakta dondu (200 yılda q 1.00 → 1.33, kapalı
+  form 55.4 verirken). Kapı `q_tavan` olmalı — tabloyu tekrarlamaz, okur.
+- **v2'de `q` yalnızca üretkenlik değil, ÇAĞ TABLOSUNUN TETİKLEYİCİSİDİR.**
+  Çağ geçişi `q > E["q_esik"]` şartına bakar ve her geçiş `Omega`'yı zıplatır
+  (`gecis_omega`). Yani `q`'nun büyüme hızını değiştiren her mekanizma, farkında
+  olmadan **devrimin zamanlamasını** da değiştirir. Bir kez yaşandı: mikro
+  katmanın merdiveni erken hızlı tırmanınca devrim 1923'ten 1903'e kaydı. Teşhis
+  eleme ile yapıldı — `pay` ve `PR` iki kolda da aynıydı, ayrışan `q` ve çağdı
+  (`--v2-uretim-iz`).
+- **Kalibrasyonu KARAR VERİLEN kurulumda ve YÖRÜNGE üzerinden yap.** Bu ikisi
+  ayrı ayrı hataya yol açtı. `--v2-uretim-tarama` önce 1836/çağ-2'den koşuyordu
+  ama ölçüt `--v2-tarih` ve o 1825/çağ-1'den başlıyor — çağların `q_tavan`ı
+  farklı olduğu için sabit taşınmıyor. Ve tarama yalnızca uç noktaya bakıyordu:
+  uç nokta çapaya %88 yakınken yörünge iki kat ayrışıyordu. **Bir eğriyi tek
+  noktadan eşleştirmek onu eşleştirmez.**
+- **v2'de bir AKIM ile bir STOK aynı şeyi ölçmez.** `satilamayan_I/II` akım
+  olarak yazılıydı ve dönem bitince buharlaşıyordu; sonucu ölçüldü — aşırı
+  üretim epizodu ortalama **15.7 yıl** sürüyordu, yani bir kriz değil kalıcı
+  bir durum. Stoka çevrilince 2.07 yıla indi. Bir mekanizmanın hafızası
+  olmalıysa onu akımla kurma.
+- **Toplu bedeli haftalık akımla karşılaştırma.** Bir yatırım kararının bedeli
+  stok cinsindense (binanın sermayesinin şu kadarı) ve bütçe akım cinsindense
+  (haftalık yatırımın şu kadarı), koşul hiç sağlanmaz. Bir kez yaşandı:
+  yükseltme 200 yılda sıfır kez ateşledi. Taksitlendir — ve taksiti anında
+  sermayeye yaz, yoksa korunum özdeşliği kırılır.
+- **`barichello/godot-ci:4.7` kabı HEADLESS için kurulmuştur — `--ss=` kapısı
+  orada kutudan çıkmaz.** Ölçüldü (koşu 32564081223): `xvfb` kurmak **yetmez**,
+  çünkü eksik olan X *sunucusu* değil X *istemci* kütüphaneleridir —
+  `libfontconfig.so.1`, `libXcursor.so.1`, `libwayland-cursor.so.0` yokken
+  Godot "Unable to create DisplayServer, all display drivers failed" ile
+  düşer. Gereken küme: `xvfb libfontconfig1 libxcursor1 libxinerama1
+  libxrandr2 libxi6 libgl1 libglx-mesa0 libgl1-mesa-dri libegl1`, ve
+  `--display-driver x11` (yoksa Godot wayland'a düşüp ikinci bir hata yığar).
+- **`barichello/godot-ci:4.7` kabında `python3` YOK.** CI'da kâhin denetimi
+  (`extract_sources.py --check`) o kapta `exit 127` ile düştü — on iki kapının
+  on ikisi de geçtikten sonra. Godot gerektirmeyen adımlar kapsız bir runner'da
+  ayrı iş olarak koşmalı.
+- **v2'de MERDİVEN İLE ÇAĞ TABLOSU ZIT YÖNLÜ, ve tek sabit ikisini tutmaz.**
+  Üretim merdiveninin tırmanma hızı yapısal olarak birikim oranıyla
+  orantılıdır (`basamak/yıl = yatırım·pay / (K_bina·bedel)`), birikim oranı da
+  kâr oranıyla birlikte **düşer** — LTRPF'nin kendisi. Çağ tablosunun `qg`si
+  ise **yükselir** (0.0045 → 0.0175). Ölçüldü: tek bir bedel ya erken on
+  yılları iki kat hızlandırıyor ya geç kampanyayı bir mertebe geride
+  bırakıyor; 2100'de q 12.4 kalırken kapalı form 156.3 veriyordu ve otomasyon
+  (mutlak q ≥ 36 ister) **hiç başlamıyordu**. Çözüm yeni bir sabit değil,
+  `q_tavan` kapısındaki ilkenin aynısı: basamak bedeli çağın kendi `qg`siyle
+  ölçeklenir — **tablo tekrarlanmaz, okunur** (`cag_esneklik = 1.0`).
+- **Kalibrasyon penceresi OYUNUN UFKUNU kapsamalı.** Merdiven taraması
+  1985'te bitiyordu ve tam bu yüzden asıl sapmayı göremiyordu: iki kol erken
+  on yıllarda yakın duruyor, ayrışma geç kampanyada açılıyor. "Bir eğriyi tek
+  noktadan eşleştirmek onu eşleştirmez" dersinin zaman eksenindeki hâli —
+  **yarım pencerede eşleştirmek de eşleştirmez.**
+- **KAPI DÜNYASI KADRODAN AYRI TUTULUR.** B6 kadroyu 54'ten 113'e çıkarınca
+  tam kampanya koşan kapıların maliyeti üçe katlandı (harita kapısı 227 →
+  ~620 sn). `Harita.kapi_kodlar()` sabit bir alt küme verir. Ayrım iş
+  bölümüdür: harita kapısı **mod canlılığı ve bağ kapsamı** ölçer, ölçeği
+  değil — ölçek `--v2-b6`nın işidir ve o tam kadroda koşar.
+- **OPTİMİZASYON SONUCU DEĞİŞTİRMEMELİ, ve bu ÖLÇÜLEREK gösterilir.**
+  `ticaret()`in iç döngüsünde üç ifade yalnızca `i`'ye bağlıydı ve n² kez
+  hesaplanıyordu (113 ülkede tik başına 6328 gereksiz `_itki` çağrısı);
+  dışarı alınınca karesel katsayı %39 düştü. **İfade sırası korunmalı**:
+  `(yog·Ya)·Yb / Yd` ile `(yog·Ya/Yd)·Yb` kayan noktada aynı sayı değildir.
+  Kanıt `--v2-dunya` çıktısının bayt bayt karşılaştırılmasıdır.
+- **Bir BANDIN neyi ölçtüğünü, düştüğü gün ÇAPALARI ölçerek anla.** B2b'nin
+  `iss_ort < 0.25` yozlaşma bandı merdiven kalibre edilince düştü. Bandı
+  gevşetmek yerine çapalar ölçüldü: çekirdeğin kendi kapalı formu 0.3169,
+  yalnız-nüfus kolu 0.3015 — yani bandı sağlayan **tek** kol yavaş merdivenli
+  koldu ve bant bağımsız bir ölçüt değil, o yavaşlığın parmak iziydi. Bant
+  çapaya göre yeniden yazıldı (`< çapa + 0.10`) ve ayırt ediciliği ayrıca
+  doğrulandı: kalibre kol 0.3815 geçiyor, aşırı kol (esneklik 1.5) 0.4706 ile
+  kalıyor.
+- **Bir SÜRÜCÜ kurmadan önce bileşenlerinin DAĞILIMINA bak.** B7b'de politika
+  aktörünün tehdit terimi `PR` üzerine kurulmuştu; ölçüldü ve `PR` aralığı
+  yalnızca 0.055 çıktı, ölçek 0.35 ile her ülkede her tik 1.0'a kırpılıyordu.
+  Dört bileşenin üçü (PR, tıkanma, `baski_egilimi`) doygun ya da sabitti;
+  ayakta kalan tek varyans `PC`'nindi ve eksi işaretle girdiği için **kesit
+  tersine döndü**. Doğru büyüklük §4.1'in kendi hedefiydi: örgütlü öfke
+  (`Omega × orgutlu`, aralık 0.380). Ortalaması makul görünen bir sürücü
+  clamp'e dayanmışsa hiçbir şeyi ayırt etmez.
+- **v2'de bir DÜZEY karşılaştırması trendi ölçer, mekanizmayı değil.** Bu
+  ailenin BEŞ üyesi oldu (beşincisi B7b'nin `PC` üzerinden ters dönen kesiti): mutlak `NX` yerine `NX/Y` (ekonomi küçülünce mutlak
+  akım da küçülür), ham `l_etkin` yerine çarpan (nüfus sürükleniyor), kampanya
+  ortalaması yerine eş-zamanlı kesit (`r` 0.10'dan 0.04'e düşüyor ve olaylar
+  erken kümeleniyor), dünya toplamı yerine çift hacmi (iki yörünge kaotik
+  ayrışıyor). Yeni bir karşılaştırma yazarken sor: **ölçtüğüm fark mekanizmadan
+  mı, yoksa iki kolun zaten ayrıştığı yerden mi geliyor?**
+- **v2'de v4.4'ün SÜRE sabitleri tarihsel çapaya karşı sınanmalı.** Birim
+  çevrimi doğru olsa bile değerin kendisi v4.4'ün kalibrasyonudur ve v2 onu
+  devralmaz. B4'te yaşandı: `sv_min_sure`/`sv_max_sure` doğru çevrildi ama
+  savaşlar 15.3 yıl sürdü ve nüfus kaybı %31.8'e çıktı — yön testi 14/14
+  **geçerek**. Tarihsel çapa (büyük savaşlarda %4–13) süreyi 1.5–7 yıla çekti.
+- **v2'de YENİ BİR KANALIN BÜYÜKLÜĞÜNÜ KOMŞU TERİMLERLE KIYASLA.** Tek başına
+  "makul görünen" bir sayı motorun kendi ölçeğinde felaket olabilir. B3'te
+  yaşandı: `sehit_org_yil = 0.30` seçilmişti, oysa çekirdeğin bütün örgütlenme
+  akımları yılda **0.006–0.013** mertebesinde (`org_kent_yil` 0.0059,
+  `org_baski_yil` 0.0130) — yani otuz kat büyüktü. Sonucu: `org` 0.465'ten
+  0.04'e çöktü, `Omega` onunla söndü ve devrim imkânsızlaştı.
+- **v2'de bir mekanizmayı ölçerken TAKTİĞİ değil MEKANİZMAYI aç/kapa.** B3'te
+  iki test bu yüzden yanlış sebeple kaldı. Paramiliter taktiği aynı anda
+  `bolunme`yi de itiyor, o da `org`u kırıyor, o da `Omega`nın birikim çarpanını
+  küçültüyor; taktiği açıp `Omega`ya bakmak şehit etkisini değil **üç kanalın
+  bileşkesini** ölçer. Doğru karşı-olgusal `sehit_omega_yil = 0` ile kurulur.
+- **v4.4'ün karanlık devlet çıktıları taşındı ama DENKLEMLERİ taşınmamıştı.**
+  `uyusturucu_orani` ve `cezaevi_orani` çekirdekte okunuyor ama hiçbir şey
+  tarafından yazılmıyordu — lumpen kanalı, karseral sönüm ve meşruiyet aşınması
+  198 yıl boyunca 0.0'da **ölü** durdu. Bir alanın var olması sürüldüğü anlamına
+  gelmez; `grep` ile "kim yazıyor" diye bakmak ucuz bir denetimdir.
+- **Kayda geçmiş bir AÇIKLAMA ölçüm değildir — ve bu depoda bir kez yanlış
+  çıktı.** §6h `savas_siklik` çarpanının §3.1'in işaretini çevirmesini
+  **doyuma** bağlamıştı: "çarpanı 7.6 kat büyütmek olasılığı doyuruyor ve
+  krizdeki ülke ile sağlam ülke arasındaki farkı eziyor." Ölçüldü
+  (`--v2-kesit`): doyum **yok**. Yıllık ilan olasılıkları 0.002–0.08
+  aralığında, yani `_tehlike` orada fiilen doğrusal; 5.0 ile 38.0 çarpanları
+  kesitin CV'sini **birebir aynı** bırakıyor (0.598/0.598, 0.086/0.086,
+  0.042/0.042). Ölçülen sapma buna karşılık şu: `sikisma`nın eşiği
+  (`sv_r_ref = 0.048`) v4.4'ten devralınmış **mutlak** bir sayı ve v2'nin kâr
+  oranı 1860–1990 arasında onun iki-üç katında geziyor — kriz terimi
+  kampanyanın çoğunda **tabanda**, 95 ilanın 66'sı (%69.5) o dönemlerde
+  düşüyor. O dönemlerde ilan olasılığı kesitte **tek bir sayıdır** (CV tam
+  0.000): `saldirganlik` bütün AI ülkelerinde sabit 0.35, `era` ortak,
+  `sikisma` sıfır. Yani çarpan sinyali değil **gürültüyü** büyütüyor.
+  İşaretin neden döndüğü hâlâ **açık**: savaştaki ülke ilan edemediği için
+  (`if c.savasta(): continue`) ve savaş `r`'yi düşürdüğü için, sıklık artınca
+  düşük-`r` ülkelerin ilan havuzundan elenmesi akla yakın bir aday — ama
+  ölçülmedi, yazılmaz.
 - **`exp`/`log`/`pow` şu an bit-birebir uyuşuyor** (CPython 3.12 x86-64 Windows
   ↔ Godot 4.7 aynı makinede, 36 noktalık ızgarada). Bu **garanti değildir**:
   ızgara küçük ve wasm/ARM hedeflerinde ayrışabilir. Katman 3'ün toleransları
@@ -329,6 +610,75 @@ koşuları aynı anda onlarca bağımsız örnek çalıştırır. `Params` de bu
 tur × ~60 alan ≈ 1.5M değer eder. `PackedFloat64Array` kullanılır,
 `Float32` değil — parite karşılaştırması binary64 gerektiriyor.
 
+### v2 — `godot/scripts/v2/`
+
+Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
+`ParamSet`, `Formulas`, `PyRandom` ve `Tables`'ı okur; hiçbirini değiştirmez.
+
+| sınıf | ne |
+|---|---|
+| `KrizParam` | v2 parametreleri. Düzeyler `P.v44`'ten **okunur**, elle yazılmaz |
+| `KrizDurumu` | ülke durumu. **Akımlar YILLIK, stoklar düzey, sayaçlar dönem** |
+| `KrizCekirdegi` | ülke-içi kriz teorisi. `adim(d, donem_yil, dis)` |
+| `Dunya` | ülkeler arası **korunumlu** değer akışı (C/L blokları) |
+| `UretimKatmani` | mikro katman: sektör, bina, üretim yöntemi merdiveni (B2a) |
+| `NufusKatmani` | sınıf kohortları: emek arzı, istihdam, ücret payı (B2b) |
+| `MalKatmani` | mal piyasası: dört kategori, satılamayan **stok** (B2c) |
+| `KaranlikDevlet` | rıza/zor aygıtları, `bolunme`, karşı hareket (B3) |
+| `SavasKatmani` | savaş: ilan, seferberlik, yıkım, yenilgi, karşı-devrim (B4) |
+| `Oran` | dönem↔yıl dönüşümleri. Tur→hafta tuzağının tek savunması |
+| `HaritaVerisi` | **üretilmiş** geometri: 156 ülke, 201 halka, 1/16° tam sayı ızgara |
+| `Harita` | izdüşüm (Miller), isabet testi, ülke kaydı, dünya kurulumu, bağlar (B5) |
+| `HaritaModu` | dokuz harita modu: değer, aralık, renk, efsane (B5) |
+| `HaritaGorunum` | `ui/` — haritayı `_draw()` ile çizer. Tek `Control`, sıfır asset |
+| `BasarimTesti` | `harness/` — B6: ölçek altında maliyet, korunum, savaş sıklığı |
+| `Oyun` | `oyun/` — oturum: dünya + oyuncu + tik + politika kolları (B7) |
+| `PolitikaAktoru` | `oyun/` — §4.5'in AI tarafı: AI ülkeleri karanlık devlete kendi krizlerine göre uzanır (B7b) |
+| `Gecmis` | `oyun/` — **yıllık** örneklenen sütun deposu; panelin grafikleri |
+| `Gunce` | `oyun/` — kriz tescillerinden **türetilen** günce (§0) |
+| `OyunEkrani` | `ui/` — Victoria düzeni: harita ana ekran, paneller üstüne |
+| `UlkePaneli` | `ui/` — 12 çekirdek metrik + karanlık devletin bedelleri |
+| `PolitikaPaneli` | `ui/` — oyuncunun kolları; §4.6'nın temsil ilkesi burada yaşar |
+| `GuncePaneli` | `ui/` — günce akışı, ülke süzgeciyle |
+| `ZamanGrafigi` | `ui/` — tek metriğin serisi; `Chart`ın aksine otoloada bağlı değil |
+| `OyunMenusu` | `ui/` — kampanya kurulumu: özne seçimi (senaryo yok, §5.3) |
+| `Kayit` | `oyun/` — oturumun serileştirilmesi; RNG durumu dahil (B7d) |
+| `RaporPaneli` | `ui/` — kampanya sonu tarihsel sonuç raporu; skor değil kayıt |
+| `OyunTesti` | `harness/` — B7: kabuk motoru değiştirmiyor mu, kollar canlı mı |
+| `KesitTesti` | `harness/` — **tanı**: ülkeler arası ayrışma (büyüklük, savaş seçiciliği) |
+
+**Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,
+`cekirdek.nufus`, `cekirdek.mal` ve `cekirdek.karanlik` `null` ise bütün kapalı
+formlar eskisi gibi koşar; B1a/B1b ölçümleri geçerliliğini korur. Ölçüldü:
+B3 eklendikten sonra dokuz kapının dokuzu da **bayt bayt aynı** çıktı verdi.
+**Dördü birbirinden bağımsız takılır** — etkileri ancak öyle ayrı ölçülebilir;
+B2a'da devrimin 20 yıl kaymasının sebebi tam da bu ayrılabilirlik sayesinde
+eleme yoluyla bulundu. Takılıysa otorite geçer: `mikro` → `K`, `q`, `oto`,
+`pay_I`; `nufus` → `L_etkin`, `e`, `emek_gerginlik`, `pay`; `mal` →
+`talep_acigi`, `satilamayan_I/II`; `karanlik` → `bolunme`, `mafya_tolerans`,
+`uyusturucu_orani`, `cezaevi_orani`, `egitim`, `nitelik`, `sehit`.
+**Otorite tabloları katman dosyalarının başındadır.** Açık/kapalı olması bir
+test kolaylığı değil deney tasarımıdır (B1b'de kesitsel ölçüm bir kez yanlış
+sonuç verdi).
+
+**Bir mekanizmanın YÖNÜ doğru çıkabilir ve mekanizma yine de ÖLÜ olabilir.**
+B2b'de yaşandı: `pay` kampanyanın %74'ünü tabana çakılmış geçiriyordu, bileşim
+kanalı hiç iş görmüyordu, ve kapı yön denetimleriyle **yeşil veriyordu**. Yön
+testleri bunu yakalamaz; **bant denetimleri** yakalar. Yeni bir kapı yazarken
+"mekanizma canlı mı" denetimini ayrıca koy — yoksa "eşik gevşetilmedi" cümlesi
+boş kalır.
+
+**Birim sözleşmesi v4.4'ten en önemli ayrılıktır.** v4.4'te akımlar *tur
+başına* tanımlıydı ve dönem uzunluğu değişince sessizce yanlışlanan tek şey
+buydu. v2'de akımlar yıllık sabitlenmiştir; `P.v44.x` diye okumak "bu büyüklük
+zamana bağlı DEĞİL" iddiasıdır ve yanlışsa motor 14 kat hızlı koşar.
+
+**`Dunya`nın tek kuralı: birinden eksilen diğerine gider.** Akım çift üzerinde
+tanımlıdır ve iki uca ters işaretle yazılır, yani `sum(VT) == 0` bir
+kalibrasyon değil özdeşliktir. Ülke başına çarpan uygulamak (abluka, açıklık)
+**çifte simetrik** olmalıdır — tek tarafa uygulanan çarpan korunumu kırar ve
+v4.4'ün L bloğunu bozan şey tam olarak buydu (ölçüldü: korunum hatası %57).
+
 ## Oyun tasarımı — sabit kararlar
 
 - **Zafer koşulu yoktur** (§9.8). Koşu ufuk dolunca biter ve `tarihsel_rapor()`
@@ -346,7 +696,8 @@ tur × ~60 alan ≈ 1.5M değer eder. `PackedFloat64Array` kullanılır,
 
 - Tipli GDScript, **tab** girinti, `##` doc yorumları.
 - **Sıfır asset**, tower-defense projesindeki gibi: her görsel `_draw()` kodu.
-  `.png`/`.wav` eklemeden önce sor.
+  `.png`/`.wav` eklemeden önce sor. **Tek istisna vektör geometri verisidir**
+  (§5.1): harita poligonları `.png` değil, **üretilmiş** bir tablodur.
 - Yorumlar ASCII (Türkçe karaktersiz), kullanıcıya görünen metinler tam Türkçe.
 - **Motorda mekanizma değişikliği yapma.** Belge "v4.4 ÖZELLİK AÇISINDAN
   DONDURULDU" diyor (§10). Port sırasında davranış düzeltmesi yapılmaz;
