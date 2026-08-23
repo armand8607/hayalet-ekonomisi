@@ -257,6 +257,45 @@ static func kapi_kodlar(n: int = 54) -> PackedStringArray:
 	return c
 
 
+## OYUN DUNYASI -- `n` ulkeyle sinirli kadro. `n <= 0` ya da tam kadrodan
+## buyukse tam kadro doner.
+##
+## `kapi_kodlar`DAN AYRI, ve ayri olmasi ZORUNLU. O alfabetik ilk `n` kodu
+## verir; kapi icin dogrudur (sabit ve tekrarlanabilir), oyun icin FELAKETTIR
+## -- 24 ulkelik alfabetik bir kume ABD'siz, Britanya'siz bir dunya sistemi
+## demektir ve §0'in "dunya sistemindeki konum" cumlesi anlamsizlasir.
+##
+## Kural: ONCE OYNANABILIR KUME (19 ulke, §5.8b'nin merkez-yari-cevre
+## yelpazesi), sonra kalanlar. Sira tam kadronun sirasini korur, yani kucuk
+## dunya buyugunun gercek bir ALT KUMESIDIR ve indeks sirasi kaymaz.
+##
+## MALIYET (B6'nin olctugu model, `ms/tik = 0.208*n + 0.00163*n^2`):
+##   113 ulke -> 44.3 ms/tik, tam kampanya 608 sn
+##    54 ulke -> 16.0 ms/tik, tam kampanya 219 sn
+##    24 ulke ->  5.9 ms/tik, tam kampanya  81 sn
+## Tarayicida (tek is parcacikli wasm) bunlarin birkac kati.
+static func oyun_kodlar(n: int = 0) -> PackedStringArray:
+	var hepsi := simule_kodlar()
+	if n <= 0 or n >= hepsi.size():
+		return hepsi
+	var secili := {}
+	for kod in oynanabilir_kodlar():
+		if secili.size() >= n:
+			break
+		secili[kod] = true
+	for kod in hepsi:
+		if secili.size() >= n:
+			break
+		secili[kod] = true
+	# TAM KADRONUN SIRASINDA doner: alt kume, ust kumenin indeks sirasini
+	# korur ve iki dunya yan yana okunabilir kalir.
+	var c := PackedStringArray()
+	for kod in hepsi:
+		if secili.has(kod):
+			c.append(kod)
+	return c
+
+
 static func oynanabilir_kodlar() -> PackedStringArray:
 	var c := PackedStringArray()
 	for u in kayit():

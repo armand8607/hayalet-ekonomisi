@@ -120,7 +120,7 @@ birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
 `--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
 (teşhis izleri).
 
-**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (52 denetim, ~3 dk — son
+**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (55 denetim, ~3 dk — son
 kademesi iki kolu tam ufukta koşar). Tanılar: `--v2-aktor-iz[=YIL[:ülke]]` ve
 `--v2-aktor-tarama` (B7b kalibrasyonu).
 `--v2-menu` kampanya kurulum ekranını,
@@ -133,6 +133,13 @@ xvfb-run -a -s "-screen 0 1600x900x24" ./Godot_v4.7-stable_linux.x86_64 \
     --path godot res://scenes/Main.tscn --resolution 1600x900 \
     -- --v2-oyna=TUR:42:60:16:politika --ss=/tmp/b7.png
 ```
+
+> **Kadro menüden seçilir** (tam 113 / orta 54 / küçük 24) ve tarayıcıda
+> varsayılan **orta**dır: web export tek iş parçacıklıdır ve tam kadro orada
+> takvimi sürünerek ilerletir. `Harita.oyun_kodlar(n)` oynanabilir kümeyi her
+> zaman içerir — `kapi_kodlar(n)` alfabetik ilk n'i verdiği için oyun kadrosu
+> olarak KULLANILMAZ: 24 ülkelik alfabetik bir küme ABD'siz bir dünya sistemi
+> demektir.
 
 > **`kadro` verilirse oyuncunun ülkesi kadroya ZORLA eklenir.**
 > `Harita.kapi_kodlar(n)` sabit bir alt kümedir ve TUR'u içermiyordu; görsel

@@ -13,7 +13,20 @@ extends Control
 ## bosaltir. Bu yuzden listede her ulkenin konumu yazar: secim ekraninin
 ## anlatmasi gereken sey budur, bir yildiz derecesi degil.
 
-signal kosu_istendi(kod: String, tohum: int)
+signal kosu_istendi(kod: String, tohum: int, kadro: int)
+
+## KADRO SECENEKLERI. Maliyet B6'nin olctugu modelden geliyor
+## (`ms/tik = 0.208*n + 0.00163*n^2`, `--v2-olcek-tarama`), yani etiketlerdeki
+## sureler tahmin degil OLCUM.
+##
+## §5.6 "tam dunya" diyor ve o secenek DURUYOR -- kucuk kadro onun yerine
+## gecmez, yanina gelir. Ama tarayicida tek is parcacikli wasm tam kadroyu
+## oynanmaz yapiyor, ve oynanmayan bir dunya "tam" olmaktan da cikiyor.
+const KADROLAR := [
+	{"n": 0, "ad": "Tam dünya — 113 ülke", "not": "kampanya ~10 dk"},
+	{"n": 54, "ad": "Orta — 54 ülke", "not": "kampanya ~3,5 dk"},
+	{"n": 24, "ad": "Küçük — 24 ülke", "not": "kampanya ~1,5 dk"},
+]
 
 const KONUM_ADI := {
 	"merkez": "merkez",
@@ -23,6 +36,7 @@ const KONUM_ADI := {
 
 var _liste: ItemList
 var _tohum: SpinBox
+var _kadro: OptionButton
 var _aciklama: Label
 var _kodlar: PackedStringArray = PackedStringArray()
 
@@ -55,11 +69,11 @@ func _ready() -> void:
 	# geciyordu. Ayni hata once politika panelinde yakalanmisti.
 	kutu.add_theme_stylebox_override("panel", Tema.panel_stili())
 	kutu.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	kutu.custom_minimum_size = Vector2(560, 460)
+	kutu.custom_minimum_size = Vector2(560, 500)
 	kutu.offset_left = -280
 	kutu.offset_right = 280
-	kutu.offset_top = -230
-	kutu.offset_bottom = 230
+	kutu.offset_top = -250
+	kutu.offset_bottom = 250
 	add_child(kutu)
 
 	var kenar := MarginContainer.new()
@@ -93,6 +107,25 @@ func _ready() -> void:
 	_aciklama.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_aciklama.add_theme_color_override("font_color", Tema.METIN_SOLUK)
 	kok.add_child(_aciklama)
+
+	var kadro_satir := HBoxContainer.new()
+	kadro_satir.add_theme_constant_override("separation", 8)
+	kok.add_child(kadro_satir)
+	var ke := Label.new()
+	ke.text = "Dünya"
+	ke.add_theme_color_override("font_color", Tema.METIN_SOLUK)
+	kadro_satir.add_child(ke)
+	_kadro = OptionButton.new()
+	_kadro.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for k in range(KADROLAR.size()):
+		_kadro.add_item("%s   —   %s" % [KADROLAR[k]["ad"], KADROLAR[k]["not"]], k)
+	# TARAYICIDA VARSAYILAN KUCUK. Web export tek is parcacikli ve wasm
+	# yerel hizin birkac kati yavas; tam kadro orada takvimi surunerek
+	# ilerletir. Masaustunde varsayilan tam dunyadir.
+	_kadro.select(1 if OS.has_feature("web") else 0)
+	_kadro.tooltip_text = ("Simüle edilen ülke sayısı. Oynanabilir ülkeler "
+			+ "her kadroda bulunur; küçültülen, dünyanın geri kalanıdır.")
+	kadro_satir.add_child(_kadro)
 
 	var satir := HBoxContainer.new()
 	satir.add_theme_constant_override("separation", 8)
@@ -169,4 +202,5 @@ func _secildi(i: int) -> void:
 func _basla() -> void:
 	var i := _liste.get_selected_items()
 	var k := i[0] if not i.is_empty() else 0
-	kosu_istendi.emit(_kodlar[k], int(_tohum.value))
+	kosu_istendi.emit(_kodlar[k], int(_tohum.value),
+			int(KADROLAR[_kadro.get_selected_id()]["n"]))

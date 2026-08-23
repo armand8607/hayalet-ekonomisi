@@ -1003,6 +1003,36 @@ static func _sunum_kademesi(w: Dunya) -> void:
 
 	print("  KAYIT: %d blok, en buyugu %d ulke" % [uye.size(), _en_buyuk(uye)])
 
+	# --- KADRO ---
+	# Kucuk dunya OYNANABILIR KUMEYI kaybetmemeli. `kapi_kodlar` alfabetik
+	# ilk `n`i verir ve 24 ulkelik bir kume ABD'siz, Britanya'siz cikar --
+	# oyun icin dogru kume `oyun_kodlar`dir ve farki burada sayilir.
+	var oynanabilir := Harita.oynanabilir_kodlar()
+	for n in [24, 54]:
+		var kadro := Harita.oyun_kodlar(n)
+		var eksik: Array[String] = []
+		for kod in oynanabilir:
+			if not kadro.has(kod):
+				eksik.append(kod)
+		_dogrula(kadro.size() == n and eksik.is_empty(),
+				"kadro %d: boy dogru ve oynanabilir kume tam" % n,
+				"boy %d, eksik: %s" % [kadro.size(), ", ".join(eksik)])
+
+	# TAM KADRONUN ALT KUMESI, ve SIRASI KORUNUR: kucuk dunya buyugunun
+	# gercek bir alt kumesi degilse iki kosu yan yana okunamaz.
+	var tam := Harita.oyun_kodlar(0)
+	var orta := Harita.oyun_kodlar(54)
+	var sira_hatasi := false
+	var k := 0
+	for kod in tam:
+		if k < orta.size() and orta[k] == kod:
+			k += 1
+	if k != orta.size():
+		sira_hatasi = true
+	_dogrula(tam.size() == Harita.simule_kodlar().size() and not sira_hatasi,
+			"kucuk kadro tam kadronun SIRALI alt kumesi",
+			"tam %d, orta %d" % [tam.size(), orta.size()])
+
 
 static func _sifir_say(b: PackedInt32Array) -> int:
 	var c := 0

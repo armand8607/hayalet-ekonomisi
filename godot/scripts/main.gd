@@ -284,8 +284,8 @@ func _haritayi_goster(yil: float, tohum: int, mod: String) -> void:
 func _v2_menuyu_ac() -> void:
 	_ekrani_temizle()
 	var m := OyunMenusu.new()
-	m.kosu_istendi.connect(func(kod: String, tohum: int) -> void:
-		_v2_oyna(kod, tohum, 0, 0))
+	m.kosu_istendi.connect(func(kod: String, tohum: int, kadro: int) -> void:
+		_v2_oyna(kod, tohum, 0, kadro))
 	add_child(m)
 
 
@@ -303,9 +303,10 @@ func _v2_oyna(kod: String, tohum: int, yil: int, kadro: int,
 		# kumedir ve TUR'u icermiyordu; gorsel kapi sessizce GOZLEMCI kipine
 		# dusuyor, butun kollar kapali cikiyordu -- yani panelin asil sinanmak
 		# istenen hali hic cizilmiyordu.
-		kodlar = Harita.kapi_kodlar(kadro)
-		if kod != "" and not kodlar.has(kod):
-			kodlar.append(kod)
+		# `oyun_kodlar` OYNANABILIR KUMEYI HER ZAMAN ICERIR, dolayisiyla
+		# oyuncunun ulkesi kadro disinda kalamaz. `kapi_kodlar` kullanilirken
+		# tam bu yuzden elle eklemek gerekiyordu.
+		kodlar = Harita.oyun_kodlar(kadro)
 	o.kur(kod, tohum, kodlar)
 	if yil > 0:
 		o.ilerle(yil * Oyun.YILDA_TIK)
