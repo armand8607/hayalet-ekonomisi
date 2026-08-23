@@ -491,6 +491,7 @@ yok" bulmak demekti.
 | **B7a** | **Oyun kabuğu.** Oturum, geçmiş, günce, oyuncu kolları, Victoria düzeni | **KURULDU** — `--v2-oyun` 35/35; ekran `--ss=` ile çizdirilip bakıldı (§6i) |
 | **B7b** | **Politika aktörü.** AI kendi krizine göre taktik yazsın (§4.5) | **KURULDU** — `--v2-oyun` 43/43; `bolunme` yayılımı 0.000 → 0.374, devrim ertelenir ama önlenmez (§6j) |
 | **B7c** | **Sunum artıkları.** Blok gösterimi (dolgu/kabuk), ad değişimi takvimi (Osmanlı → Türkiye) | **KURULDU** — `--v2-oyun` 52/52, `--v2-harita` 45/45; blok kabuğu dokuz modda okunur, ad takvimi sunum olarak işaretli (§6k) |
+| **B7d** | **Kayıt/yükleme.** Oturumun serileştirilmesi | **KURULDU** — `--v2-oyun` 65/65; RNG durumu dahil birebir yuvarlak (§6l) |
 
 **B1a bitti ve kendi ölçütünü fazlasıyla aştı.** Kriz teorisi bu mimaride
 çalışıyor: kapalı ekonomi 100 kapitalist yılda 19.2 ayrık kriz olayı üretiyor.
@@ -2284,7 +2285,7 @@ yarısının altında olmalı.
 
 - ~~**Politika aktörü yok**~~ — B7b'de geldi (§6j).
 - ~~**Blok gösterimi ve ad değişimi takvimi yok**~~ — B7c'de geldi (§6k).
-- **Kayıt/yükleme yok.** v4.4'ün `Save` otoloadı v2 oturumunu tanımıyor.
+- ~~**Kayıt/yükleme yok**~~ — B7d'de geldi (§6l).
 - **Varsayılan giriş hâlâ v1.** `_oyunu_baslat()` v4.4 menüsünü açıyor; v2
   `--v2-menu` ve `--v2-oyna` ile giriliyor. Devir B7 bitince yapılmalı —
   Pages'e ve APK'ya çıkan sürüm yarım bir kabuk olmamalı.
@@ -2432,3 +2433,58 @@ var mı (yoksa o ülke 2100'de hâlâ 1836 adıyla durur, yani B7c'nin var olma
 sebebi geri gelir). Üçüncüsü epsilon: `yil` haftalık birikimle geçiş yılının
 bir tık altına düşer (1922.9999999) ve tam eşitlik karşılaştırması geçişi bir
 yıl geciktirirdi.
+
+---
+
+## 6l. B7d — kayıt ve yükleme
+
+B7a'nın "yapmadıkları" listesinde duran son kalem. Kampanya 264 yıl ve tam
+kadroda azami hızda 10 dakika; oturumun tek seferde bitmesi gerekmemeli.
+
+### İskelet normal yoldan kurulur, üstüne durum yazılır
+
+Nesne grafiğini (113 ülke × kriz çekirdeği × dört katman × iki RNG) elle
+yeniden inşa etmek hem uzun hem kırılgan olurdu: bir alan unutulduğunda
+yükleme **sessizce başka bir dünya** üretirdi. Bunun yerine dünya
+`Harita.dunya_kur()` ile her zamanki gibi kurulur — kodlar ve tohum kayıttan
+gelir — ve sonra bütün durum üzerine yazılır.
+
+Alanlar `get_property_list()` ile gezilir, elle sayılmaz. Elle sayılsaydı
+motora eklenen her yeni alan kayıtta eksik kalırdı ve bu bir hata olarak
+değil, "biraz farklı" bir dünya olarak görünürdü.
+
+### RNG durumu kaydedilir — ve kapı bunu geleceğe bakarak sınar
+
+Üç ayrı RNG var: her ülkenin çekirdeğinde bir `PyRandom` (MT19937, 624
+kelime + indeks), savaş katmanında bir `PyRandom`, `Dunya`'da bir
+`RandomNumberGenerator`. Yalnızca **tohumu** kaydetmek yetmez: tohum
+başlangıcı verir, oyuncu ise ortasından devam eder.
+
+Asıl denetim bu yüzden yüklemeden **sonrasına** bakar. "Yükleme sonrası dünya
+aynı" tek başına yetersizdir — RNG durumu kaydedilmemiş olsa bile o an aynı
+görünür, çünkü RNG bir sonraki tikte konuşur. Kapı iki dünyayı yükledikten
+sonra **10 yıl daha birlikte sürüyor** ve hâlâ alan alan aynı olmalarını
+bekliyor. Kaydedilmemiş tek bir MT19937 kelimesi orada ortaya çıkar.
+
+### Biçim ikili, JSON değil
+
+Tam kadroda geçmiş deposu tek başına 113 × 264 × 19 = 566 000 kayan noktadır.
+JSON'da her sayı ondalık metne çevrilir; `var_to_bytes` aynı veriyi ikili
+tutar. Ölçüldü: 6 ülke × 40 yıl için **130 KB**, 24 ülke × 45 yıl için
+**560 KB**.
+
+`save.json` küçük ve insan okur kalır (ayarlar, koşu özetleri); oturum ayrı
+bir dosyaya gider. İkisini aynı dosyaya koymak küçüğü büyüğün rehinesi
+yapardı. `Save` yine `user://`ye erişen tek yerdir — `Kayit` dosya sistemine
+hiç dokunmaz, yalnızca sözlük üretir.
+
+### Disk yolu ayrıca sınanır
+
+Sözlük yuvarlağı diskten geçmeyi **kanıtlamaz**: `store_var` ile `get_var`
+arasında bir biçim farkı, bir izin hatası ya da yarım yazılmış bir dosya
+ancak orada görünür. Kapı yazma, okuma ve yeniden kurma adımlarını ayrıca
+koşar — ve kendi arkasını temizler, çünkü bir kapı kalıcı durum bırakmamalı.
+
+Bozuk ya da gelecekten gelen bir kayıt reddedilir ve **açık oturuma
+dokunmaz**; `Save`in v4.4 sözleşmesiyle aynı ilke: hiçbir koşulda ölümcül
+değil.

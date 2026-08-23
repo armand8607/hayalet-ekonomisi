@@ -14,6 +14,7 @@ extends Control
 ## anlatmasi gereken sey budur, bir yildiz derecesi degil.
 
 signal kosu_istendi(kod: String, tohum: int, kadro: int)
+signal devam_istendi
 
 ## KADRO SECENEKLERI. Maliyet B6'nin olctugu modelden geliyor
 ## (`ms/tik = 0.208*n + 0.00163*n^2`, `--v2-olcek-tarama`), yani etiketlerdeki
@@ -147,6 +148,15 @@ func _ready() -> void:
 	basla.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	basla.pressed.connect(_basla)
 	satir.add_child(basla)
+
+	# DEVAM DUGMESI YALNIZCA KAYIT VARSA. Her zaman gorunup tiklanamaz
+	# olsaydi "kayit var mi" sorusu ekranda cevaplanmazdi.
+	if Save.oturum_var():
+		var devam := Button.new()
+		devam.text = "Kayıttan devam et"
+		devam.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		devam.pressed.connect(func() -> void: devam_istendi.emit())
+		satir.add_child(devam)
 
 	_doldur()
 

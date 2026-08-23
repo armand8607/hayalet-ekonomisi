@@ -120,7 +120,7 @@ birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
 `--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
 (teşhis izleri).
 
-**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (55 denetim, ~3 dk — son
+**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (65 denetim, ~3 dk — son
 kademesi iki kolu tam ufukta koşar). Tanılar: `--v2-aktor-iz[=YIL[:ülke]]` ve
 `--v2-aktor-tarama` (B7b kalibrasyonu).
 `--v2-menu` kampanya kurulum ekranını,
@@ -616,6 +616,7 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `GuncePaneli` | `ui/` — günce akışı, ülke süzgeciyle |
 | `ZamanGrafigi` | `ui/` — tek metriğin serisi; `Chart`ın aksine otoloada bağlı değil |
 | `OyunMenusu` | `ui/` — kampanya kurulumu: özne seçimi (senaryo yok, §5.3) |
+| `Kayit` | `oyun/` — oturumun serileştirilmesi; RNG durumu dahil (B7d) |
 | `OyunTesti` | `harness/` — B7: kabuk motoru değiştirmiyor mu, kollar canlı mı |
 
 **Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,

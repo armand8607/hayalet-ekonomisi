@@ -106,6 +106,18 @@ func _process(delta: float) -> void:
 		_hiz_ayarla(0)
 
 
+## KAYDEDERKEN DURAKLATILIR. Serilestirme bir tik surer ve o sirada dunya
+## ilerleseydi kayit ile ekran arasinda bir haftalik fark olusurdu -- kucuk
+## ama "kaydettigim yer" iddiasini bozacak kadar.
+func _kaydet() -> void:
+	if oyun == null:
+		return
+	_hiz_ayarla(0)
+	var basarili := Save.oturum_yaz(oyun.sozluge())
+	_bilgi.text = ("Kaydedildi — %d" % oyun.takvim_yili() if basarili
+			else "KAYIT YAZILAMADI")
+
+
 func _hiz_ayarla(i: int) -> void:
 	_hiz = clampi(i, 0, HIZLAR.size() - 1)
 	_sayac = 0.0
@@ -189,6 +201,7 @@ func _ust_bar_kur() -> void:
 			["Günce", func() -> void:
 				_gunce_paneli.visible = not _gunce_paneli.visible
 				_bosluklari_guncelle()],
+			["Kaydet", func() -> void: _kaydet()],
 			["Menü", func() -> void: menuye_don.emit()]]:
 		var d := Button.new()
 		d.text = String(o[0])

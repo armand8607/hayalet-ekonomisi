@@ -138,6 +138,7 @@ var _tik: int = 0
 func kur(oyuncu_kod: String = "", p_tohum: int = 42,
 		kodlar: PackedStringArray = PackedStringArray()) -> void:
 	tohum = p_tohum
+	self.kodlar = kodlar.duplicate()
 	dunya = Harita.dunya_kur(kodlar, p_tohum, BAS_YIL)
 	oyuncu = -1
 	if oyuncu_kod != "":
@@ -158,11 +159,7 @@ func kur(oyuncu_kod: String = "", p_tohum: int = 42,
 
 	_tik = 0
 	gecmis = Gecmis.new()
-	var hepsi: Array[Dictionary] = []
-	hepsi.append_array(CEKIRDEK_METRIKLER)
-	hepsi.append_array(KARANLIK_METRIKLER)
-	hepsi.append_array(EK_METRIKLER)
-	gecmis.kur(hepsi, dunya.ulkeler.size())
+	gecmis.kur(_metrik_listesi(), dunya.ulkeler.size())
 	# BASLANGIC SATIRI ALINMAZ, ve bu bir eksiklik degil duzeltme.
 	#
 	# Olculdu: `t=0`da orneklenirse `r_yil` 0.0 kaydedilir, cunku kar orani
@@ -176,6 +173,16 @@ func kur(oyuncu_kod: String = "", p_tohum: int = 42,
 	# Ilk ornek bu yuzden ilk yilin SONUNDA alinir: seri 1837'de baslar.
 	gunce = Gunce.new()
 	gunce.kur(dunya)
+
+
+## Kaydedilen metriklerin tek listesi. Hem kurulum hem yukleme bunu okur;
+## ikisi ayri yerden okusaydi eski bir kayit yeni bir metrigi eksik birakirdi.
+static func _metrik_listesi() -> Array[Dictionary]:
+	var hepsi: Array[Dictionary] = []
+	hepsi.append_array(CEKIRDEK_METRIKLER)
+	hepsi.append_array(KARANLIK_METRIKLER)
+	hepsi.append_array(EK_METRIKLER)
+	return hepsi
 
 
 func _dunya_indeksi(kod: String) -> int:
@@ -332,6 +339,50 @@ func aciklik() -> float:
 	if dunya == null or oyuncu < 0:
 		return 0.0
 	return dunya.aciklik[oyuncu]
+
+
+# ===========================================================================
+# KAYIT / YUKLEME (B7d)
+# ===========================================================================
+
+## Oturumun kadrosu -- kayit iskeleti bununla yeniden kurar.
+var kodlar: PackedStringArray = PackedStringArray()
+
+
+func sozluge() -> Dictionary:
+	return Kayit.oturum_sozluge(self, kodlar)
+
+
+## Kayittan oturum kurar. Basarisizsa `false` doner ve oturum DOKUNULMAZ
+## kalir -- bozuk bir kayit acik oyunu bozmamali.
+func sozlukten(c: Dictionary) -> bool:
+	if int(c.get("surum", 0)) != Kayit.SURUM:
+		push_warning("Kayit surumu uyusmuyor.")
+		return false
+	var w := Kayit.dunya_yukle(c["dunya"])
+	if w == null:
+		return false
+
+	dunya = w
+	kodlar = (c["dunya"]["kodlar"] as PackedStringArray).duplicate()
+	tohum = int(c["dunya"]["tohum"])
+	oyuncu = int(c["oyuncu"])
+	_tik = int(c["tik"])
+	if oyuncu >= 0:
+		dunya.cekirdekler[oyuncu].karanlik.otomatik = false
+		if dunya.aktor != null:
+			dunya.aktor.oyuncu = oyuncu
+
+	gecmis = Gecmis.new()
+	gecmis.kur(_metrik_listesi(), dunya.ulkeler.size())
+	gecmis.ham_yukle(c["gecmis"]["yillar"], c["gecmis"]["sutun"],
+			int(c["gecmis"]["ulke_sayisi"]))
+
+	gunce = Gunce.new()
+	gunce.kur(dunya)          # sayaclari o ANKI duruma esitler
+	gunce.girdiler = (c["gunce"]["girdiler"] as Array).duplicate(true)
+	gunce.sayac = (c["gunce"]["sayac"] as Dictionary).duplicate(true)
+	return true
 
 
 static func bicimle(v: float, bicim: String) -> String:

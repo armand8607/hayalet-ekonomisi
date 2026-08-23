@@ -105,7 +105,7 @@ jobs:
         # burada sinanir; `--v2-dunya` onlari bes ulkede olcuyor.
         run: cd godot && godot --headless res://scenes/Main.tscn -- --v2-b6
 
-      - name: 'B7: oyun kabugu (52 denetim)'
+      - name: 'B7: oyun kabugu (65 denetim)'
         # Oturum, gecmis, gunce ve oyuncu kollari. En sert kademesi kabugun
         # motoru DEGISTIRMEDIGI: gozlemci kipinde surulen dunya, dogrudan
         # `Dunya.adim()` ile surulen dunyayla alan alan karsilastirilir.

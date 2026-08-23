@@ -83,6 +83,20 @@ func _ready() -> void:
 				# Oyun kabugu (B7): oturum, gecmis, gunce ve oyuncu kollari.
 				# En sert kademesi kabugun motoru DEGISTIRMEDIGI.
 				cikis = OyunTesti.kos()
+			_ when a.begins_with("--v2-kayit-yaz"):
+				# --v2-kayit-yaz[=YIL[:KOD[:kadro]]] -- kisa bir oturum kosup
+				# `user://`ye kaydeder. Tani kapisi: menudeki "devam et"
+				# dugmesinin gorunur oldugunu ELDEN sinamanin yolu.
+				var ky := a.get_slice("=", 1) if a.contains("=") else ""
+				var o := Oyun.new()
+				o.kur(ky.get_slice(":", 1) if ky.count(":") >= 1 else "TUR", 42,
+						Harita.oyun_kodlar(
+								int(ky.get_slice(":", 2)) if ky.count(":") >= 2
+								else 24))
+				o.ilerle((int(ky.get_slice(":", 0)) if ky != "" else 40)
+						* Oyun.YILDA_TIK)
+				print("kayit yazildi: %s (yil %d)"
+						% [Save.oturum_yaz(o.sozluge()), o.takvim_yili()])
 			"--v2-aktor-tarama":
 				# B7b kalibrasyonu: olcek x tavan. Tani kapisi.
 				cikis = OyunTesti.aktor_tarama()
@@ -286,7 +300,23 @@ func _v2_menuyu_ac() -> void:
 	var m := OyunMenusu.new()
 	m.kosu_istendi.connect(func(kod: String, tohum: int, kadro: int) -> void:
 		_v2_oyna(kod, tohum, 0, kadro))
+	m.devam_istendi.connect(_v2_devam)
 	add_child(m)
+
+
+## Kayittan devam. BASARISIZSA MENUDE KALIR: bozuk bir kayit oyuncuyu bos bir
+## ekrana dusurmemeli.
+func _v2_devam() -> void:
+	var c := Save.oturum_oku()
+	var o := Oyun.new()
+	if c.is_empty() or not o.sozlukten(c):
+		push_warning("Kayit yuklenemedi; menude kaliniyor.")
+		return
+	_ekrani_temizle()
+	var e := OyunEkrani.new()
+	e.menuye_don.connect(_v2_menuyu_ac)
+	add_child(e)
+	e.kur(o)
 
 
 ## v2 oyun ekranini kurar ve istege bagli olarak `yil` kadar ilerletir.

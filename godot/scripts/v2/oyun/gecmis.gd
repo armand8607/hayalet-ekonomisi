@@ -106,6 +106,25 @@ func ornek_sayisi() -> int:
 	return yillar.size()
 
 
+## Duzlestirilmis sutunun kendisi. KAYIT ICIN: `seri()` ulke basina kopya
+## uretir, kayit ise sutunu oldugu gibi ister.
+func seri_ham(anahtar: String) -> PackedFloat64Array:
+	return _sutun.get(anahtar, PackedFloat64Array())
+
+
+## Kayittan geri yukler. `kur()` CAGRILDIKTAN SONRA cagrilir: metrik listesi
+## kayittan degil koddan gelir, yoksa eski bir kayit yeni bir metrigi
+## sessizce eksik birakirdi.
+func ham_yukle(p_yillar: PackedFloat64Array, sutunlar: Dictionary,
+		p_ulke_sayisi: int) -> void:
+	yillar = p_yillar.duplicate()
+	ulke_sayisi = p_ulke_sayisi
+	for m in metrikler:
+		var anahtar := String(m["anahtar"])
+		if sutunlar.has(anahtar):
+			_sutun[anahtar] = (sutunlar[anahtar] as PackedFloat64Array).duplicate()
+
+
 ## Son ornegin degeri; ornek yoksa `NAN`. Panel "su anki deger"i buradan
 ## okur, motordan DEGIL: iki kaynak arasinda bir tik kaymasi olsun istemiyoruz.
 func son(anahtar: String, ulke: int) -> float:

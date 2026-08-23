@@ -74,6 +74,66 @@ func kaydet() -> void:
 		push_warning("Kayit yerine tasinamadi.")
 
 
+# ===========================================================================
+# IKILI KAYIT (v2 oturumu, B7d)
+# ===========================================================================
+#
+# AYRI DOSYA, ve JSON DEGIL. v2'nin oturum kaydi tam kadroda birkac megabayt
+# tutar ve neredeyse tamami kayan nokta dizisidir; JSON'a yazilirsa her sayi
+# ondalik metne cevrilir, dosya birkac katina cikar ve okumak yavaslar.
+# `var_to_bytes` ayni veriyi ikili tutar.
+#
+# `save.json` ise KUCUK ve INSAN OKUR kalir -- ayarlar ve kosu ozetleri orada.
+# Ikisini ayni dosyaya koymak kucuk olani buyugun rehinesi yapardi.
+#
+# Bu blok `user://`ye erisen TEK yer olma kuralini bozmaz, tersine korur:
+# v2 dosya sistemine hic dokunmaz, yalnizca sozluk uretir.
+
+const OTURUM_YOL := "user://v2_oturum.sav"
+
+
+func oturum_var() -> bool:
+	return FileAccess.file_exists(OTURUM_YOL)
+
+
+## Atomik: once gecici dosyaya, sonra yerine. Yazarken kapanan bir oyun
+## mevcut kaydi bozmasin.
+func oturum_yaz(veri: Dictionary) -> bool:
+	var gecici := OTURUM_YOL + ".tmp"
+	var f := FileAccess.open(gecici, FileAccess.WRITE)
+	if f == null:
+		push_warning("Oturum kaydi yazilamadi: " + gecici)
+		return false
+	f.store_var(veri, true)
+	f.close()
+	if DirAccess.rename_absolute(gecici, OTURUM_YOL) != OK:
+		push_warning("Oturum kaydi yerine tasinamadi.")
+		return false
+	return true
+
+
+## Bos sozluk = kayit yok ya da okunamadi. HICBIR KOSULDA OLUMCUL DEGIL:
+## bozuk bir kayit oyunu acilmaz yapmamali.
+func oturum_oku() -> Dictionary:
+	if not oturum_var():
+		return {}
+	var f := FileAccess.open(OTURUM_YOL, FileAccess.READ)
+	if f == null:
+		push_warning("Oturum kaydi acilamadi.")
+		return {}
+	var v: Variant = f.get_var(true)
+	f.close()
+	if typeof(v) != TYPE_DICTIONARY:
+		push_warning("Oturum kaydi bozuk; yok sayiliyor.")
+		return {}
+	return v
+
+
+func oturum_sil() -> void:
+	if oturum_var():
+		DirAccess.remove_absolute(OTURUM_YOL)
+
+
 func al(anahtar: String, varsayilan_deger = null):
 	return _veri.get(anahtar, varsayilan_deger)
 

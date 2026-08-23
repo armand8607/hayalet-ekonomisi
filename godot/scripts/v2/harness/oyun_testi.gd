@@ -425,9 +425,110 @@ static func kos() -> int:
 	print("\n--- 8. B7c: bloklar ve ad takvimi ---")
 	_sunum_kademesi(aktorlu)
 
+	# -----------------------------------------------------------------
+	print("\n--- 9. B7d: kayit / yukleme ---")
+	_kayit_kademesi()
+
 	print("\n" + "-".repeat(70))
 	print("SONUC: %d gecti, %d kaldi" % [_gecen, _kalan])
 	return 0 if _kalan == 0 else 1
+
+
+## B7d -- oturum serilestirmesi.
+##
+## EN SERT DENETIM GELECEGE BAKAR. "Yukleme sonrasi dunya ayni" YETMEZ:
+## RNG durumu kaydedilmemis olsa bile o an ayni gorunur, cunku RNG bir SONRAKI
+## tikte konusur. Bu yuzden iki dunya yuklemeden SONRA birlikte surulur ve
+## hala ayni olmalari beklenir -- kaydedilmemis tek bir MT19937 kelimesi
+## burada ortaya cikar.
+static func _kayit_kademesi() -> void:
+	var kodlar := Harita.kapi_kodlar(6)
+	var a := Oyun.new()
+	a.kur(kodlar[0], 42, kodlar)
+	a.taktik_ayarla("t_milliyetcilik", 0.35)
+	a.yukseltme_payi_ayarla(0.55)
+	a.ilerle(40 * Oyun.YILDA_TIK)
+
+	var c := a.sozluge()
+
+	# IKILI BICIM GERCEKTEN CALISIYOR mu: sozluk `var_to_bytes` ile gidip
+	# gelmeli, yoksa diske yazilamaz.
+	var ham := var_to_bytes(c)
+	var geri: Variant = bytes_to_var(ham)
+	_dogrula(geri is Dictionary, "kayit ikili bicimde gidip geliyor",
+			"%.1f KB" % (ham.size() / 1024.0))
+
+	var b := Oyun.new()
+	var basarili := b.sozlukten(geri)
+	_dogrula(basarili, "kayit yuklendi")
+	if not basarili:
+		return
+
+	# (a) YUKLEME ANINDA alan alan ayni.
+	var fark := _dunya_farki(a.dunya, b.dunya)
+	_dogrula(fark == "", "yuklenen dunya kaydedilenle ALAN ALAN ayni",
+			"ilk ayrisma: " + fark if fark != "" else "")
+
+	_dogrula(a.tik() == b.tik() and a.oyuncu == b.oyuncu,
+			"tik ve oyuncu korundu", "%d / %d" % [b.tik(), b.oyuncu])
+	_dogrula(a.gecmis.ornek_sayisi() == b.gecmis.ornek_sayisi(),
+			"gecmis ornekleri korundu",
+			"%d ornek" % b.gecmis.ornek_sayisi())
+	_dogrula(a.gunce.girdiler.size() == b.gunce.girdiler.size()
+			and a.gunce.sayac.size() == b.gunce.sayac.size(),
+			"gunce korundu", "%d girdi" % b.gunce.girdiler.size())
+
+	# Gecmis SERISI de birebir olmali: sayilar degil sayi SAYISI korunmus
+	# olabilir ve grafik yine yanlis cizer.
+	var seri_a := a.gecmis.seri("r_yil", 0)
+	var seri_b := b.gecmis.seri("r_yil", 0)
+	var seri_ayni := seri_a.size() == seri_b.size()
+	if seri_ayni:
+		for k in range(seri_a.size()):
+			if not _f_ayni(seri_a[k], seri_b[k]):
+				seri_ayni = false
+				break
+	_dogrula(seri_ayni, "gecmis serisi birebir", "%d nokta" % seri_b.size())
+
+	# (b) ASIL DENETIM: ikisi birlikte surulunce hala ayni mi. RNG durumu
+	#     kaydedilmemis olsaydi (a) yine gecerdi ve bu DUSERDI.
+	var devam := 10 * Oyun.YILDA_TIK
+	a.ilerle(devam)
+	b.ilerle(devam)
+	var fark2 := _dunya_farki(a.dunya, b.dunya)
+	_dogrula(fark2 == "",
+			"%d yil DAHA surulunce hala ayni (RNG durumu korundu)"
+					% (devam / Oyun.YILDA_TIK),
+			"ilk ayrisma: " + fark2 if fark2 != "" else "")
+
+	# (c) BOZUK KAYIT OYUNU BOZMAZ. `Save`in v4.4 sozlesmesiyle ayni ilke:
+	#     hicbir kosulda olumcul degil.
+	var kotu := Oyun.new()
+	kotu.kur(kodlar[0], 42, kodlar)
+	var once_tik := kotu.tik()
+	_dogrula(not kotu.sozlukten({"surum": 999}),
+			"gelecekten gelen kayit REDDEDILIYOR")
+	_dogrula(kotu.tik() == once_tik and kotu.dunya != null,
+			"reddedilen kayit acik oturuma dokunmadi")
+
+	# (d) DISK YOLU. Sozluk yuvarlagi diskten gecmeyi KANITLAMAZ: `store_var`
+	#     ile `get_var` arasinda bir bicim farki, bir izin hatasi ya da yarim
+	#     yazilmis bir dosya ancak burada gorunur. Kapi kendi arkasini
+	#     temizler -- bir kapi kalici durum birakmamali.
+	var vardi := Save.oturum_var()
+	var yazildi := Save.oturum_yaz(c)
+	_dogrula(yazildi and Save.oturum_var(), "oturum diske yazildi")
+	var diskten := Save.oturum_oku()
+	var d := Oyun.new()
+	_dogrula(not diskten.is_empty() and d.sozlukten(diskten),
+			"oturum diskten okundu")
+	if not diskten.is_empty():
+		_dogrula(_dunya_farki(a.dunya, d.dunya) == "" or a.tik() != d.tik(),
+				"diskten gelen dunya sozlukten gelenle tutarli",
+				"tik %d" % d.tik())
+	if not vardi:
+		Save.oturum_sil()
+		_dogrula(not Save.oturum_var(), "kapi kendi kaydini temizledi")
 
 
 ## B7b -- AI ulkeleri karanlik devletin kollarina KENDI krizlerine gore uzaniyor
