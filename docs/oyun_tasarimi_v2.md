@@ -2488,3 +2488,45 @@ koşar — ve kendi arkasını temizler, çünkü bir kapı kalıcı durum bıra
 Bozuk ya da gelecekten gelen bir kayıt reddedilir ve **açık oturuma
 dokunmaz**; `Save`in v4.4 sözleşmesiyle aynı ilke: hiçbir koşulda ölümcül
 değil.
+
+
+---
+
+## 6m. Kampanya sonu — tarihsel sonuç raporu
+
+§9.8'in kuralı: **zafer koşulu yoktur.** Koşu ufuk dolunca biter ve bir
+tarihsel sonuç raporu üretir; devrim bir kayıp değil, oyuncunun elindeki
+politika setinin değişmesidir. v2'de bu rapor **hiç yoktu** — kampanya 2100'de
+sessizce duruyordu.
+
+Raporda ne puan var, ne "kazandın", ne yıldız. Olan şey sayılır; yorumu okuyana
+kalır. Bir skor eklenseydi oyunun anlattığı şey değişirdi: kriz yönetilmesi
+gereken bir sınav olurdu, oysa oyun onun **yapısal** olduğunu söylüyor.
+
+Hiçbir sayı yeniden hesaplanmaz — hepsi `gecmis`, `gunce` ve dünyanın o anki
+durumundan türetilir. Rapor kendi ölçümünü yapsaydı ekrandaki grafikle raporun
+sayısı ayrışabilirdi ve hangisinin doğru olduğu sorulamazdı.
+
+LTRPF **zirveden** ölçülür, baştan değil: kampanya başı bir geçici rejimdir
+(§6i), ve "baştan sona" karşılaştırması eğilimi değil o artefaktı ölçerdi.
+Örnek koşu (Osmanlı/Türkiye, tohum 42, 24 ülke):
+
+| | |
+|---|---|
+| kâr oranı zirvesi | **0.274 @ 1959** |
+| kâr oranı 2100 | **0.027** — zirveden **−%90.3** |
+| verimlilik `q` | 92.33 |
+| organik bileşim `c/v` | 7.82 |
+| otomasyon payı | %80.0 |
+
+### Ufuk hiç dolmuyormuş
+
+Raporu bağlarken çıktı: `bitti()` `yil >= 2100.0` diye bakıyordu, ama 264 yıl
+koşulunca `yil` haftalık birikimle 2099.9999999…'a varıyor ve koşul **hiç**
+sağlanmıyordu. Üst şerit 2100 yazıyordu çünkü o zaten epsilon toleranslı
+`takvim_yili()`'ni kullanıyor — yani **ekran "bitti" derken motor "bitmedi"
+diyordu**, ve rapor hiç açılmıyordu. Ufuk artık tik sayar.
+
+Bu, kayan nokta ailesinin üçüncü üyesi (örnekleme zamanı, takvim etiketi, ve
+şimdi ufuk) ve en sinsisi: diğer ikisi yanlış bir sayı gösteriyordu, bu ise
+bir mekanizmayı hiç çalıştırmıyordu.

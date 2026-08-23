@@ -351,8 +351,11 @@ func _secili_ciz() -> void:
 	var yazi := get_theme_default_font()
 	var boy := get_theme_default_font_size()
 	var satirlar: Array[String] = []
-	satirlar.append(_gorunen_ad(u))
-	if String(u["ad_1836"]) != "":
+	var gorunen := _gorunen_ad(u)
+	satirlar.append(gorunen)
+	# IKINCI SATIR yalnizca FARKLIYSA. Ad takvimi gelince (B7c) tarihsel ad
+	# modern adiyla ayni olabiliyor ve kutu "Turkiye / Turkiye" yaziyordu.
+	if String(u["ad"]) != gorunen:
 		satirlar.append(String(u["ad"]))
 	satirlar.append(String(u["kita"]))
 

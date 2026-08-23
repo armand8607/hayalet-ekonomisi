@@ -120,7 +120,7 @@ birlikte; `--headless` çizmez), `--v2-b6` (ölçek: tam kadro 113 ülke,
 `--v2-iz[=YIL[:baş[:dönem]]]`, `--v2-uretim-iz` ve `--v2-oyun-iz[=YIL]`
 (teşhis izleri).
 
-**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (65 denetim, ~3 dk — son
+**Oyun kabuğu (B7).** `--v2-oyun` kapıyı koşar (68 denetim, ~3 dk — son
 kademesi iki kolu tam ufukta koşar). Tanılar: `--v2-aktor-iz[=YIL[:ülke]]` ve
 `--v2-aktor-tarama` (B7b kalibrasyonu).
 `--v2-menu` kampanya kurulum ekranını,
@@ -420,6 +420,12 @@ Her biri gerçek zamana mal oldu; yeniden keşfetme.
   satırı örneklenirse her kâr oranı grafiği olmayan bir çöküşle başlar — ve
   hata **metriğin türüne göre** değişir (`pay`, `q` gerçek başlangıç alanı
   olduğu için onlarda görünmez). `Gecmis` ilk örneği ilk yılın sonunda alır.
+- **UFUK DA TIK SAYARAK BULUNUR.** Ayni kayan nokta ailesinin ucuncu uyesi ve
+  en sinsisi: `bitti()` `yil >= 2100.0` diye bakiyordu, ama 264 yil kosunca
+  `yil` 2099.9999999...'a variyor ve kosul HIC saglanmiyordu — kampanya
+  bitmiyor, bitis raporu hic acilmiyordu. Ust serit 2100 yaziyordu cunku o
+  zaten epsilon toleransli `takvim_yili()`i kullaniyor: **ekran "bitti" derken
+  motor "bitmedi" diyordu.** `Oyun.UFUK_TIK` tik sayar.
 - **`yil` kayan noktada birikir: 52 tik sonra 1836.9999999999998.** `int()`
   bunu 1836'ya kırpar ve grafiğin, güncenin, üst şeridin bütün yıl etiketleri
   bir yıl geri kayar. Takvim yılı **tik sayısından** türetilir
@@ -617,6 +623,7 @@ Ayrı ağaç, ayrı sınıflar, **otoload yok**. v4.4 dosyalarından yalnızca
 | `ZamanGrafigi` | `ui/` — tek metriğin serisi; `Chart`ın aksine otoloada bağlı değil |
 | `OyunMenusu` | `ui/` — kampanya kurulumu: özne seçimi (senaryo yok, §5.3) |
 | `Kayit` | `oyun/` — oturumun serileştirilmesi; RNG durumu dahil (B7d) |
+| `RaporPaneli` | `ui/` — kampanya sonu tarihsel sonuç raporu; skor değil kayıt |
 | `OyunTesti` | `harness/` — B7: kabuk motoru değiştirmiyor mu, kollar canlı mı |
 
 **Katmanlar TAKILI DEĞİLKEN çekirdek zerre değişmez.** `cekirdek.mikro`,

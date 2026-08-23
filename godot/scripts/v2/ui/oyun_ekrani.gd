@@ -38,6 +38,7 @@ var _harita: HaritaGorunum
 var _ulke_paneli: UlkePaneli
 var _politika_paneli: PolitikaPaneli
 var _gunce_paneli: GuncePaneli
+var _rapor_paneli: RaporPaneli
 
 var _takvim: Label
 var _bilgi: Label
@@ -47,6 +48,7 @@ var _hiz_dugmeleri: Array[Button] = []
 var _hiz := 0
 var _sayac := 0.0
 var _son_yil := -1
+var _bitis_gosterildi := false
 
 
 func _ready() -> void:
@@ -78,8 +80,13 @@ func kur(p_oyun: Oyun) -> void:
 		if ki >= 0:
 			_harita.secili = ki
 	_son_yil = -1
+	# KAYITTAN YUKLENEN OYUN ZATEN BITMIS OLABILIR. Bayrak burada sifirlanir
+	# ve bitmis bir oturum acilir acilmaz raporunu gosterir.
+	_bitis_gosterildi = false
 	_bosluklari_guncelle()
 	_yenile()
+	if oyun.bitti():
+		_raporu_ac()
 
 
 # ===========================================================================
@@ -104,6 +111,7 @@ func _process(delta: float) -> void:
 		_yenile()
 	if oyun.bitti():
 		_hiz_ayarla(0)
+		_raporu_ac()
 
 
 ## KAYDEDERKEN DURAKLATILIR. Serilestirme bir tik surer ve o sirada dunya
@@ -116,6 +124,20 @@ func _kaydet() -> void:
 	var basarili := Save.oturum_yaz(oyun.sozluge())
 	_bilgi.text = ("Kaydedildi — %d" % oyun.takvim_yili() if basarili
 			else "KAYIT YAZILAMADI")
+
+
+## Kampanya bitince BIR KEZ acilir. Her karede acilsaydi oyuncu onu
+## kapatamazdi -- `_process` her karede `bitti()` goruyor.
+func _raporu_ac() -> void:
+	if _bitis_gosterildi or oyun == null:
+		return
+	_bitis_gosterildi = true
+	_yenile()                     # son yilin verisi rapora girsin
+	_ulke_paneli.visible = false
+	_politika_paneli.visible = false
+	_bosluklari_guncelle()
+	_rapor_paneli.goster(oyun.rapor())
+	_rapor_paneli.visible = true
 
 
 func _hiz_ayarla(i: int) -> void:
@@ -238,6 +260,21 @@ func _panelleri_kur() -> void:
 	_gunce_paneli.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	_gunce_paneli.offset_top = -156
 	add_child(_gunce_paneli)
+
+	# RAPOR ORTADA ve KAPATILABILIR. Ayri bir ekran olsaydi oyuncu raporu
+	# okurken yarattigi dunyayi goremezdi; kapatilamasaydi da haritaya son
+	# bir kez bakamazdi (§5.5).
+	_rapor_paneli = RaporPaneli.new()
+	_rapor_paneli.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_rapor_paneli.offset_left = -280
+	_rapor_paneli.offset_right = 280
+	_rapor_paneli.offset_top = -230
+	_rapor_paneli.offset_bottom = 230
+	_rapor_paneli.visible = false
+	_rapor_paneli.kapat_istendi.connect(func() -> void:
+		_rapor_paneli.visible = false)
+	_rapor_paneli.menuye_don.connect(func() -> void: menuye_don.emit())
+	add_child(_rapor_paneli)
 
 
 ## Iki sag panel ayni yeri paylasir; biri acilinca digeri kapanir. Ust uste

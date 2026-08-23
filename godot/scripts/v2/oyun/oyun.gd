@@ -207,8 +207,22 @@ func ilerle(n: int = 1) -> void:
 			gecmis.ornekle(dunya, BAS_YIL + float(_tik / YILDA_TIK))
 
 
+## UFUK TIK SAYARAK BULUNUR, `yil`e BAKARAK DEGIL.
+##
+## Olculdu ve ekranda yakalandi: 264 yil kosulduktan sonra `dunya.yil`
+## 2100.0'a degil 2099.9999999999...'a variyor, cunku her tik 1/52 ekliyor.
+## `yil >= 2100.0` bu yuzden HIC saglanmiyordu -- kampanya bitmiyor, ufuk
+## calismiyor, ve bitis raporu hic acilmiyordu. Ust serit 2100 yaziyordu
+## cunku o zaten epsilon toleransli `takvim_yili()`i kullaniyor; yani ekran
+## "bitti" derken motor "bitmedi" diyordu.
+##
+## Tik saymak kayan noktadan bagimsizdir, ve ayni disiplin `Gecmis`in
+## ornekleme zamaninda da kullaniliyor.
+const UFUK_TIK := int((BITIS_YIL - BAS_YIL) * YILDA_TIK)
+
+
 func bitti() -> bool:
-	return dunya == null or dunya.yil >= BITIS_YIL
+	return dunya == null or _tik >= UFUK_TIK
 
 
 func yil() -> float:
@@ -383,6 +397,96 @@ func sozlukten(c: Dictionary) -> bool:
 	gunce.girdiler = (c["gunce"]["girdiler"] as Array).duplicate(true)
 	gunce.sayac = (c["gunce"]["sayac"] as Dictionary).duplicate(true)
 	return true
+
+
+# ===========================================================================
+# TARIHSEL SONUC RAPORU
+# ===========================================================================
+
+## Kampanya bitince uretilen KAYIT. Skor DEGIL.
+##
+## §9.8'in kurali: "ZAFER KOSULU YOKTUR. Kosu ufuk dolunca biter ve bir
+## tarihsel sonuc raporu uretir. Devrim bir kayip degil, oyuncunun elindeki
+## politika setinin degismesidir." Dolayisiyla burada ne puan var, ne
+## "kazandin", ne yildiz. Olan sey sayilir; yorumu okuyana kalir.
+##
+## HICBIR SEY YENIDEN HESAPLANMAZ. Butun sayilar `gecmis`, `gunce` ve dunyanin
+## o anki durumundan TURETILIR -- rapor kendi olcumunu yapsaydi ekrandaki
+## grafikle raporun sayisi ayrisabilirdi, ve hangisinin dogru oldugu
+## sorulamazdi.
+func rapor() -> Dictionary:
+	var c := {
+		"yil": takvim_yili(),
+		"oyuncu": oyuncu,
+		"ad": ad(oyuncu) if oyuncu >= 0 else "",
+		"dunya": _dunya_ozeti(),
+	}
+	if oyuncu >= 0:
+		c["ulke"] = _ulke_ozeti(oyuncu)
+	return c
+
+
+func _dunya_ozeti() -> Dictionary:
+	var sosyalist := 0
+	var devrim := 0
+	var savas := 0
+	for d in dunya.ulkeler:
+		if d.rejim == "sosyalist":
+			sosyalist += 1
+		if d.devrim_yil > 0.0:
+			devrim += 1
+		savas += d.savas_toplam
+	var blok := Harita.bloklar(dunya)
+	var blok_boy := {}
+	for i in range(blok.size()):
+		if blok[i] >= 0:
+			blok_boy[blok[i]] = int(blok_boy.get(blok[i], 0)) + 1
+	var en_buyuk := 0
+	for k in blok_boy.keys():
+		en_buyuk = maxi(en_buyuk, int(blok_boy[k]))
+	return {
+		"ulke_sayisi": dunya.ulkeler.size(),
+		"sosyalist": sosyalist,
+		"devrim": devrim,
+		"savas": savas,
+		"blok": blok_boy.size(),
+		"en_buyuk_blok": en_buyuk,
+		"tescil": gunce.sayac.duplicate(),
+	}
+
+
+## Oyuncunun kendi ulkesinin yorungesi. LTRPF'nin ZIRVEDEN olculmesi bilincli:
+## kampanya basi bir gecici rejimdir (§6i'de olculdu, 1837'de 0.027 ve 1948'de
+## 0.380), dolayisiyla "bastan sona" karsilastirmasi egilimi degil baslangic
+## artefaktini olcerdi.
+func _ulke_ozeti(i: int) -> Dictionary:
+	var d := dunya.ulkeler[i]
+	var r := gecmis.seri("r_yil", i)
+	var zirve := -INF
+	var zirve_yil := 0
+	for k in range(r.size()):
+		if r[k] > zirve:
+			zirve = r[k]
+			zirve_yil = int(gecmis.yillar[k])
+	var son := r[r.size() - 1] if not r.is_empty() else 0.0
+
+	var kendi := {}
+	for g in gunce.girdiler:
+		if int(g["ulke"]) == i:
+			var t := String(g["tip"])
+			kendi[t] = int(kendi.get(t, 0)) + 1
+
+	return {
+		"rejim": d.rejim, "kurum": d.kurum, "cag": d.era,
+		"devrim_yil": int(d.devrim_yil) if d.devrim_yil > 0.0 else 0,
+		"r_zirve": zirve, "r_zirve_yil": zirve_yil, "r_son": son,
+		"q": d.q, "cv": d.cv, "pay": d.pay,
+		"issizlik": d.iss_duzeltilmis(), "oto": d.oto,
+		"bolunme": d.bolunme, "cezaevi": d.cezaevi_orani,
+		"egitim": d.egitim, "org": d.org, "sehit": d.sehit,
+		"savas": d.savas_toplam, "yenilgi": d.yenilgi_sayisi,
+		"tescil": kendi,
+	}
 
 
 static func bicimle(v: float, bicim: String) -> String:
